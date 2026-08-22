@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../lib/theme";
 import { uid, money, num, pct, nfmt, MESES } from "../lib/format";
-import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
+import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, LlaveIA, inputCls, inputSt } from "../components/ui";
 import { claudeFetch, textoDe } from "../lib/claude";
 
 /* ============================================================
@@ -57,7 +57,10 @@ ELIMINACIÓN: qué hay que quitar o dejar de hacer para que el número mejore.`
   return (
     <>
       <Card title="Diagnóstico ejecutivo del proyecto" sub="La IA lee tu modelo completo y lo evalúa como lo haría un comité de inversión."
-        right={<Btn kind="primary" small onClick={diagnosticar} disabled={cargando}>{cargando ? "Analizando…" : "Generar diagnóstico"}</Btn>}>
+        right={<div className="flex gap-2 items-center">
+          <LlaveIA />
+          <Btn kind="primary" small onClick={diagnosticar} disabled={cargando}>{cargando ? "Analizando…" : "Generar diagnóstico"}</Btn>
+        </div>}>
         {error && <div className="text-[12px] px-3 py-2 rounded mb-3" style={{ background: "#FDECEA", color: C.neg }}>{error}</div>}
         {texto ? (
           <div className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: C.ink }}>{texto}</div>

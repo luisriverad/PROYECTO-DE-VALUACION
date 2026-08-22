@@ -8,9 +8,9 @@ import {
 } from "recharts";
 
 /* ============================================================
-   9. ESTADO DE RESULTADOS
+   9. FORECAST
    ============================================================ */
-export default function TabPyL({ s, m }) {
+export default function TabPyL({ s, up, m }) {
   const [vista, setVista] = useState("mensual");
   const cols = vista === "mensual" ? m.meses : m.anios;
   const head = vista === "mensual" ? m.meses.map((x) => x.mes) : m.anios.map((a) => a.label);
@@ -35,24 +35,63 @@ export default function TabPyL({ s, m }) {
     );
   };
 
+  const mixTotal = s.productos.reduce((a, p) => a + (p.mix || 0), 0);
+  const mixOk = Math.abs(mixTotal - 1) <= 0.001;
+
   const chart = m.meses.map((x) => ({ mes: x.mes, Ventas: Math.round(x.ventas), EBITDA: Math.round(x.ebitda), Acumulada: Math.round(x.acum) }));
 
   return (
     <>
-      <Card title="Estado de resultados proyectado"
+      <Card title="Forecast" sub="Las piezas por modelo mandan: cámbialas aquí y todo el estado financiero se recalcula."
         right={<div className="flex gap-2">
           <Btn small kind={vista === "mensual" ? "dark" : "ghost"} onClick={() => setVista("mensual")}>Año 1 mensual</Btn>
           <Btn small kind={vista === "anual" ? "dark" : "ghost"} onClick={() => setVista("anual")}>{s.supuestos.horizonte} años</Btn>
         </div>} pad={false}>
         <div style={{ overflowX: "auto" }} className="p-4">
-          <table className="w-full" style={{ minWidth: vista === "mensual" ? 1200 : 700 }}>
+          <table className="w-full" style={{ minWidth: vista === "mensual" ? 1320 : 780 }}>
             <thead><tr>
-              <Th align="left" w="180">Concepto</Th>
+              <Th align="left" w="240">Concepto</Th>
               {head.map((h) => <Th key={h}>{h}</Th>)}
               {vista === "mensual" && <Th>Total</Th>}
             </tr></thead>
             <tbody>
-              <R label="Unidades" f={(c) => c.unidades} tone="muted" unidades />
+              <tr>
+                <Td align="left" bold bg={C.soft} colSpan={cols.length + (vista === "mensual" ? 2 : 1)}>
+                  <div className="flex items-center justify-between gap-4">
+                    <span>Piezas por modelo — es lo que mueve todo el forecast</span>
+                    <span className="text-[11px] font-normal" style={{ color: mixOk ? C.pos : C.neg }}>
+                      {mixOk
+                        ? `Mix completo · ${pct(mixTotal, 1)}`
+                        : `El mix suma ${pct(mixTotal, 1)}: ajusta los porcentajes hasta llegar a 100%`}
+                    </span>
+                  </div>
+                </Td>
+              </tr>
+              {s.productos.map((p, iProd) => (
+                <tr key={p.id}>
+                  <Td align="left" color={C.muted}>
+                    <div className="flex items-center gap-2" style={{ paddingLeft: 12 }}>
+                      <span className="flex-1">{p.nombre}</span>
+                      <div style={{ width: 74 }}>
+                        <PctIn value={p.mix || 0} dec={1} onChange={(v) => up((n) => { n.productos[iProd].mix = v; })} />
+                      </div>
+                    </div>
+                  </Td>
+                  {cols.map((c, i) => <Td key={i} color={C.muted}>{num((c.unidades || 0) * (p.mix || 0), 0)}</Td>)}
+                  {vista === "mensual" && <Td color={C.muted}>{num(cols.reduce((a, c) => a + (c.unidades || 0) * (p.mix || 0), 0), 0)}</Td>}
+                </tr>
+              ))}
+              <tr>
+                <Td align="left" bold>Piezas totales</Td>
+                {cols.map((c, i) => (
+                  <Td key={i} bold>
+                    {vista === "mensual"
+                      ? <NumIn value={s.plan.unidadesMes[i]} dec={0} plain align="right" onChange={(v) => up((n) => { n.plan.unidadesMes[i] = v; })} />
+                      : num(c.unidades, 0)}
+                  </Td>
+                ))}
+                {vista === "mensual" && <Td bold>{num(cols.reduce((a, c) => a + (c.unidades || 0), 0), 0)}</Td>}
+              </tr>
               <R label="Ventas" f={(c) => c.ventas} bold />
               <R label="Materiales" f={(c) => -c.mp} indent />
               <R label="Nómina directa" f={(c) => -c.nomina} indent />
@@ -75,6 +114,11 @@ export default function TabPyL({ s, m }) {
               <R label="Utilidad acumulada" f={(c) => c.acum} bold total="last" />
             </tbody>
           </table>
+          <div className="text-[11px] mt-3" style={{ color: C.muted }}>
+            Captura el porcentaje del mix junto a cada modelo — entre todos deben sumar 100% o el volumen no se reparte completo.
+            Es el mismo campo de Pricing, igual que las piezas totales son el mismo campo del Plan de ventas:
+            los cambies donde los cambies, es el mismo número.
+          </div>
         </div>
       </Card>
 

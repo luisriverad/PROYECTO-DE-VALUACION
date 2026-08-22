@@ -91,8 +91,8 @@ export function exportarExcel(XLSX, s, m) {
   s.insumos.forEach((i) => cost.push(["", i.nombre, $(i.costoLote), N2(i.volumenLote), i.unidad, $2(m.insumoUnit[i.id])]));
   cost.push(vacio);
   cost.push(["MANO DE OBRA"]);
-  cost.push(["", "Puesto", "Sueldo mensual", "Personas", "Horas productivas / mes", "Costo por hora", "Costo anual"]);
-  s.recursosMO.forEach((r) => cost.push(["", r.nombre, $(r.sueldoMensual), r.personas, r.horasMes, $2(m.moHora[r.id]), $(r.sueldoMensual * r.personas * 12)]));
+  cost.push(["", "Puesto", "Sueldo mensual", "Personas", "Horas contratadas / mes", "Índice de ineficiencia", "Horas productivas / mes", "Costo por hora", "Nómina anual", "Costo de la ineficiencia"]);
+  s.recursosMO.forEach((r) => cost.push(["", r.nombre, $(r.sueldoMensual), r.personas, r.horasMes, P(r.ineficiencia || 0), N(m.moHorasEfect[r.id]), $2(m.moHora[r.id]), $(r.sueldoMensual * r.personas * 12), $((r.sueldoMensual || 0) * (r.personas || 1) * 12 * (r.ineficiencia || 0))]));
   cost.push(["", "Nómina directa total", $(m.nominaMes), "", "", "", $(m.nominaMes * 12)]);
   cost.push(vacio);
   cost.push(["COSTOS DE PRODUCCIÓN"]);
@@ -108,7 +108,7 @@ export function exportarExcel(XLSX, s, m) {
   cost.push(["", "Base fija total", $(m.cpFijoMes), "", "", $2(m.cpVarU), $(m.cpFijoMes * 12 + m.cpVarU * u1x)]);
   cost.push(vacio);
   cost.push(["CAPACIDAD INSTALADA"]);
-  cost.push(["", "Horas disponibles / año", N(m.capacidad.horasDisp)]);
+  cost.push(["", "Horas productivas / año (netas de ineficiencia)", N(m.capacidad.horasDisp)]);
   cost.push(["", "Horas requeridas / año", N(m.capacidad.horasReq)]);
   cost.push(["", "Uso de capacidad", P(m.capacidad.uso)]);
   cost.push(["", "Horas de MO por unidad (promedio ponderado)", N2(m.horasProm)]);
@@ -163,9 +163,10 @@ export function exportarExcel(XLSX, s, m) {
   const fila = (label, fn, fmt) => [label, ...m.meses.map((x) => fmt(fn(x))), ...m.anios.map((a) => fmt(fn(a)))];
   const pres = [
     [s.empresa.nombre || "Proyecto"],
-    ["Estado de Resultados Proyectado — ejercicio " + s.empresa.anio],
+    ["Forecast — ejercicio " + s.empresa.anio],
     vacio, enc,
-    fila("Unidades", (x) => x.unidades, N),
+    ...s.productos.map((p) => fila(p.nombre + " (piezas)", (x) => (x.unidades || 0) * (p.mix || 0), N)),
+    fila("Piezas totales", (x) => x.unidades, N),
     fila("Ventas", (x) => x.ventas, $),
     fila("Materiales", (x) => -x.mp, $),
     fila("Nómina directa", (x) => -x.nomina, $),

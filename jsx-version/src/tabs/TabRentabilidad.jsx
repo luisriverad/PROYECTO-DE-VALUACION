@@ -12,6 +12,7 @@ import {
    ============================================================ */
 export default function TabRentabilidad({ s, up, m }) {
   const v = s.valuacion;
+  const sp = s.supuestos;
   const flujoChart = m.flujos.map((f) => ({ y: "Año " + f.y, FCF: Math.round(f.fcf) }));
   const acumChart = m.acumSerie.map((a) => ({ y: "Año " + a.y, Acumulado: Math.round(a.acum) }));
 
@@ -124,17 +125,61 @@ export default function TabRentabilidad({ s, up, m }) {
         </Card>
       </div>
 
-      <Card title="Capital de trabajo por año" sub="El crecimiento se financia con caja antes de generarla.">
-        <table className="w-full">
-          <thead><tr><Th align="left">Concepto</Th>{m.ct.map((c) => <Th key={c.y}>Año {c.y}</Th>)}</tr></thead>
-          <tbody>
-            <tr><Td align="left">Cuentas por cobrar</Td>{m.ct.map((c) => <Td key={c.y}>{money(c.cxc)}</Td>)}</tr>
-            <tr><Td align="left">Inventarios</Td>{m.ct.map((c) => <Td key={c.y}>{money(c.inv)}</Td>)}</tr>
-            <tr><Td align="left">Cuentas por pagar</Td>{m.ct.map((c) => <Td key={c.y}>{money(-c.cxp)}</Td>)}</tr>
-            <tr><Td align="left" bold>Capital de trabajo neto</Td>{m.ct.map((c) => <Td key={c.y} bold>{money(c.ctn)}</Td>)}</tr>
-            <tr><Td align="left" color={C.muted}>Impacto en el flujo</Td>{m.ct.map((c) => <Td key={c.y} color={c.delta < 0 ? C.neg : C.pos}>{money(c.delta)}</Td>)}</tr>
-          </tbody>
-        </table>
+      <Card title="Capital de trabajo por año"
+        sub="El crecimiento se financia con caja antes de generarla. Mueve los supuestos de la derecha y se ajusta todo: la tabla, el flujo libre, el VPN y la inversión requerida.">
+        <div className="grid gap-4" style={{ gridTemplateColumns: "minmax(0,1fr) 260px", alignItems: "start" }}>
+          <div className="min-w-0">
+            <table className="w-full">
+              <thead><tr>
+                <Th align="left" w="70">Año</Th><Th>Cuentas por cobrar</Th><Th>Inventarios</Th>
+                <Th>Cuentas por pagar</Th><Th>Var. capital de trabajo</Th><Th>Capital de trabajo neto</Th>
+              </tr></thead>
+              <tbody>
+                {m.ct.map((c) => (
+                  <tr key={c.y}>
+                    <Td align="left" color={C.muted}>Año {c.y}</Td>
+                    <Td>{money(c.cxc)}</Td>
+                    <Td>{money(c.inv)}</Td>
+                    <Td>{money(c.cxp)}</Td>
+                    <Td color={c.delta < 0 ? C.neg : C.pos}>{money(c.delta)}</Td>
+                    <Td bold>{money(c.ctn)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="text-[11px] mt-2" style={{ color: C.muted }}>
+              Capital de trabajo neto = cobrar + inventarios − pagar. La variación es lo que entra o sale de la caja cada año
+              y así se descuenta en el flujo libre.
+            </div>
+          </div>
+
+          <div className="rounded-lg p-3" style={{ background: C.soft, border: `1px solid ${C.line}` }}>
+            <div className="text-[10px] uppercase tracking-wide font-semibold mb-2" style={{ color: C.muted }}>
+              Supuestos de capital de trabajo
+            </div>
+            <div className="grid gap-2">
+              <Field label="Días cartera (DSO)">
+                <NumIn value={sp.dso} dec={0} plain onChange={(v) => up((n) => { n.supuestos.dso = v; })} />
+              </Field>
+              <Field label="Clientes con crédito">
+                <PctIn value={sp.pctCredito} dec={1} onChange={(v) => up((n) => { n.supuestos.pctCredito = v; })} />
+              </Field>
+              <Field label="Días inventario (DIO)">
+                <NumIn value={sp.dio} dec={0} plain onChange={(v) => up((n) => { n.supuestos.dio = v; })} />
+              </Field>
+              <Field label="Días proveedores (DPO)">
+                <NumIn value={sp.dpo} dec={0} plain onChange={(v) => up((n) => { n.supuestos.dpo = v; })} />
+              </Field>
+              <Field label="Días base (año)">
+                <NumIn value={sp.diasBase} dec={0} plain onChange={(v) => up((n) => { n.supuestos.diasBase = v; })} />
+              </Field>
+            </div>
+            <div className="text-[11px] mt-3 pt-2" style={{ color: C.muted, borderTop: `1px solid ${C.line}` }}>
+              Ciclo de conversión de efectivo:{" "}
+              <b style={{ color: C.ink }}>{num((sp.dso || 0) + (sp.dio || 0) - (sp.dpo || 0), 0)} días</b>
+            </div>
+          </div>
+        </div>
       </Card>
     </>
   );

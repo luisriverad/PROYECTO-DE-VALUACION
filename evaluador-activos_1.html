@@ -1,0 +1,1501 @@
+<title>Evaluador de Activos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --paper:#F6F8F6; --surface:#FFFFFF; --surface-2:#EEF2EF; --surface-3:#E4EBE7;
+  --ink:#121C18; --ink-2:#3D4B45; --ink-3:#6B7B74;
+  --rule:#D9E1DC; --rule-2:#BCC8C2;
+  --accent:#0B6B4F; --accent-2:#0E8A66; --accent-soft:#E2F0EA;
+  --good:#0B6B4F; --good-soft:#E2F0EA;
+  --warn:#8A5D0C; --warn-soft:#F6EEDB;
+  --bad:#9C3325;  --bad-soft:#F7E7E3;
+  --shadow:0 1px 2px rgba(18,28,24,.05), 0 10px 28px -20px rgba(18,28,24,.4);
+  --f-d:"Newsreader",Georgia,serif;
+  --f-b:"Public Sans",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --f-m:"IBM Plex Mono","SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0D1512; --surface:#141E1A; --surface-2:#1B2723; --surface-3:#22302A;
+  --ink:#E7EEEA; --ink-2:#B3C1BA; --ink-3:#83978E;
+  --rule:#26332D; --rule-2:#35453E;
+  --accent:#49C295; --accent-2:#6ED3AC; --accent-soft:#12312A;
+  --good:#49C295; --good-soft:#12312A;
+  --warn:#D9A648; --warn-soft:#2C2517;
+  --bad:#E28C7E;  --bad-soft:#33201C;
+  --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 32px -22px rgba(0,0,0,.95);
+}}
+:root[data-theme="dark"]{
+  --paper:#0D1512; --surface:#141E1A; --surface-2:#1B2723; --surface-3:#22302A;
+  --ink:#E7EEEA; --ink-2:#B3C1BA; --ink-3:#83978E;
+  --rule:#26332D; --rule-2:#35453E;
+  --accent:#49C295; --accent-2:#6ED3AC; --accent-soft:#12312A;
+  --good:#49C295; --good-soft:#12312A;
+  --warn:#D9A648; --warn-soft:#2C2517;
+  --bad:#E28C7E;  --bad-soft:#33201C;
+  --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 32px -22px rgba(0,0,0,.95);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-b);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1320px;margin:0 auto;padding:0 clamp(14px,3vw,32px)}
+
+/* ---------- masthead ---------- */
+header.top{background:var(--surface);border-bottom:1px solid var(--rule)}
+.topgrid{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+  flex-wrap:wrap;padding:clamp(20px,3vw,30px) 0 clamp(16px,2vw,22px)}
+.brand .eyebrow{font-family:var(--f-m);font-size:.66rem;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:.5em}
+.brand h1{font-family:var(--f-d);font-weight:500;font-size:clamp(1.7rem,3.4vw,2.5rem);
+  line-height:1.05;letter-spacing:-.018em;margin:0}
+.brand p{margin:.5em 0 0;color:var(--ink-3);font-size:.86rem;max-width:52ch}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--surface-2);border:1px solid var(--rule);border-radius:5px;
+  padding:7px 12px;min-width:96px}
+.chip .k{font-family:var(--f-m);font-size:.6rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);display:block}
+.chip .v{font-family:var(--f-m);font-size:1.02rem;font-weight:600;color:var(--accent);
+  font-variant-numeric:tabular-nums}
+
+/* ---------- tabs ---------- */
+nav.tabs{position:sticky;top:0;z-index:30;background:var(--surface);
+  border-bottom:1px solid var(--rule);overflow-x:auto;scrollbar-width:thin}
+.tabrow{display:flex;gap:2px;min-width:max-content;padding:0 clamp(14px,3vw,32px)}
+.tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;
+  font-family:var(--f-b);font-size:.82rem;font-weight:600;color:var(--ink-3);
+  padding:13px 14px;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tab .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--rule-2);margin-right:7px;vertical-align:middle}
+.tab[aria-selected="true"] .dot{background:var(--accent)}
+
+main{padding:clamp(22px,3vw,34px) 0 90px}
+.panel[hidden]{display:none}
+.panelhead{margin-bottom:20px}
+.panelhead h2{font-family:var(--f-d);font-weight:500;font-size:clamp(1.35rem,2.4vw,1.75rem);
+  margin:0;letter-spacing:-.012em}
+.panelhead p{margin:.4em 0 0;color:var(--ink-3);font-size:.88rem;max-width:78ch}
+
+/* ---------- layout ---------- */
+.cols{display:grid;gap:clamp(16px,2vw,26px);grid-template-columns:1fr}
+@media (min-width:1040px){.cols{grid-template-columns:minmax(340px,400px) minmax(0,1fr);align-items:start}}
+.stack{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:7px;
+  box-shadow:var(--shadow);overflow:hidden}
+.card > h3{margin:0;padding:11px 16px;background:var(--surface-2);
+  border-bottom:1px solid var(--rule);font-family:var(--f-m);font-size:.66rem;
+  font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.card .body{padding:14px 16px}
+
+/* ---------- inputs ---------- */
+.field{display:grid;grid-template-columns:1fr 128px;gap:10px;align-items:center;
+  padding:6px 0;border-bottom:1px dotted var(--rule)}
+.field:last-child{border-bottom:0}
+.field label{font-size:.83rem;color:var(--ink-2);line-height:1.35}
+.field label small{display:block;color:var(--ink-3);font-size:.71rem;font-style:italic;margin-top:1px}
+.ibox{display:flex;align-items:center;gap:4px;justify-content:flex-end}
+.ibox .pre,.ibox .suf{font-family:var(--f-m);font-size:.76rem;color:var(--ink-3)}
+input[type=number]{width:100%;font-family:var(--f-m);font-size:.86rem;font-weight:500;
+  text-align:right;padding:5px 7px;border:1px solid var(--rule-2);border-radius:4px;
+  background:var(--paper);color:var(--ink);font-variant-numeric:tabular-nums;
+  -moz-appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0}
+input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.derived{font-family:var(--f-m);font-size:.86rem;font-weight:600;text-align:right;
+  color:var(--accent);font-variant-numeric:tabular-nums;padding-right:8px}
+
+/* ---------- stats ---------- */
+.stats{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));padding:14px 16px}
+.stat{background:var(--surface-2);border:1px solid var(--rule);border-radius:6px;padding:10px 12px;
+  border-top:2px solid var(--rule-2)}
+.stat.key{border-top-color:var(--accent);background:var(--accent-soft)}
+.stat .k{font-family:var(--f-m);font-size:.61rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:3px}
+.stat .v{font-family:var(--f-m);font-size:1.18rem;font-weight:600;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;display:block;line-height:1.2}
+.stat .n{font-size:.7rem;color:var(--ink-3);display:block;margin-top:3px;line-height:1.35}
+.v.pos{color:var(--good)} .v.neg{color:var(--bad)} .v.neutral{color:var(--ink)}
+
+.verdict{margin:0 16px 16px;padding:11px 14px;border-radius:6px;font-size:.88rem;
+  font-weight:600;display:flex;align-items:center;gap:10px;border:1px solid transparent}
+.verdict.ok{background:var(--good-soft);color:var(--good);border-color:var(--good)}
+.verdict.no{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+.verdict.mid{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+.verdict .mark{font-family:var(--f-m);font-size:1.05rem}
+.verdict span.txt{font-weight:500;color:var(--ink-2)}
+
+/* ---------- tables ---------- */
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.79rem;
+  font-variant-numeric:tabular-nums;font-family:var(--f-m)}
+th,td{padding:5px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--rule)}
+thead th{background:var(--surface-2);color:var(--ink-3);font-size:.64rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;position:sticky;top:0}
+tbody th, td.lab{text-align:left;font-family:var(--f-b);font-size:.8rem;font-weight:400;
+  color:var(--ink-2);position:sticky;left:0;background:var(--surface);min-width:230px;
+  border-right:1px solid var(--rule)}
+tr.sum td, tr.sum th{font-weight:700;color:var(--ink);border-top:1px solid var(--rule-2)}
+tr.hi td{background:var(--accent-soft)}
+tr.hi th{background:var(--accent-soft);color:var(--ink);font-weight:700}
+td.neg{color:var(--bad)}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+
+/* ---------- misc ---------- */
+.note{padding:11px 16px;font-size:.78rem;color:var(--ink-3);line-height:1.5;
+  border-top:1px solid var(--rule);background:var(--surface-2)}
+.note b{color:var(--ink-2)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--rule)}
+button.act{appearance:none;font-family:var(--f-b);font-size:.78rem;font-weight:600;
+  padding:7px 13px;border-radius:5px;border:1px solid var(--rule-2);background:var(--surface-2);
+  color:var(--ink-2);cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+button.act:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.act.ghost:hover{background:var(--bad);border-color:var(--bad);color:#fff}
+.themebtn{position:fixed;right:14px;bottom:14px;z-index:50;width:40px;height:40px;
+  border-radius:50%;border:1px solid var(--rule-2);background:var(--surface);
+  color:var(--ink-2);cursor:pointer;box-shadow:var(--shadow);font-size:1rem;line-height:1}
+.chartbox{padding:14px 16px}
+.bars{display:flex;flex-direction:column;gap:9px;padding:16px}
+.bar-row{display:grid;grid-template-columns:minmax(88px,124px) minmax(0,1fr) minmax(88px,116px);
+  gap:12px;align-items:center}
+.bar-name{font-size:.8rem;color:var(--ink-2);text-align:right;line-height:1.25}
+.bar-track{position:relative;height:22px;background:var(--surface-2);
+  border:1px solid var(--rule);border-radius:4px}
+.bar-zero{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--rule-2)}
+.bar-fill{position:absolute;top:3px;bottom:3px;border-radius:2px;transition:left .2s,width .2s}
+.bar-val{font-family:var(--f-m);font-size:.79rem;font-weight:600;text-align:right;
+  font-variant-numeric:tabular-nums}
+svg.chart{width:100%;height:auto;display:block;overflow:visible}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:0 16px 14px;font-size:.72rem;color:var(--ink-3)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+.sechead{font-family:var(--f-m);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--accent);margin:18px 0 8px;font-weight:600}
+.sechead:first-child{margin-top:0}
+.hint{font-size:.78rem;color:var(--ink-3);padding:0 16px 14px;line-height:1.5}
+.pill{display:inline-block;font-family:var(--f-m);font-size:.66rem;padding:2px 7px;
+  border-radius:99px;background:var(--surface-3);color:var(--ink-2);margin-left:6px}
+.winner{background:var(--good-soft);color:var(--good);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="wrap topgrid">
+    <div class="brand">
+      <div class="eyebrow">Profit120 · Presupuesto de capital</div>
+      <h1>Evaluador de activos</h1>
+      <p>Terreno, inmueble, maquinaria, vehículo o empresa nueva. Captura los supuestos y el modelo recalcula al instante.</p>
+    </div>
+    <div class="chips">
+      <div class="chip"><span class="k">WACC</span><span class="v" id="chipWacc">—</span></div>
+      <div class="chip"><span class="k">Ke</span><span class="v" id="chipKe">—</span></div>
+      <div class="chip"><span class="k">ISR</span><span class="v" id="chipIsr">—</span></div>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Secciones">
+  <div class="tabrow" id="tabrow" role="tablist"></div>
+</nav>
+
+<main class="wrap" id="main"></main>
+
+<button class="themebtn" id="themebtn" title="Cambiar tema" aria-label="Cambiar tema">◐</button>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================ utilidades ============================ */
+const $ = (s,c)=> (c||document).querySelector(s);
+const el = (t,cls,txt)=>{const n=document.createElement(t); if(cls)n.className=cls; if(txt!=null)n.textContent=txt; return n;};
+const ok = n => n!=null && isFinite(n);
+const nfM = n => !ok(n) ? '—' : (n<0?'−':'')+'$'+Math.abs(Math.round(n)).toLocaleString('es-MX');
+const nfP = n => !ok(n) ? '—' : (n*100).toFixed(1)+'%';
+const nfP2= n => !ok(n) ? '—' : (n*100).toFixed(2)+'%';
+const nfX = n => !ok(n) ? '—' : n.toFixed(2)+'x';
+const nfN = n => !ok(n) ? '—' : n.toLocaleString('es-MX',{maximumFractionDigits:1});
+
+function npv(rate, cf){ let s=0; for(let i=0;i<cf.length;i++) s += cf[i]/Math.pow(1+rate,i); return s; }
+function irr(cf){
+  if(!cf.some(v=>v>0)||!cf.some(v=>v<0)) return null;
+  let lo=-0.95, hi=5, flo=npv(lo,cf), fhi=npv(hi,cf);
+  if(flo*fhi>0) return null;
+  for(let i=0;i<300;i++){ const mid=(lo+hi)/2, f=npv(mid,cf);
+    if(flo*f<=0){hi=mid;fhi=f;} else {lo=mid;flo=f;} }
+  return (lo+hi)/2;
+}
+function mirr(cf, fin, rein){
+  const n=cf.length-1; let pvN=0, fvP=0;
+  cf.forEach((c,i)=>{ if(c<0) pvN += c/Math.pow(1+fin,i); else fvP += c*Math.pow(1+rein,n-i); });
+  if(pvN>=0 || fvP<=0) return null;
+  return Math.pow(fvP/(-pvN), 1/n)-1;
+}
+function pmt(r,n,pv){ return (r===0||!n)? (n? pv/n : 0) : pv*r/(1-Math.pow(1+r,-n)); }
+function saldoRest(r,t,pago,monto){
+  if(r===0) return Math.max(0, monto - pago*t);
+  return Math.max(0, monto*Math.pow(1+r,t) - pago*((Math.pow(1+r,t)-1)/r));
+}
+function vae(vpn, rate, n){ if(!ok(vpn)||!n||rate<=-1) return null;
+  return vpn*rate/(1-Math.pow(1+rate,-n)); }
+function paybackDesc(acum){
+  if(acum[acum.length-1]<0) return null;
+  return acum.filter(v=>v<0).length;
+}
+/* busca el valor de x que hace f(x)=0 por bisección */
+function solve(f, lo, hi){
+  let flo=f(lo), fhi=f(hi);
+  if(!ok(flo)||!ok(fhi)||flo*fhi>0) return null;
+  for(let i=0;i<200;i++){ const m=(lo+hi)/2, fm=f(m);
+    if(!ok(fm)) return null;
+    if(flo*fm<=0){hi=m;fhi=fm;} else {lo=m;flo=fm;} }
+  return (lo+hi)/2;
+}
+
+/* ============================ estado ============================ */
+const DEF = {
+  sup:{ isr:0.30, inf:0.045, rf:0.095, prm:0.065, beta:1.10, ptam:0.020,
+        kd:0.145, wd:0.30,
+        pMaq:0.00, pInm:-0.050, pAuto:0.00, pTer:0.030, pEmp:0.050 },
+  maq:{ precio:1200000, fletes:40000, instal:90000, capac:20000,
+        venta:0, libros:0, ve:8, vf:10,
+        ing1:900000, gIng:0.05, aho1:120000, cos1:480000, gCos:0.045,
+        pctCT:0.15, mto1:35000, rv:180000 },
+  inm:{ precio:3500000, pctAdq:0.06, remod:120000,
+        ltv:0.50, th:0.115, plazo:15,
+        rentaMes:37500, gRenta:0.05, vac:0.08, predial:9000, seguro:7000,
+        pctMan:0.05, pctAdm:0.06, pctConstr:0.70, tasaDep:0.05,
+        hor:10, capSal:0.080, pctCV:0.06 },
+  ter:{ precio:1800000, pctAdq:0.06, bardeo:90000,
+        predial:14000, vigilancia:30000, rentaTemp:0,
+        plus:0.11, hor:7, pctCV:0.07 },
+  auto:{ precio:620000, anios:5, rv:285000,
+        seguro:24000, tenencia:8000, mto1:16000, gMto:0.08, combustible:0,
+        pctEng:0.20, tc:0.155, plazoC:4,
+        rentaMes:15500, deposito:30000, gRentaA:0.05, incluidos:1,
+        ded:0.80, vfisc:4 },
+  emp:{ capex:1800000, preop:250000, ct0:450000, pctDep:0.80, vf:10,
+        ing1:4000000, g15:0.20, g610:0.08, mb:0.45, pctGO:0.22,
+        pctMto:0.030, pctCT:0.18, hor:10, g:0.045, deudaNeta:0 },
+  esc:{ p1:0.25, p2:0.50, p3:0.25,
+        ing1:[650000,900000,1100000], gIng:[0.00,0.05,0.08],
+        cos1:[560000,480000,430000], precio:[1350000,1200000,1150000],
+        rv:[90000,180000,240000], ve:[6,8,9], td:[0.19,0.161,0.145] }
+};
+const KEY='p120-evaluador-v1';
+let S = JSON.parse(JSON.stringify(DEF));
+try{ const raw=localStorage.getItem(KEY); if(raw){ const o=JSON.parse(raw);
+  for(const k in DEF) if(o[k]) S[k]=Object.assign({}, DEF[k], o[k]); } }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ============================ modelos ============================ */
+function calcSup(){
+  const s=S.sup;
+  const ke = s.rf + s.beta*s.prm + s.ptam;
+  const kdt = s.kd*(1-s.isr);
+  const we = 1-s.wd;
+  const wacc = ke*we + kdt*s.wd;
+  return { isr:s.isr, inf:s.inf, ke, kdt, we, wacc, kd:s.kd,
+    tasas:{ maq:wacc+s.pMaq, inm:wacc+s.pInm, auto:kdt+s.pAuto,
+            ter:wacc+s.pTer, emp:wacc+s.pEmp } };
+}
+
+function calcMaq(sup, ov){
+  ov = ov||{};
+  const m = Object.assign({}, S.maq, ov);
+  const isr=sup.isr, inf=sup.inf, td = (ov.td!=null)? ov.td : sup.tasas.maq;
+  const base = m.precio+m.fletes+m.instal+m.capac;
+  const ct0  = m.pctCT*m.ing1;
+  const efec = -(m.venta-m.libros)*isr;
+  const inv0 = -(base+ct0)+m.venta+efec;
+  const depA = m.vf? base/m.vf : 0;
+  const vl   = Math.max(0, base - depA*Math.min(m.ve,m.vf));
+  const Y=[]; let prevIng=0, acum=0;
+  for(let t=0;t<=10;t++){
+    const on = t>=1 && t<=m.ve;
+    const ing = on? m.ing1*Math.pow(1+m.gIng,t-1) : 0;
+    const aho = on? m.aho1*Math.pow(1+inf,t-1) : 0;
+    const cos = on? -m.cos1*Math.pow(1+m.gCos,t-1) : 0;
+    const ebitda = ing+aho+cos;
+    const dep = (t>=1 && t<=Math.min(m.ve,m.vf))? -depA : 0;
+    const ebit = ebitda+dep;
+    const imp = -ebit*isr;
+    const nopat = ebit+imp;
+    const addDep = -dep;
+    const dct = (t<=1)? 0 : -(m.pctCT*(ing-prevIng));
+    const capex = on? -m.mto1*Math.pow(1+inf,t-1) : 0;
+    const fcfOp = nopat+addDep+dct+capex;
+    const invR  = (t===0)? inv0 : 0;
+    const resc  = (t===m.ve)? m.rv - isr*(m.rv - vl) : 0;
+    const recCT = (t===m.ve)? m.pctCT*ing : 0;
+    const total = (t===0)? inv0 : fcfOp+invR+resc+recCT;
+    const fac = 1/Math.pow(1+td,t);
+    const desc = total*fac; acum += desc;
+    Y.push({t,ing,aho,cos,ebitda,dep,ebit,imp,nopat,addDep,dct,capex,fcfOp,invR,resc,recCT,total,fac,desc,acum});
+    prevIng = ing;
+  }
+  const cf = Y.map(y=>y.total);
+  const vpn = Y.reduce((s,y)=>s+y.desc,0);
+  return { m, td, base, ct0, inv0, depA, vl, Y, vpn,
+    tir:irr(cf), tirm:mirr(cf, sup.kd, td),
+    vaeV:vae(vpn, td, m.ve),
+    ir: inv0<0 ? Y.slice(1).reduce((s,y)=>s+y.desc,0)/(-inv0) : null,
+    pb: paybackDesc(Y.map(y=>y.acum)) };
+}
+
+function calcInm(sup, ov){
+  ov = ov||{};
+  const i = Object.assign({}, S.inm, ov);
+  const isr=sup.isr, inf=sup.inf;
+  const td = (ov.td!=null)? ov.td : sup.tasas.inm;
+  const ke = sup.ke;
+  const gAdq = i.precio*i.pctAdq;
+  const invTot = i.precio+gAdq+i.remod;
+  const monto = i.precio*i.ltv;
+  const capProp = invTot-monto;
+  const pago = monto>0? pmt(i.th, i.plazo, monto) : 0;
+  const depA = i.precio*i.pctConstr*i.tasaDep;
+  const rentaAnual = i.rentaMes*12;
+  const Y=[]; let prevSaldo = monto;
+  for(let t=0;t<=10;t++){
+    const on = t>=1 && t<=i.hor;
+    const rb  = on? rentaAnual*Math.pow(1+i.gRenta,t-1) : 0;
+    const vac = -rb*i.vac;
+    const rEf = rb+vac;
+    const pre = on? -i.predial*Math.pow(1+inf,t-1) : 0;
+    const seg = on? -i.seguro*Math.pow(1+inf,t-1) : 0;
+    const man = -rEf*i.pctMan;
+    const adm = -rEf*i.pctAdm;
+    const noi = rEf+pre+seg+man+adm;
+    let saldo;
+    if(t===0) saldo = monto;
+    else if(t > Math.min(i.plazo, i.hor)) saldo = 0;
+    else saldo = saldoRest(i.th, t, pago, monto);
+    const dep = on? -depA : 0;
+    const intr = on? -(prevSaldo*i.th) : 0;
+    const amo  = on? -(prevSaldo - saldo) : 0;
+    const isr0 = -Math.max(0, noi+dep)*isr;
+    const isr1 = -Math.max(0, noi+dep+intr)*isr;
+    const vs   = (t===i.hor)? noi*(1+i.gRenta)/i.capSal : 0;
+    const cv   = -vs*i.pctCV;
+    const libros = invTot - depA*i.hor;
+    const iga  = (t===i.hor)? -Math.max(0, vs+cv-libros)*isr : 0;
+    const liq  = (t===i.hor)? -saldo : 0;
+    const fu = (t===0)? -invTot : noi+isr0+vs+cv+iga;
+    const fl = (t===0)? -capProp : noi+intr+amo+isr1+vs+cv+iga+liq;
+    Y.push({t,rb,vac,rEf,pre,seg,man,adm,noi,saldo,dep,intr,amo,isr0,isr1,vs,cv,iga,liq,fu,fl,
+            du:fu/Math.pow(1+td,t), dl:fl/Math.pow(1+ke,t)});
+    prevSaldo = saldo;
+  }
+  let ac=0; Y.forEach(y=>{ ac+=y.du; y.acum=ac; });
+  const vpnU = Y.reduce((s,y)=>s+y.du,0);
+  const vpnL = Y.reduce((s,y)=>s+y.dl,0);
+  return { i, td, ke, invTot, monto, capProp, pago, depA, rentaAnual, Y,
+    vpn:vpnU, vpnL, tir:irr(Y.map(y=>y.fu)), tirL:irr(Y.map(y=>y.fl)),
+    capEnt: invTot? Y[1].noi/invTot : null,
+    coc: capProp? Y[1].fl/capProp : null,
+    dscr: pago? Y[1].noi/pago : null,
+    vaeV: vae(vpnU, td, i.hor),
+    pctSalida: (function(){ const s=Y.slice(1).reduce((a,y)=>a+y.du,0);
+      const term=(Y[i.hor]? (Y[i.hor].vs+Y[i.hor].cv+Y[i.hor].iga)/Math.pow(1+td,i.hor):0);
+      return s? term/s : null; })() };
+}
+
+function calcTer(sup, ov){
+  ov = ov||{};
+  const g = Object.assign({}, S.ter, ov);
+  const isr=sup.isr, inf=sup.inf;
+  const td = (ov.td!=null)? ov.td : sup.tasas.ter;
+  const gAdq = g.precio*g.pctAdq;
+  const invTot = g.precio+gAdq+g.bardeo;
+  const Y=[]; let ac=0, pvCarga=0;
+  for(let t=0;t<=10;t++){
+    const on = t>=1 && t<=g.hor;
+    const valEst = t<=g.hor? g.precio*Math.pow(1+g.plus,t) : 0;
+    const carga = on? -(g.predial+g.vigilancia)*Math.pow(1+inf,t-1) : 0;
+    const ingT  = on? g.rentaTemp*Math.pow(1+inf,t-1) : 0;
+    const impT  = -Math.max(0, ingT+carga)*isr;
+    const venta = (t===g.hor)? valEst : 0;
+    const cv    = -venta*g.pctCV;
+    const iga   = (t===g.hor)? -Math.max(0, venta+cv-invTot)*isr : 0;
+    const total = (t===0)? -invTot : carga+ingT+impT+venta+cv+iga;
+    const desc = total/Math.pow(1+td,t); ac+=desc;
+    if(t>=1) pvCarga += carga/Math.pow(1+td,t);
+    Y.push({t,valEst,carga,ingT,impT,venta,cv,iga,total,desc,acum:ac});
+  }
+  const vpn = Y.reduce((s,y)=>s+y.desc,0);
+  const plusEq = ov._ns ? null : solve(function(x){
+    return calcTer(sup, Object.assign({}, ov, {plus:x, _ns:true})).vpn;
+  }, -0.5, 2.0);
+  return { g, td, invTot, Y, vpn, tir:irr(Y.map(y=>y.total)),
+    vaeV:vae(vpn, td, g.hor), pvCarga,
+    mult: invTot? (Y[g.hor]? Y[g.hor].venta/invTot : null) : null,
+    plusEq };
+}
+
+function calcAuto(sup, ov){
+  ov = ov||{};
+  const a = Object.assign({}, S.auto, ov);
+  const isr=sup.isr, inf=sup.inf;
+  const td = (ov.td!=null)? ov.td : sup.tasas.auto;
+  const eng = a.precio*a.pctEng;
+  const fin = a.precio-eng;
+  const pagoC = fin>0? pmt(a.tc, a.plazoC, fin) : 0;
+  const depA = a.vfisc? a.precio/a.vfisc : 0;
+  const rentaAnual = a.rentaMes*12;
+  const Y=[]; let prevSaldo=fin;
+  for(let t=0;t<=10;t++){
+    const on = t>=1 && t<=a.anios;
+    const comun = on? -((a.seguro+a.tenencia+a.combustible)*Math.pow(1+inf,t-1)
+                        + a.mto1*Math.pow(1+a.gMto,t-1)) : 0;
+    const escC = -comun*isr*a.ded;
+    const escD = (t>=1 && t<=Math.min(a.vfisc,a.anios))? depA*isr*a.ded : 0;
+    const libros = Math.max(0, a.precio - depA*Math.min(a.anios,a.vfisc));
+    const rev = (t===a.anios)? a.rv - isr*(a.rv - libros) : 0;
+    let saldo;
+    if(t===0) saldo=fin;
+    else if(t > Math.min(a.plazoC, a.anios)) saldo=0;
+    else saldo = saldoRest(a.tc, t, pagoC, fin);
+    const pagoT = (t>=1 && t<=Math.min(a.plazoC,a.anios))? -pagoC : 0;
+    const escI  = on? prevSaldo*a.tc*isr*a.ded : 0;
+    const liq   = (t===a.anios)? -saldo : 0;
+    const renta = on? -rentaAnual*Math.pow(1+a.gRentaA,t-1) : 0;
+    const escR  = -renta*isr*a.ded;
+    const comC  = comun*(1-a.incluidos);
+    const escCC = -comC*isr*a.ded;
+    const dev   = (t===a.anios)? a.deposito : 0;
+    const A = (t===0)? -a.precio : comun+escC+escD+rev;
+    const B = (t===0)? -eng      : comun+escC+escD+rev+pagoT+escI+liq;
+    const C = (t===0)? -a.deposito : renta+escR+comC+escCC+dev;
+    Y.push({t,comun,escC,escD,rev,saldo,pagoT,escI,liq,renta,escR,comC,escCC,dev,A,B,C,
+            dA:A/Math.pow(1+td,t), dB:B/Math.pow(1+td,t), dC:C/Math.pow(1+td,t)});
+    prevSaldo=saldo;
+  }
+  const vpA=Y.reduce((s,y)=>s+y.dA,0), vpB=Y.reduce((s,y)=>s+y.dB,0), vpC=Y.reduce((s,y)=>s+y.dC,0);
+  const arr=[{n:'A · Contado',v:vpA},{n:'B · Crédito',v:vpB},{n:'C · Arrendamiento',v:vpC}]
+            .sort((x,y)=>y.v-x.v);
+  return { a, td, eng, fin, pagoC, depA, rentaAnual, Y,
+    vpA, vpB, vpC,
+    caeA:vae(vpA,td,a.anios), caeB:vae(vpB,td,a.anios), caeC:vae(vpC,td,a.anios),
+    ganador:arr[0].n, ahorro:arr[0].v-arr[1].v, orden:arr };
+}
+
+function calcEmp(sup, ov){
+  ov = ov||{};
+  const e = Object.assign({}, S.emp, ov);
+  const isr=sup.isr;
+  const td = (ov.td!=null)? ov.td : sup.tasas.emp;
+  const inv = e.capex+e.preop+e.ct0;
+  const depA = e.vf? (e.capex+e.preop)*e.pctDep/e.vf : 0;
+  const Y=[]; let prevIng=0, ac=0;
+  for(let t=0;t<=10;t++){
+    let ing=0;
+    if(t>=1 && t<=e.hor) ing = (t===1)? e.ing1 : (t<=5? prevIng*(1+e.g15) : prevIng*(1+e.g610));
+    const ub = ing*e.mb;
+    const go = -ing*e.pctGO;
+    const ebitda = ub+go;
+    const dep = (t>=1 && t<=Math.min(e.vf,e.hor))? -depA : 0;
+    const ebit = ebitda+dep;
+    const imp = -Math.max(0,ebit)*isr;
+    const nopat = ebit+imp;
+    const addDep = -dep;
+    const capex = -ing*e.pctMto;
+    const dct = (t<=1)? 0 : -(e.pctCT*(ing-prevIng));
+    const fcf = nopat+addDep+capex+dct;
+    const vt = (t===e.hor && td>e.g)? fcf*(1+e.g)/(td-e.g) : 0;
+    const total = (t===0)? -inv : fcf+vt;
+    const desc = total/Math.pow(1+td,t); ac+=desc;
+    Y.push({t,ing,ub,go,ebitda,dep,ebit,imp,nopat,addDep,capex,dct,fcf,vt,total,desc,acum:ac});
+    prevIng = ing;
+  }
+  const pvFcf = Y.slice(1).reduce((s,y)=>s+y.fcf/Math.pow(1+td,y.t),0);
+  const pvVt  = Y.slice(1).reduce((s,y)=>s+y.vt /Math.pow(1+td,y.t),0);
+  const ev = pvFcf+pvVt;
+  const vpn = Y.reduce((s,y)=>s+y.desc,0);
+  return { e, td, inv, depA, Y, pvFcf, pvVt, ev, equity:ev-e.deudaNeta, vpn,
+    tir:irr(Y.map(y=>y.total)), pctTv: ev? pvVt/ev : null,
+    mult: Y[1].ebitda? ev/Y[1].ebitda : null };
+}
+
+let R = {};
+function recompute(){
+  const sup = calcSup();
+  R = { sup, maq:calcMaq(sup), inm:calcInm(sup), ter:calcTer(sup),
+        auto:calcAuto(sup), emp:calcEmp(sup) };
+}
+
+/* ============================ render base ============================ */
+const UPD = [];
+function out(fn){ UPD.push(fn); fn(); }
+function refreshAll(){ recompute(); UPD.forEach(f=>{ try{f();}catch(e){} }); }
+
+function card(titleTxt){
+  const c = el('section','card');
+  if(titleTxt) c.appendChild(el('h3',null,titleTxt));
+  return c;
+}
+function body(parent){ const b=el('div','body'); parent.appendChild(b); return b; }
+
+function field(g,k,label,hint,type){
+  const f = el('div','field');
+  const l = el('label'); l.appendChild(document.createTextNode(label));
+  if(hint){ const sm=el('small',null,hint); l.appendChild(sm); }
+  const box = el('div','ibox');
+  const inp = el('input'); inp.type='number';
+  inp.step = type==='pct' ? '0.1' : (type==='int' ? '1' : (type==='num' ? '0.01' : '1000'));
+  const raw = S[g][k];
+  inp.value = type==='pct' ? +(raw*100).toFixed(3) : raw;
+  l.htmlFor = inp.id = 'f_'+g+'_'+k;
+  if(type==='money') box.appendChild(el('span','pre','$'));
+  box.appendChild(inp);
+  if(type==='pct') box.appendChild(el('span','suf','%'));
+  inp.addEventListener('input', function(){
+    let v = parseFloat(inp.value);
+    if(!isFinite(v)) v = 0;
+    if(type==='pct') v = v/100;
+    if(type==='int') v = Math.max(0, Math.round(v));
+    S[g][k] = v; save(); refreshAll();
+  });
+  f.appendChild(l); f.appendChild(box);
+  return f;
+}
+function derived(label, fmt, get, hint){
+  const f = el('div','field');
+  const l = el('label'); l.appendChild(document.createTextNode(label));
+  if(hint) l.appendChild(el('small',null,hint));
+  const v = el('div','derived','—');
+  out(()=>{ v.textContent = fmt(get()); });
+  f.appendChild(l); f.appendChild(v);
+  return f;
+}
+function sechead(t){ return el('div','sechead',t); }
+
+function stats(specs){
+  const g = el('div','stats');
+  specs.forEach(sp=>{
+    const s = el('div','stat'+(sp.key?' key':''));
+    s.appendChild(el('span','k',sp.k));
+    const v = el('span','v neutral','—');
+    s.appendChild(v);
+    if(sp.n) s.appendChild(el('span','n',sp.n));
+    out(()=>{
+      const val = sp.get();
+      v.textContent = sp.fmt(val);
+      v.className = 'v ' + (sp.sign===false ? 'neutral' : (!ok(val)? 'neutral' : (val>0?'pos':(val<0?'neg':'neutral'))));
+    });
+    g.appendChild(s);
+  });
+  return g;
+}
+function verdict(get){
+  const d = el('div','verdict');
+  const m = el('span','mark'); const t = el('span','txt');
+  d.appendChild(m); d.appendChild(t);
+  out(()=>{ const r = get();
+    d.className = 'verdict '+r.tone;
+    m.textContent = r.tone==='ok'?'✓':(r.tone==='no'?'✕':'!');
+    t.textContent = r.text; });
+  return d;
+}
+
+/* ---------- tablas de flujo ---------- */
+function flowTable(getY, rows){
+  const wrapEl = el('div','tscroll');
+  const t = el('table');
+  const thead = el('thead'); const trh = el('tr');
+  trh.appendChild(el('th','lab','Concepto'));
+  for(let i=0;i<=10;i++) trh.appendChild(el('th',null,'Año '+i));
+  thead.appendChild(trh); t.appendChild(thead);
+  const tb = el('tbody'); t.appendChild(tb);
+  wrapEl.appendChild(t);
+  out(()=>{
+    const Y = getY(); tb.innerHTML='';
+    rows.forEach(r=>{
+      const tr = el('tr', (r.sum?'sum ':'')+(r.hi?'hi':''));
+      const th = el('th','lab',r.lab); th.scope='row'; tr.appendChild(th);
+      Y.forEach(y=>{
+        const v = r.f(y);
+        const td = el('td', v<0?'neg':null, (r.fmt||nfM)(v));
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+  });
+  return wrapEl;
+}
+
+/* ---------- gráficas ---------- */
+const NS='http://www.w3.org/2000/svg';
+function sv(t,a){ const n=document.createElementNS(NS,t); for(const k in a) n.setAttribute(k,a[k]); return n; }
+function areaChart(getVals, label){
+  const boxEl = el('div','chartbox');
+  const svg = sv('svg',{class:'chart', viewBox:'0 0 640 160'});
+  boxEl.appendChild(svg);
+  const cap = el('div','hint',label); boxEl.appendChild(cap);
+  out(()=>{
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    const v = getVals(); const n=v.length;
+    const mx = Math.max(...v, 0), mn = Math.min(...v, 0);
+    const rng = (mx-mn)||1;
+    const X = i => 20 + i*(600/(n-1));
+    const Yc = k => 140 - ((k-mn)/rng)*122;
+    const zero = Yc(0);
+    svg.appendChild(sv('line',{x1:20,x2:620,y1:zero,y2:zero,stroke:'var(--rule-2)','stroke-width':1,'stroke-dasharray':'4 4'}));
+    let d='M'+X(0)+' '+Yc(v[0]);
+    for(let i=1;i<n;i++) d += ' L'+X(i)+' '+Yc(v[i]);
+    const fill = d + ' L'+X(n-1)+' '+zero + ' L'+X(0)+' '+zero+' Z';
+    svg.appendChild(sv('path',{d:fill, fill:'var(--accent)', opacity:.14}));
+    svg.appendChild(sv('path',{d:d, fill:'none', stroke:'var(--accent)','stroke-width':2,'stroke-linejoin':'round'}));
+    for(let i=0;i<n;i++){
+      svg.appendChild(sv('circle',{cx:X(i), cy:Yc(v[i]), r: i===n-1?4:2.5,
+        fill: i===n-1?'var(--accent)':'var(--surface)', stroke:'var(--accent)','stroke-width':1.5}));
+    }
+  });
+  return boxEl;
+}
+function barChart(getItems){
+  const boxEl = el('div','bars');
+  out(()=>{
+    boxEl.innerHTML = '';
+    const it = getItems();
+    const vals = it.map(o=>ok(o.v)?o.v:0);
+    const mx = Math.max(...vals, 0), mn = Math.min(...vals, 0);
+    const rng = (mx-mn)||1;
+    const zero = (0-mn)/rng*100;
+    it.forEach(o=>{
+      const v = ok(o.v)? o.v : 0;
+      const pv = (v-mn)/rng*100;
+      const row = el('div','bar-row');
+      row.appendChild(el('div','bar-name', o.name));
+      const tr = el('div','bar-track');
+      const z = el('div','bar-zero'); z.style.left = zero+'%'; tr.appendChild(z);
+      const fl = el('div','bar-fill');
+      fl.style.left = Math.min(zero,pv)+'%';
+      fl.style.width = Math.max(0.6, Math.abs(pv-zero))+'%';
+      fl.style.background = v>=0 ? 'var(--accent)' : 'var(--bad)';
+      tr.appendChild(fl);
+      row.appendChild(tr);
+      const val = el('div','bar-val', nfM(o.v));
+      val.style.color = v>=0 ? 'var(--accent)' : 'var(--bad)';
+      row.appendChild(val);
+      boxEl.appendChild(row);
+    });
+  });
+  return boxEl;
+}
+
+/* ---------- tablas simples ---------- */
+function gridTable(getData){
+  const wrapEl = el('div','tscroll'); const t = el('table');
+  const thead=el('thead'), tb=el('tbody'); t.appendChild(thead); t.appendChild(tb);
+  wrapEl.appendChild(t);
+  out(()=>{
+    const d = getData();
+    thead.innerHTML=''; tb.innerHTML='';
+    const trh = el('tr');
+    d.head.forEach((h,i)=> trh.appendChild(el('th', i===0?'lab':null, h)));
+    thead.appendChild(trh);
+    d.rows.forEach(r=>{
+      const tr = el('tr', r.cls||null);
+      r.cells.forEach((c,i)=>{
+        if(i===0){ const th=el('th','lab',c); tr.appendChild(th); }
+        else {
+          const td = el('td', (typeof c==='object' && c.cls)? c.cls : null,
+                       (typeof c==='object')? c.t : c);
+          tr.appendChild(td);
+        }
+      });
+      tb.appendChild(tr);
+    });
+  });
+  return wrapEl;
+}
+
+/* ============================ paneles ============================ */
+function head(h,p){ const d=el('div','panelhead'); d.appendChild(el('h2',null,h));
+  if(p) d.appendChild(el('p',null,p)); return d; }
+function cols(a,b){ const c=el('div','cols');
+  const l=el('div','stack'), r=el('div','stack');
+  a.forEach(n=>l.appendChild(n)); b.forEach(n=>r.appendChild(n));
+  c.appendChild(l); c.appendChild(r); return c; }
+
+/* ---------------- Supuestos ---------------- */
+function panelSup(){
+  const w = el('div');
+  w.appendChild(head('Supuestos generales',
+    'Todo el modelo se alimenta de aquí. Cambia estas tasas antes que nada: mueven los cinco activos al mismo tiempo.'));
+
+  const c1 = card('Fiscal y macro'); const b1 = body(c1);
+  b1.appendChild(field('sup','isr','Tasa de ISR corporativo','Usa tu tasa efectiva si difiere de la nominal','pct'));
+  b1.appendChild(field('sup','inf','Inflación general anual','Se aplica a costos y gastos fijos','pct'));
+
+  const c2 = card('Costo de capital'); const b2 = body(c2);
+  b2.appendChild(field('sup','rf','Tasa libre de riesgo (Rf)','Bono M 10 años, en pesos','pct'));
+  b2.appendChild(field('sup','prm','Prima de riesgo de mercado',null,'pct'));
+  b2.appendChild(field('sup','beta','Beta apalancada','Del sector, reapalancada con tu D/E','num'));
+  b2.appendChild(field('sup','ptam','Prima por tamaño e iliquidez','Típico 1% a 4% en PyME','pct'));
+  b2.appendChild(derived('Costo del capital propio (Ke)', nfP2, ()=>R.sup.ke));
+  b2.appendChild(field('sup','kd','Costo de la deuda (Kd)','Tasa efectiva de tus créditos','pct'));
+  b2.appendChild(derived('Kd después de impuestos', nfP2, ()=>R.sup.kdt));
+  b2.appendChild(field('sup','wd','% Deuda   D/(D+E)','Estructura objetivo, no la de hoy','pct'));
+  b2.appendChild(derived('% Capital propio', nfP, ()=>R.sup.we));
+  b2.appendChild(derived('WACC', nfP2, ()=>R.sup.wacc, 'El mínimo que debe rendir una inversión de riesgo promedio'));
+
+  const c3 = card('Tasa de descuento por tipo de activo');
+  const b3 = body(c3);
+  b3.appendChild(field('sup','pMaq','Maquinaria — prima adicional','Mismo riesgo que la operación','pct'));
+  b3.appendChild(derived('→ tasa aplicada', nfP2, ()=>R.sup.tasas.maq));
+  b3.appendChild(field('sup','pInm','Inmueble — prima adicional','Menor riesgo: flujo contractual','pct'));
+  b3.appendChild(derived('→ tasa aplicada', nfP2, ()=>R.sup.tasas.inm));
+  b3.appendChild(field('sup','pTer','Terreno — prima adicional','Iliquidez y ausencia de flujo','pct'));
+  b3.appendChild(derived('→ tasa aplicada', nfP2, ()=>R.sup.tasas.ter));
+  b3.appendChild(field('sup','pEmp','Empresa nueva — prima adicional','Mercado o producto no probado','pct'));
+  b3.appendChild(derived('→ tasa aplicada', nfP2, ()=>R.sup.tasas.emp));
+  b3.appendChild(field('sup','pAuto','Vehículo — prima adicional','Parte de Kd después de ISR, no del WACC','pct'));
+  b3.appendChild(derived('→ tasa aplicada', nfP2, ()=>R.sup.tasas.auto));
+
+  const c4 = card('Tus datos');
+  const b4 = body(c4);
+  const info = el('p'); info.style.cssText='font-size:.8rem;color:var(--ink-3);margin:0 0 10px;line-height:1.5';
+  info.textContent = 'Lo que capturas se guarda en este navegador. Para pasar el modelo a otra computadora, copia el texto de abajo y pégalo allá.';
+  b4.appendChild(info);
+  const ta = el('textarea');
+  ta.style.cssText='width:100%;height:110px;font-family:var(--f-m);font-size:.72rem;padding:8px;'+
+    'border:1px solid var(--rule-2);border-radius:4px;background:var(--paper);color:var(--ink);resize:vertical';
+  ta.setAttribute('aria-label','Datos del modelo en formato JSON');
+  out(()=>{ if(document.activeElement!==ta) ta.value = JSON.stringify(S); });
+  b4.appendChild(ta);
+  const row = el('div','btnrow'); row.style.paddingLeft='0'; row.style.paddingRight='0'; row.style.borderTop='0';
+  const bImp = el('button','act','Aplicar lo pegado');
+  bImp.addEventListener('click', ()=>{
+    try{ const o = JSON.parse(ta.value);
+      for(const k in DEF) if(o[k]) S[k]=Object.assign({}, DEF[k], o[k]);
+      save(); rebuild(); }
+    catch(e){ ta.value = 'No se pudo leer el texto. Revisa que esté completo y vuelve a pegarlo.'; }
+  });
+  const bRes = el('button','act ghost','Restablecer el ejemplo');
+  bRes.addEventListener('click', ()=>{ S = JSON.parse(JSON.stringify(DEF)); save(); rebuild(); });
+  row.appendChild(bImp); row.appendChild(bRes);
+  b4.appendChild(row);
+
+  w.appendChild(cols([c1,c2],[c3,c4]));
+  return w;
+}
+
+/* ---------------- Maquinaria ---------------- */
+function panelMaq(){
+  const w = el('div');
+  w.appendChild(head('Maquinaria y equipo productivo',
+    'Flujo incremental: sólo lo que cambia por tener el activo. Sirve igual para ampliación que para reemplazo. Si el equipo no genera ventas nuevas, deja los ingresos en cero y captura sólo los ahorros.'));
+
+  const ci = card('Supuestos'); const bi = body(ci);
+  bi.appendChild(sechead('Inversión inicial'));
+  bi.appendChild(field('maq','precio','Precio del equipo',null,'money'));
+  bi.appendChild(field('maq','fletes','Fletes, aranceles y seguro',null,'money'));
+  bi.appendChild(field('maq','instal','Instalación y puesta en marcha',null,'money'));
+  bi.appendChild(field('maq','capac','Capacitación',null,'money'));
+  bi.appendChild(derived('Base de depreciación', nfM, ()=>R.maq.base));
+  bi.appendChild(derived('Capital de trabajo inicial', nfM, ()=>R.maq.ct0, 'Se calcula con el % de abajo'));
+  bi.appendChild(field('maq','venta','Venta del activo reemplazado','0 si es ampliación','money'));
+  bi.appendChild(field('maq','libros','Valor en libros del reemplazado',null,'money'));
+  bi.appendChild(derived('Inversión neta año 0', nfM, ()=>R.maq.inv0));
+  bi.appendChild(sechead('Operación'));
+  bi.appendChild(field('maq','ve','Vida económica (años)','Cuántos lo vas a usar de verdad','int'));
+  bi.appendChild(field('maq','vf','Vida fiscal (años)','Confírmala con tu contador','int'));
+  bi.appendChild(derived('Depreciación anual', nfM, ()=>R.maq.depA));
+  bi.appendChild(field('maq','ing1','Ingresos incrementales año 1',null,'money'));
+  bi.appendChild(field('maq','gIng','Crecimiento de ingresos',null,'pct'));
+  bi.appendChild(field('maq','aho1','Ahorros en costos año 1','Mano de obra, energía, merma','money'));
+  bi.appendChild(field('maq','cos1','Costos incrementales año 1',null,'money'));
+  bi.appendChild(field('maq','gCos','Crecimiento de costos',null,'pct'));
+  bi.appendChild(field('maq','pctCT','Capital de trabajo (% de ingresos)',null,'pct'));
+  bi.appendChild(field('maq','mto1','CapEx de mantenimiento año 1',null,'money'));
+  bi.appendChild(field('maq','rv','Valor de rescate','Precio real de mercado secundario','money'));
+  bi.appendChild(derived('Valor en libros al final', nfM, ()=>R.maq.vl));
+  bi.appendChild(derived('Tasa de descuento', nfP2, ()=>R.maq.td));
+
+  const cr = card('Resultados');
+  cr.appendChild(stats([
+    {k:'VPN', fmt:nfM, get:()=>R.maq.vpn, key:true, n:'Pesos de hoy que agrega'},
+    {k:'TIR', fmt:nfP, get:()=>R.maq.tir, sign:false, n:'Contra la tasa exigida'},
+    {k:'TIRM', fmt:nfP, get:()=>R.maq.tirm, sign:false, n:'Reinversión al WACC'},
+    {k:'VAE', fmt:nfM, get:()=>R.maq.vaeV, n:'Renta anual equivalente'},
+    {k:'Índice rentab.', fmt:nfX, get:()=>R.maq.ir, sign:false, n:'VPN por peso invertido'},
+    {k:'Payback desc.', fmt:v=>ok(v)?v+' años':'No recupera', get:()=>R.maq.pb, sign:false, n:'Años de exposición'}
+  ]));
+  cr.appendChild(verdict(()=>{
+    const v = R.maq.vpn, tir = R.maq.tir, td = R.maq.td;
+    if(!ok(v)) return {tone:'mid', text:'Faltan datos para concluir.'};
+    if(v>0) return {tone:'ok', text:'Crea valor. La TIR de '+nfP(tir)+' supera la tasa exigida de '+nfP(td)+'.'};
+    return {tone:'no', text:'Destruye valor. En estos términos el equipo no se paga.'};
+  }));
+  cr.appendChild(areaChart(()=>R.maq.Y.map(y=>y.acum), 'Flujo descontado acumulado, año 0 al 10. Cruza el cero en el payback descontado.'));
+
+  const cf = card('Flujo de efectivo incremental');
+  cf.appendChild(flowTable(()=>R.maq.Y, [
+    {lab:'Ingresos incrementales', f:y=>y.ing},
+    {lab:'Ahorros en costos', f:y=>y.aho},
+    {lab:'Costos y gastos (−)', f:y=>y.cos},
+    {lab:'EBITDA incremental', f:y=>y.ebitda, sum:true},
+    {lab:'Depreciación fiscal (−)', f:y=>y.dep},
+    {lab:'EBIT', f:y=>y.ebit, sum:true},
+    {lab:'ISR (−)', f:y=>y.imp},
+    {lab:'NOPAT', f:y=>y.nopat, sum:true},
+    {lab:'+ Depreciación', f:y=>y.addDep},
+    {lab:'Capital de trabajo (−)', f:y=>y.dct},
+    {lab:'CapEx de mantenimiento (−)', f:y=>y.capex},
+    {lab:'Flujo operativo', f:y=>y.fcfOp, sum:true},
+    {lab:'Inversión inicial', f:y=>y.invR},
+    {lab:'Rescate después de impuestos', f:y=>y.resc},
+    {lab:'Recuperación de capital de trabajo', f:y=>y.recCT},
+    {lab:'FLUJO TOTAL', f:y=>y.total, sum:true, hi:true},
+    {lab:'Flujo descontado', f:y=>y.desc},
+    {lab:'Descontado acumulado', f:y=>y.acum}
+  ]));
+  cf.appendChild(el('div','note','El flujo no incluye intereses ni pago de capital: el costo del financiamiento ya está dentro de la tasa de descuento. Meterlo aquí sería contarlo dos veces.'));
+
+  w.appendChild(cols([ci],[cr,cf]));
+  return w;
+}
+
+/* ---------------- Inmueble ---------------- */
+function panelInm(){
+  const w = el('div');
+  w.appendChild(head('Inmueble en renta',
+    'El flujo se llama NOI y el valor terminal es una salida a cap rate. Se evalúa dos veces: el proyecto sin deuda, y tu capital propio con la hipoteca adentro.'));
+
+  const ci = card('Supuestos'); const bi = body(ci);
+  bi.appendChild(sechead('Adquisición'));
+  bi.appendChild(field('inm','precio','Precio del inmueble',null,'money'));
+  bi.appendChild(field('inm','pctAdq','Gastos de adquisición','ISAI, notario, avalúo','pct'));
+  bi.appendChild(field('inm','remod','Remodelación inicial',null,'money'));
+  bi.appendChild(derived('Inversión total', nfM, ()=>R.inm.invTot));
+  bi.appendChild(sechead('Financiamiento'));
+  bi.appendChild(field('inm','ltv','LTV — % financiado','0% si compras de contado','pct'));
+  bi.appendChild(derived('Monto del crédito', nfM, ()=>R.inm.monto));
+  bi.appendChild(derived('Capital propio invertido', nfM, ()=>R.inm.capProp));
+  bi.appendChild(field('inm','th','Tasa hipotecaria',null,'pct'));
+  bi.appendChild(field('inm','plazo','Plazo (años)',null,'int'));
+  bi.appendChild(derived('Pago anual', nfM, ()=>R.inm.pago));
+  bi.appendChild(sechead('Operación'));
+  bi.appendChild(field('inm','rentaMes','Renta mensual inicial',null,'money'));
+  bi.appendChild(field('inm','gRenta','Incremento anual de la renta',null,'pct'));
+  bi.appendChild(field('inm','vac','Vacancia e incobrables','Un mes vacío al año ≈ 8%','pct'));
+  bi.appendChild(field('inm','predial','Predial anual',null,'money'));
+  bi.appendChild(field('inm','seguro','Seguro anual',null,'money'));
+  bi.appendChild(field('inm','pctMan','Mantenimiento (% renta efectiva)',null,'pct'));
+  bi.appendChild(field('inm','pctAdm','Administración (% renta efectiva)',null,'pct'));
+  bi.appendChild(field('inm','pctConstr','% del valor que es construcción','El terreno no se deprecia','pct'));
+  bi.appendChild(field('inm','tasaDep','Tasa de depreciación fiscal',null,'pct'));
+  bi.appendChild(derived('Depreciación anual', nfM, ()=>R.inm.depA));
+  bi.appendChild(sechead('Salida'));
+  bi.appendChild(field('inm','hor','Horizonte de tenencia (años)','Máximo 10','int'));
+  bi.appendChild(field('inm','capSal','Cap rate de salida','Prudente: igual o mayor al de entrada','pct'));
+  bi.appendChild(field('inm','pctCV','Costo de venta',null,'pct'));
+  bi.appendChild(derived('Tasa sin deuda', nfP2, ()=>R.inm.td));
+  bi.appendChild(derived('Tasa del capital propio (Ke)', nfP2, ()=>R.inm.ke));
+
+  const cr = card('Resultados');
+  cr.appendChild(stats([
+    {k:'VPN sin deuda', fmt:nfM, get:()=>R.inm.vpn, key:true, n:'Del proyecto en sí'},
+    {k:'TIR sin deuda', fmt:nfP, get:()=>R.inm.tir, sign:false},
+    {k:'VPN del capital', fmt:nfM, get:()=>R.inm.vpnL, key:true, n:'Con hipoteca, a Ke'},
+    {k:'TIR apalancada', fmt:nfP, get:()=>R.inm.tirL, sign:false},
+    {k:'Cap rate entrada', fmt:nfP, get:()=>R.inm.capEnt, sign:false, n:'NOI ÷ inversión'},
+    {k:'Cash-on-cash', fmt:nfP, get:()=>R.inm.coc, sign:false, n:'Año 1 sobre capital propio'},
+    {k:'DSCR año 1', fmt:nfX, get:()=>R.inm.dscr, sign:false, n:'Sano arriba de 1.25x'},
+    {k:'VAE sin deuda', fmt:nfM, get:()=>R.inm.vaeV}
+  ]));
+  cr.appendChild(verdict(()=>{
+    const v=R.inm.vpn, d=R.inm.dscr;
+    if(v>0 && ok(d) && d<1.25) return {tone:'mid', text:'El inmueble crea valor, pero el DSCR de '+nfX(d)+' deja poco colchón: un par de meses vacío y el crédito aprieta.'};
+    if(v>0) return {tone:'ok', text:'Crea valor. Sensibiliza el cap rate de salida antes de firmar.'};
+    return {tone:'no', text:'Destruye valor a la tasa que le estás exigiendo.'};
+  }));
+  cr.appendChild(el('div','note',
+    'El precio de salida explica una parte grande del resultado. Revisa el peso que tiene y muévelo ±1 punto en la pestaña de sensibilidad.'));
+  cr.appendChild(areaChart(()=>R.inm.Y.map(y=>y.acum), 'Flujo sin deuda, descontado y acumulado.'));
+
+  const cf = card('Flujo de efectivo');
+  cf.appendChild(flowTable(()=>R.inm.Y, [
+    {lab:'Renta bruta potencial', f:y=>y.rb},
+    {lab:'Vacancia e incobrables (−)', f:y=>y.vac},
+    {lab:'Renta efectiva', f:y=>y.rEf, sum:true},
+    {lab:'Predial (−)', f:y=>y.pre},
+    {lab:'Seguro (−)', f:y=>y.seg},
+    {lab:'Mantenimiento (−)', f:y=>y.man},
+    {lab:'Administración (−)', f:y=>y.adm},
+    {lab:'NOI', f:y=>y.noi, sum:true, hi:true},
+    {lab:'Saldo del crédito', f:y=>y.saldo},
+    {lab:'Intereses (−)', f:y=>y.intr},
+    {lab:'Amortización de capital (−)', f:y=>y.amo},
+    {lab:'ISR sin deuda (−)', f:y=>y.isr0},
+    {lab:'ISR con deuda (−)', f:y=>y.isr1},
+    {lab:'Valor de salida bruto', f:y=>y.vs},
+    {lab:'Costo de venta (−)', f:y=>y.cv},
+    {lab:'ISR de la ganancia (−)', f:y=>y.iga},
+    {lab:'Liquidación del crédito (−)', f:y=>y.liq},
+    {lab:'FLUJO SIN DEUDA', f:y=>y.fu, sum:true, hi:true},
+    {lab:'FLUJO AL CAPITAL', f:y=>y.fl, sum:true, hi:true}
+  ]));
+  w.appendChild(cols([ci],[cr,cf]));
+  return w;
+}
+
+/* ---------------- Terreno ---------------- */
+function panelTer(){
+  const w = el('div');
+  w.appendChild(head('Terreno',
+    'Un terreno no genera flujo: sólo cuesta cargarlo. Todo el retorno depende del precio de salida y de cuándo llega, que es justo lo que menos controlas.'));
+
+  const ci = card('Supuestos'); const bi = body(ci);
+  bi.appendChild(sechead('Adquisición'));
+  bi.appendChild(field('ter','precio','Precio del terreno',null,'money'));
+  bi.appendChild(field('ter','pctAdq','Gastos de adquisición',null,'pct'));
+  bi.appendChild(field('ter','bardeo','Bardeo, limpieza y deslinde',null,'money'));
+  bi.appendChild(derived('Inversión total', nfM, ()=>R.ter.invTot));
+  bi.appendChild(sechead('Costos de carga'));
+  bi.appendChild(field('ter','predial','Predial anual',null,'money'));
+  bi.appendChild(field('ter','vigilancia','Vigilancia y mantenimiento anual',null,'money'));
+  bi.appendChild(field('ter','rentaTemp','Ingreso por uso temporal','Estacionamiento, renta provisional','money'));
+  bi.appendChild(sechead('Salida'));
+  bi.appendChild(field('ter','plus','Plusvalía anual esperada','Arriba de la inflación hay que justificarla','pct'));
+  bi.appendChild(field('ter','hor','Horizonte hasta la venta (años)',null,'int'));
+  bi.appendChild(field('ter','pctCV','Costo de venta',null,'pct'));
+  bi.appendChild(derived('Tasa de descuento', nfP2, ()=>R.ter.td));
+
+  const cr = card('Resultados');
+  cr.appendChild(stats([
+    {k:'VPN', fmt:nfM, get:()=>R.ter.vpn, key:true},
+    {k:'TIR', fmt:nfP, get:()=>R.ter.tir, sign:false},
+    {k:'VAE', fmt:nfM, get:()=>R.ter.vaeV},
+    {k:'Costo de cargarlo', fmt:nfM, get:()=>R.ter.pvCarga, n:'Valor presente'},
+    {k:'Venta ÷ inversión', fmt:nfX, get:()=>R.ter.mult, sign:false},
+    {k:'Plusvalía de equilibrio', fmt:nfP, get:()=>R.ter.plusEq, sign:false, key:true, n:'La que deja el VPN en cero'}
+  ]));
+  cr.appendChild(verdict(()=>{
+    const v=R.ter.vpn, eq=R.ter.plusEq, p=S.ter.plus;
+    if(!ok(eq)) return v>0? {tone:'ok',text:'Crea valor.'} : {tone:'no',text:'Destruye valor.'};
+    if(v>0) return {tone:'ok', text:'Crea valor: te bastaría una plusvalía de '+nfP(eq)+' anual y estás suponiendo '+nfP(p)+'.'};
+    return {tone:'no', text:'Necesitarías '+nfP(eq)+' de plusvalía anual para salir tablas, y estás suponiendo '+nfP(p)+'. Compara ese número contra lo que la zona ha dado de verdad en diez años.'};
+  }));
+  cr.appendChild(areaChart(()=>R.ter.Y.map(y=>y.acum), 'Flujo descontado acumulado. Los primeros años sólo hay salidas.'));
+
+  const cf = card('Flujo de efectivo');
+  cf.appendChild(flowTable(()=>R.ter.Y, [
+    {lab:'Valor estimado del terreno', f:y=>y.valEst},
+    {lab:'Costos de carga (−)', f:y=>y.carga},
+    {lab:'Ingreso por uso temporal', f:y=>y.ingT},
+    {lab:'ISR del uso temporal (−)', f:y=>y.impT},
+    {lab:'Venta bruta', f:y=>y.venta},
+    {lab:'Costo de venta (−)', f:y=>y.cv},
+    {lab:'ISR de la ganancia (−)', f:y=>y.iga},
+    {lab:'FLUJO TOTAL', f:y=>y.total, sum:true, hi:true},
+    {lab:'Flujo descontado', f:y=>y.desc},
+    {lab:'Descontado acumulado', f:y=>y.acum}
+  ]));
+  cf.appendChild(el('div','note','El terreno no deprecia, así que no hay escudo fiscal que amortigüe la espera. Cada año que tarda la venta cuesta el predial más la tasa de descuento completa.'));
+  w.appendChild(cols([ci],[cr,cf]));
+  return w;
+}
+
+/* ---------------- Vehículo ---------------- */
+function panelAuto(){
+  const w = el('div');
+  w.appendChild(head('Vehículo',
+    'Un auto casi nunca genera ingresos: genera costos. Por eso los tres números son negativos y gana el menos negativo.'));
+
+  const ci = card('Supuestos'); const bi = body(ci);
+  bi.appendChild(sechead('El vehículo'));
+  bi.appendChild(field('auto','precio','Precio del vehículo',null,'money'));
+  bi.appendChild(field('auto','anios','Años de uso previstos',null,'int'));
+  bi.appendChild(field('auto','rv','Valor de reventa al final','Consulta guías de precios reales','money'));
+  bi.appendChild(sechead('Costos anuales (iguales en las tres opciones)'));
+  bi.appendChild(field('auto','seguro','Seguro anual',null,'money'));
+  bi.appendChild(field('auto','tenencia','Tenencia, refrendo y verificación',null,'money'));
+  bi.appendChild(field('auto','mto1','Mantenimiento año 1',null,'money'));
+  bi.appendChild(field('auto','gMto','Crecimiento del mantenimiento',null,'pct'));
+  bi.appendChild(field('auto','combustible','Combustible y casetas','Déjalo en 0 si es idéntico en las tres','money'));
+  bi.appendChild(sechead('Opción B — crédito'));
+  bi.appendChild(field('auto','pctEng','Enganche',null,'pct'));
+  bi.appendChild(derived('Enganche $', nfM, ()=>R.auto.eng));
+  bi.appendChild(derived('Monto financiado', nfM, ()=>R.auto.fin));
+  bi.appendChild(field('auto','tc','Tasa anual del crédito',null,'pct'));
+  bi.appendChild(field('auto','plazoC','Plazo (años)',null,'int'));
+  bi.appendChild(derived('Pago anual', nfM, ()=>R.auto.pagoC));
+  bi.appendChild(sechead('Opción C — arrendamiento puro'));
+  bi.appendChild(field('auto','rentaMes','Renta mensual',null,'money'));
+  bi.appendChild(field('auto','deposito','Depósito en garantía','Se recupera al final','money'));
+  bi.appendChild(field('auto','gRentaA','Incremento anual de la renta',null,'pct'));
+  bi.appendChild(field('auto','incluidos','¿Seguro y mantto. incluidos? 1 sí / 0 no',null,'int'));
+  bi.appendChild(sechead('Fiscal'));
+  bi.appendChild(field('auto','ded','% del uso que es deducible','Confirma topes con tu contador','pct'));
+  bi.appendChild(field('auto','vfisc','Vida fiscal (años)',null,'int'));
+  bi.appendChild(derived('Depreciación anual', nfM, ()=>R.auto.depA));
+  bi.appendChild(derived('Tasa de descuento', nfP2, ()=>R.auto.td));
+
+  const cr = card('Costo de cada opción');
+  cr.appendChild(stats([
+    {k:'VP costo — Contado', fmt:nfM, get:()=>R.auto.vpA},
+    {k:'VP costo — Crédito', fmt:nfM, get:()=>R.auto.vpB},
+    {k:'VP costo — Arrendam.', fmt:nfM, get:()=>R.auto.vpC},
+    {k:'CAE — Contado', fmt:nfM, get:()=>R.auto.caeA, n:'Costo anual equivalente'},
+    {k:'CAE — Crédito', fmt:nfM, get:()=>R.auto.caeB},
+    {k:'CAE — Arrendam.', fmt:nfM, get:()=>R.auto.caeC}
+  ]));
+  cr.appendChild(verdict(()=>({tone:'ok',
+    text:'Gana '+R.auto.ganador+', por '+nfM(Math.abs(R.auto.ahorro))+' de valor presente frente a la segunda mejor.'})));
+  cr.appendChild(barChart(()=>R.auto.orden.map(o=>({name:o.n, v:o.v}))));
+  cr.appendChild(el('div','note','El arrendamiento gana casi siempre en flujo y casi nunca en patrimonio: al final no eres dueño de nada. Si el activo residual te importa, ese es un argumento que este modelo no puede pesar por ti.'));
+
+  const cf = card('Flujo de las tres opciones');
+  cf.appendChild(flowTable(()=>R.auto.Y, [
+    {lab:'Costos operativos (−)', f:y=>y.comun},
+    {lab:'Escudo fiscal de los costos', f:y=>y.escC},
+    {lab:'Escudo fiscal de la depreciación', f:y=>y.escD},
+    {lab:'Reventa neta de impuestos', f:y=>y.rev},
+    {lab:'A · CONTADO', f:y=>y.A, sum:true, hi:true},
+    {lab:'Saldo del crédito', f:y=>y.saldo},
+    {lab:'Pago del crédito (−)', f:y=>y.pagoT},
+    {lab:'Escudo fiscal de intereses', f:y=>y.escI},
+    {lab:'Liquidación al vender (−)', f:y=>y.liq},
+    {lab:'B · CRÉDITO', f:y=>y.B, sum:true, hi:true},
+    {lab:'Renta del arrendamiento (−)', f:y=>y.renta},
+    {lab:'Escudo fiscal de la renta', f:y=>y.escR},
+    {lab:'Costos no incluidos (−)', f:y=>y.comC},
+    {lab:'Devolución del depósito', f:y=>y.dev},
+    {lab:'C · ARRENDAMIENTO', f:y=>y.C, sum:true, hi:true}
+  ]));
+  w.appendChild(cols([ci],[cr,cf]));
+  return w;
+}
+
+/* ---------------- Empresa nueva ---------------- */
+function panelEmp(){
+  const w = el('div');
+  w.appendChild(head('Empresa o proyecto nuevo',
+    'Aquí sí se valúa una entidad completa: flujo libre, valor terminal a perpetuidad, valor de la empresa y valor del capital.'));
+
+  const ci = card('Supuestos'); const bi = body(ci);
+  bi.appendChild(sechead('Inversión'));
+  bi.appendChild(field('emp','capex','CapEx inicial',null,'money'));
+  bi.appendChild(field('emp','preop','Gastos preoperativos',null,'money'));
+  bi.appendChild(field('emp','ct0','Capital de trabajo inicial',null,'money'));
+  bi.appendChild(derived('Inversión total', nfM, ()=>R.emp.inv));
+  bi.appendChild(field('emp','pctDep','% de la inversión depreciable',null,'pct'));
+  bi.appendChild(field('emp','vf','Vida fiscal promedio (años)',null,'int'));
+  bi.appendChild(derived('Depreciación y amortización anual', nfM, ()=>R.emp.depA));
+  bi.appendChild(sechead('Operación'));
+  bi.appendChild(field('emp','ing1','Ingresos año 1',null,'money'));
+  bi.appendChild(field('emp','g15','Crecimiento años 2 a 5',null,'pct'));
+  bi.appendChild(field('emp','g610','Crecimiento años 6 a 10',null,'pct'));
+  bi.appendChild(field('emp','mb','Margen bruto',null,'pct'));
+  bi.appendChild(field('emp','pctGO','Gastos de operación (% ingresos)',null,'pct'));
+  bi.appendChild(field('emp','pctMto','CapEx de mantenimiento (% ingresos)',null,'pct'));
+  bi.appendChild(field('emp','pctCT','Capital de trabajo (% ingresos)',null,'pct'));
+  bi.appendChild(sechead('Valor terminal'));
+  bi.appendChild(field('emp','hor','Horizonte explícito (años)',null,'int'));
+  bi.appendChild(field('emp','g','Crecimiento a perpetuidad (g)','Nunca mayor al de la economía','pct'));
+  bi.appendChild(field('emp','deudaNeta','Deuda neta al inicio','Deuda menos caja','money'));
+  bi.appendChild(derived('Tasa de descuento', nfP2, ()=>R.emp.td));
+
+  const cr = card('Resultados');
+  cr.appendChild(stats([
+    {k:'Valor de la empresa', fmt:nfM, get:()=>R.emp.ev, key:true, n:'Enterprise value'},
+    {k:'Valor del capital', fmt:nfM, get:()=>R.emp.equity, key:true, n:'Equity value'},
+    {k:'VPN del proyecto', fmt:nfM, get:()=>R.emp.vpn, key:true, n:'Valor menos inversión'},
+    {k:'TIR', fmt:nfP, get:()=>R.emp.tir, sign:false},
+    {k:'VP flujos explícitos', fmt:nfM, get:()=>R.emp.pvFcf},
+    {k:'VP valor terminal', fmt:nfM, get:()=>R.emp.pvVt},
+    {k:'% del valor en la perpetuidad', fmt:nfP, get:()=>R.emp.pctTv, sign:false, n:'Arriba de 70% es alarma'},
+    {k:'EV / EBITDA año 1', fmt:nfX, get:()=>R.emp.mult, sign:false}
+  ]));
+  cr.appendChild(verdict(()=>{
+    const v=R.emp.vpn, tv=R.emp.pctTv;
+    if(ok(tv) && tv>0.7) return {tone:'mid', text:'El '+nfP(tv)+' del valor está en la perpetuidad. No valuaste un negocio: valuaste un supuesto de largo plazo. Alarga el horizonte o baja la g.'};
+    if(v>0) return {tone:'ok', text:'Crea valor: el negocio vale más de lo que cuesta montarlo.'};
+    return {tone:'no', text:'Destruye valor. Con estos supuestos no conviene abrirlo.'};
+  }));
+  cr.appendChild(areaChart(()=>R.emp.Y.map(y=>y.acum), 'Flujo descontado acumulado, incluyendo el valor terminal en el último año.'));
+
+  const cf = card('Flujo de efectivo libre');
+  cf.appendChild(flowTable(()=>R.emp.Y, [
+    {lab:'Ingresos', f:y=>y.ing},
+    {lab:'Utilidad bruta', f:y=>y.ub},
+    {lab:'Gastos de operación (−)', f:y=>y.go},
+    {lab:'EBITDA', f:y=>y.ebitda, sum:true},
+    {lab:'Depreciación y amortización (−)', f:y=>y.dep},
+    {lab:'EBIT', f:y=>y.ebit, sum:true},
+    {lab:'ISR (−)', f:y=>y.imp},
+    {lab:'NOPAT', f:y=>y.nopat, sum:true},
+    {lab:'+ Depreciación y amortización', f:y=>y.addDep},
+    {lab:'CapEx de mantenimiento (−)', f:y=>y.capex},
+    {lab:'Capital de trabajo (−)', f:y=>y.dct},
+    {lab:'Flujo de efectivo libre', f:y=>y.fcf, sum:true},
+    {lab:'Valor terminal', f:y=>y.vt},
+    {lab:'FLUJO TOTAL', f:y=>y.total, sum:true, hi:true},
+    {lab:'Descontado acumulado', f:y=>y.acum}
+  ]));
+  w.appendChild(cols([ci],[cr,cf]));
+  return w;
+}
+
+/* ---------------- Resultados ---------------- */
+function panelRes(){
+  const w = el('div');
+  w.appendChild(head('Tablero comparativo',
+    'Todo se calcula en las pestañas anteriores. Aquí sólo se comparan. En el vehículo el número es un costo, así que siempre es negativo: ahí gana el menor.'));
+
+  const c1 = card('VPN por tipo de inversión');
+  c1.appendChild(barChart(()=>[
+    {name:'Maquinaria', v:R.maq.vpn},
+    {name:'Inmueble', v:R.inm.vpn},
+    {name:'Terreno', v:R.ter.vpn},
+    {name:'Empresa nueva', v:R.emp.vpn},
+    {name:'Vehículo (costo)', v:R.auto.vpA}
+  ]));
+
+  const c2 = card('Indicadores lado a lado');
+  c2.appendChild(gridTable(()=>{
+    const f = (v,fmt)=>({t:fmt(v), cls: (typeof v==='number'&&v<0)?'neg':null});
+    return {
+      head:['Indicador','Maquinaria','Inmueble','Terreno','Empresa nueva','Vehículo'],
+      rows:[
+        {cls:'hi', cells:['VPN', f(R.maq.vpn,nfM), f(R.inm.vpn,nfM), f(R.ter.vpn,nfM), f(R.emp.vpn,nfM), f(R.auto.vpA,nfM)]},
+        {cells:['TIR', nfP(R.maq.tir), nfP(R.inm.tir), nfP(R.ter.tir), nfP(R.emp.tir), '—']},
+        {cells:['TIRM', nfP(R.maq.tirm), '—','—','—','—']},
+        {cells:['VAE / CAE', f(R.maq.vaeV,nfM), f(R.inm.vaeV,nfM), f(R.ter.vaeV,nfM), '—', f(R.auto.caeA,nfM)]},
+        {cells:['Payback descontado', ok(R.maq.pb)? R.maq.pb+' años':'—','—','—','—','—']},
+        {cells:['Tasa aplicada', nfP2(R.maq.td), nfP2(R.inm.td), nfP2(R.ter.td), nfP2(R.emp.td), nfP2(R.auto.td)]},
+        {cells:['Horizonte', S.maq.ve+' años', S.inm.hor+' años', S.ter.hor+' años', S.emp.hor+' años', S.auto.anios+' años']},
+        {cls:'sum', cells:['Veredicto',
+          R.maq.vpn>0?'Crea valor':'Destruye valor',
+          R.inm.vpn>0?'Crea valor':'Destruye valor',
+          R.ter.vpn>0?'Crea valor':'Destruye valor',
+          R.emp.vpn>0?'Crea valor':'Destruye valor',
+          R.auto.ganador]}
+      ]};
+  }));
+
+  const c3 = card('Si tienes que elegir entre varias'); const b3 = body(c3);
+  [['¿Alcanza el capital para todas?','Acepta todas las de VPN positivo. No compiten entre sí.'],
+   ['¿El capital está racionado?','Ordena por índice de rentabilidad, no por VPN absoluto.'],
+   ['¿Son mutuamente excluyentes?','Gana el VPN más alto. La TIR se equivoca cuando las escalas difieren.'],
+   ['¿Tienen vidas distintas?','Compara por VAE, nunca por VPN directo.'],
+   ['¿Empatan?','Desempata con el payback descontado y con qué tan reversible es cada decisión.']
+  ].forEach(([q,a])=>{
+    const f = el('div','field');
+    const l = el('label'); l.style.fontWeight='600'; l.textContent=q;
+    const d = el('div'); d.style.cssText='font-size:.82rem;color:var(--ink-2)'; d.textContent=a;
+    f.style.gridTemplateColumns='1fr 1.4fr';
+    f.appendChild(l); f.appendChild(d); b3.appendChild(f);
+  });
+
+  w.appendChild(c1); w.appendChild(c2); w.appendChild(c3);
+  return w;
+}
+
+/* ---------------- Sensibilidad ---------------- */
+const DELTAS = [-0.04,-0.03,-0.02,-0.01,0,0.01,0.02,0.03,0.04];
+function panelSen(){
+  const w = el('div');
+  w.appendChild(head('Sensibilidad',
+    'Un VPN solo es una opinión disfrazada de cálculo. Estas tres tablas dicen qué tan frágil es y en qué supuesto conviene invertir tiempo de investigación.'));
+
+  const c1 = card('VPN a distintas tasas de descuento');
+  c1.appendChild(gridTable(()=>({
+    head:['Variación sobre la tasa base','Maquinaria','Inmueble','Terreno','Empresa nueva'],
+    rows: DELTAS.map(d=>{
+      const cell = v => ({t:nfM(v), cls: v<0?'neg':null});
+      return { cls: d===0?'hi':null,
+        cells:[ (d===0? 'base · sin cambio' : (d>0?'+':'−')+Math.abs(d*100).toFixed(0)+(Math.abs(d*100)<1.5?' punto':' puntos')),
+          cell(calcMaq(R.sup,{td:R.sup.tasas.maq+d}).vpn),
+          cell(calcInm(R.sup,{td:R.sup.tasas.inm+d}).vpn),
+          cell(calcTer(R.sup,{td:R.sup.tasas.ter+d, _ns:true}).vpn),
+          cell(calcEmp(R.sup,{td:R.sup.tasas.emp+d}).vpn) ]};
+    })
+  })));
+  c1.appendChild(el('div','note','Si el VPN cambia de signo dentro de dos puntos, la decisión depende de la tasa y no del activo. Ahí conviene afinar el WACC antes de firmar nada.'));
+
+  const c2 = card('Maquinaria — VPN según ingresos y costos');
+  c2.appendChild(gridTable(()=>{
+    const base = S.maq;
+    const ings = [-0.25,-0.125,0,0.125,0.25].map(k=>Math.round(base.ing1*(1+k)));
+    const coss = [-0.25,-0.125,0,0.125,0.25].map(k=>Math.round(base.cos1*(1+k)));
+    return {
+      head:['Ingresos año 1  ↓   /   Costos →'].concat(coss.map(nfM)),
+      rows: ings.map(iv=>({
+        cells:[nfM(iv)].concat(coss.map(cv=>{
+          const v = calcMaq(R.sup,{ing1:iv, cos1:cv}).vpn;
+          return {t:nfM(v), cls: v<0?'neg':null};
+        }))
+      }))
+    };
+  }));
+  c2.appendChild(el('div','note','Cada celda vuelve a correr el modelo completo con esos dos supuestos. La diagonal te dice si el proyecto aguanta que las dos cosas salgan mal a la vez.'));
+
+  const c3 = card('Valores de equilibrio — el supuesto que deja el VPN en cero');
+  c3.appendChild(gridTable(()=>{
+    const rows = [];
+    const eqIng = solve(x=>calcMaq(R.sup,{ing1:x}).vpn, 0, S.maq.ing1*6);
+    rows.push({cells:['Maquinaria — ingresos año 1', nfM(eqIng), nfM(S.maq.ing1),
+      {t: ok(eqIng)&&eqIng<S.maq.ing1 ? 'Con holgura' : 'Sin holgura',
+       cls: ok(eqIng)&&eqIng<S.maq.ing1? null : 'neg'}]});
+    const eqRen = solve(x=>calcInm(R.sup,{rentaMes:x}).vpn, 0, S.inm.rentaMes*6);
+    rows.push({cells:['Inmueble — renta mensual', nfM(eqRen), nfM(S.inm.rentaMes),
+      {t: ok(eqRen)&&eqRen<S.inm.rentaMes ? 'Con holgura' : 'Sin holgura',
+       cls: ok(eqRen)&&eqRen<S.inm.rentaMes? null : 'neg'}]});
+    const eqPlu = R.ter.plusEq;
+    rows.push({cells:['Terreno — plusvalía anual', nfP(eqPlu), nfP(S.ter.plus),
+      {t: ok(eqPlu)&&eqPlu<S.ter.plus ? 'Con holgura' : 'Sin holgura',
+       cls: ok(eqPlu)&&eqPlu<S.ter.plus? null : 'neg'}]});
+    const eqEmp = solve(x=>calcEmp(R.sup,{ing1:x}).vpn, 0, S.emp.ing1*6);
+    rows.push({cells:['Empresa nueva — ingresos año 1', nfM(eqEmp), nfM(S.emp.ing1),
+      {t: ok(eqEmp)&&eqEmp<S.emp.ing1 ? 'Con holgura' : 'Sin holgura',
+       cls: ok(eqEmp)&&eqEmp<S.emp.ing1? null : 'neg'}]});
+    return { head:['Activo y supuesto','Valor de equilibrio','Lo que supusiste','Lectura'], rows };
+  }));
+  c3.appendChild(el('div','note','Ésta es la prueba más honesta que existe: compara el valor de equilibrio contra lo que tu operación ha logrado de verdad. Si el equilibrio está arriba de tu mejor año, el proyecto no es ambicioso, es una ilusión.'));
+
+  w.appendChild(c1); w.appendChild(c2); w.appendChild(c3);
+  return w;
+}
+
+/* ---------------- Escenarios ---------------- */
+const ESC_ROWS = [
+  {k:'ing1', label:'Ingresos o ahorros año 1', type:'money'},
+  {k:'gIng', label:'Crecimiento de ingresos', type:'pct'},
+  {k:'cos1', label:'Costos año 1', type:'money'},
+  {k:'precio', label:'Precio del equipo', type:'money'},
+  {k:'rv', label:'Valor de rescate', type:'money'},
+  {k:'ve', label:'Vida económica (años)', type:'int'},
+  {k:'td', label:'Tasa de descuento', type:'pct'}
+];
+function escInput(k, idx, type){
+  const inp = el('input'); inp.type='number';
+  inp.step = type==='pct'?'0.1':(type==='int'?'1':'1000');
+  inp.value = type==='pct' ? +(S.esc[k][idx]*100).toFixed(3) : S.esc[k][idx];
+  inp.style.width='100%';
+  inp.setAttribute('aria-label', k+' escenario '+(idx+1));
+  inp.addEventListener('input', ()=>{
+    let v = parseFloat(inp.value); if(!isFinite(v)) v=0;
+    if(type==='pct') v=v/100; if(type==='int') v=Math.max(1,Math.round(v));
+    S.esc[k][idx]=v; save(); refreshAll();
+  });
+  if(type!=='pct') return inp;
+  const box = el('div','ibox'); box.appendChild(inp); box.appendChild(el('span','suf','%'));
+  return box;
+}
+function escVpn(idx){
+  const o = {}; ESC_ROWS.forEach(r=> o[r.k] = S.esc[r.k][idx]);
+  return calcMaq(R.sup, o).vpn;
+}
+function panelEsc(){
+  const w = el('div');
+  w.appendChild(head('Escenarios',
+    'Un solo VPN no dice qué tan malo puede ser. Aquí el modelo de maquinaria se corre tres veces completo, con sus propios supuestos, y se pondera. Cambia cualquier celda y los tres VPN se recalculan solos.'));
+
+  const c1 = card('Supuestos de cada escenario');
+  const tb = el('div','tscroll'); const t = el('table');
+  const thead = el('thead'); const trh = el('tr');
+  ['Variable','Pesimista','Base','Optimista'].forEach((h,i)=> trh.appendChild(el('th', i===0?'lab':null, h)));
+  thead.appendChild(trh); t.appendChild(thead);
+  const tbody = el('tbody');
+  ESC_ROWS.forEach(r=>{
+    const tr = el('tr');
+    const th = el('th','lab',r.label); tr.appendChild(th);
+    for(let i=0;i<3;i++){ const td = el('td'); td.appendChild(escInput(r.k,i,r.type)); tr.appendChild(td); }
+    tbody.appendChild(tr);
+  });
+  const trP = el('tr','sum');
+  trP.appendChild(el('th','lab','Probabilidad asignada'));
+  ['p1','p2','p3'].forEach(pk=>{
+    const td = el('td');
+    const inp = el('input'); inp.type='number'; inp.step='5'; inp.style.width='100%';
+    inp.value = +(S.esc[pk]*100).toFixed(1);
+    inp.setAttribute('aria-label','Probabilidad '+pk);
+    inp.addEventListener('input', ()=>{ let v=parseFloat(inp.value); if(!isFinite(v))v=0;
+      S.esc[pk]=v/100; save(); refreshAll(); });
+    const bx = el('div','ibox'); bx.appendChild(inp); bx.appendChild(el('span','suf','%'));
+    td.appendChild(bx); trP.appendChild(td);
+  });
+  tbody.appendChild(trP);
+  const trV = el('tr','hi');
+  trV.appendChild(el('th','lab','VPN resultante'));
+  const vCells = [];
+  for(let i=0;i<3;i++){ const td = el('td','',''); vCells.push(td); trV.appendChild(td); }
+  tbody.appendChild(trV);
+  out(()=>{ for(let i=0;i<3;i++){ const v = escVpn(i);
+    vCells[i].textContent = nfM(v); vCells[i].className = v<0?'neg':''; } });
+  t.appendChild(tbody); tb.appendChild(t); c1.appendChild(tb);
+  c1.appendChild(el('div','note','Sé coherente dentro de cada escenario: si en el pesimista baja el volumen, normalmente también baja el precio y sube la tasa que exiges.'));
+
+  const c2 = card('Resultado ponderado');
+  c2.appendChild(stats([
+    {k:'VPN esperado', fmt:nfM, key:true,
+      get:()=> S.esc.p1*escVpn(0) + S.esc.p2*escVpn(1) + S.esc.p3*escVpn(2)},
+    {k:'Probabilidad de pérdida', fmt:nfP, sign:false,
+      get:()=> [0,1,2].reduce((s,i)=> s + (escVpn(i)<0 ? [S.esc.p1,S.esc.p2,S.esc.p3][i] : 0), 0),
+      n:'Peso de los escenarios con VPN negativo'},
+    {k:'Peor caso', fmt:nfM, get:()=> Math.min(escVpn(0),escVpn(1),escVpn(2)), n:'Cuánto puedes perder'},
+    {k:'Rango', fmt:nfM, sign:false,
+      get:()=> Math.max(escVpn(0),escVpn(1),escVpn(2))-Math.min(escVpn(0),escVpn(1),escVpn(2))},
+    {k:'Suma de probabilidades', fmt:nfP, sign:false, get:()=> S.esc.p1+S.esc.p2+S.esc.p3,
+      n:'Debe dar 100%'}
+  ]));
+  c2.appendChild(verdict(()=>{
+    const esp = S.esc.p1*escVpn(0)+S.esc.p2*escVpn(1)+S.esc.p3*escVpn(2);
+    const pl = [0,1,2].reduce((s,i)=> s + (escVpn(i)<0 ? [S.esc.p1,S.esc.p2,S.esc.p3][i] : 0), 0);
+    const suma = S.esc.p1+S.esc.p2+S.esc.p3;
+    if(Math.abs(suma-1)>0.005) return {tone:'mid', text:'Las probabilidades suman '+nfP(suma)+'. Ajústalas a 100% para que el promedio signifique algo.'};
+    if(esp<=0) return {tone:'no', text:'No pasa: el VPN esperado es negativo.'};
+    if(pl>0.30) return {tone:'mid', text:'Pasa, pero hay '+nfP(pl)+' de probabilidad de perder. Define desde ahora cómo te sales si el escenario malo se cumple.'};
+    return {tone:'ok', text:'Pasa con margen razonable.'};
+  }));
+  c2.appendChild(el('div','note','Un VPN esperado positivo con 40% de probabilidad de pérdida no es un buen proyecto: es una apuesta. Antes de firmar, pregúntate si la empresa aguanta el escenario pesimista completo.'));
+
+  w.appendChild(c1); w.appendChild(c2);
+  return w;
+}
+
+/* ---------------- Glosario ---------------- */
+const GLO = [
+  ['Indicadores', [
+    ['VPN','Cuántos pesos de hoy le agrega la inversión a tu empresa. Es el único criterio que decide: acepta si es positivo, y entre alternativas gana el más alto.'],
+    ['TIR','La tasa a la que el VPN sería cero. Intuitiva pero traicionera: da resultados múltiples si el flujo cambia de signo varias veces y engaña al comparar proyectos de distinta escala.'],
+    ['TIRM','La TIR corregida: supone que reinviertes al costo de capital y no a la propia TIR.'],
+    ['VAE','El VPN convertido en renta anual. La única forma correcta de comparar activos con vidas útiles distintas.'],
+    ['CAE','El mismo cálculo cuando el activo sólo genera costos, como un vehículo. Gana el menor.'],
+    ['Payback descontado','En cuántos años recuperas lo invertido contando el valor del dinero en el tiempo. Mide exposición, no rentabilidad.'],
+    ['Índice de rentabilidad','Valor presente de los flujos entre la inversión. Sirve cuando el capital está racionado.']
+  ]],
+  ['Conceptos del flujo', [
+    ['Flujo incremental','La diferencia entre el flujo de la empresa con el activo y sin él. Es lo único que se modela.'],
+    ['Costo hundido','Dinero ya gastado que no vuelve, decidas lo que decidas. Nunca entra.'],
+    ['Costo de oportunidad','Lo que dejas de ganar por usar algo que ya tienes. La bodega propia no es gratis.'],
+    ['Capital de trabajo','Inventario más cobranza menos proveedores. Sale al principio, crece con las ventas y se recupera al final.'],
+    ['Escudo fiscal','La depreciación no es salida de efectivo, pero reduce el impuesto. Ese ahorro sí es flujo.'],
+    ['Rescate después de impuestos','Precio de venta menos el impuesto sobre la diferencia contra el valor en libros.']
+  ]],
+  ['Costo de capital', [
+    ['WACC','El promedio ponderado de lo que cuestan tu deuda y tu capital propio.'],
+    ['Ke','Tasa libre de riesgo más beta por la prima de mercado, más primas por tamaño e iliquidez.'],
+    ['Beta','Cuánto se mueve el riesgo de un negocio frente al mercado. Si el activo es de otro sector, usa la beta de ese sector.']
+  ]],
+  ['Inmuebles', [
+    ['NOI','Renta efectiva menos gastos operativos. No resta hipoteca ni depreciación.'],
+    ['Cap rate','NOI entre el valor del inmueble. Es como el mercado pone precio.'],
+    ['DSCR','NOI entre el servicio anual de la deuda. Abajo de 1.25x no hay holgura.'],
+    ['Cash-on-cash','Flujo del año entre el capital propio invertido.']
+  ]]
+];
+function panelGlo(){
+  const w = el('div');
+  w.appendChild(head('Glosario y reglas',
+    'Lo mínimo que hay que tener claro antes de firmar una compra.'));
+  const grid = el('div','cols');
+  const a = el('div','stack'), b = el('div','stack');
+  GLO.forEach((g,i)=>{
+    const c = card(g[0]); const bd = body(c);
+    g[1].forEach(([t,d])=>{
+      const f = el('div','field'); f.style.gridTemplateColumns='150px 1fr';
+      const l = el('label'); l.style.fontWeight='600'; l.style.color='var(--ink)'; l.textContent=t;
+      const p = el('div'); p.style.cssText='font-size:.82rem;color:var(--ink-2);line-height:1.45'; p.textContent=d;
+      f.appendChild(l); f.appendChild(p); bd.appendChild(f);
+    });
+    (i%2===0?a:b).appendChild(c);
+  });
+  const cr = card('Reglas que no se rompen'); const br = body(cr);
+  ['El flujo va sin intereses ni pago de capital: el financiamiento ya está en la tasa de descuento.',
+   'Flujos nominales con tasa nominal, flujos reales con tasa real. Nunca se mezclan.',
+   'Para el escudo fiscal importa la depreciación fiscal, no la contable.',
+   'Si el valor terminal explica más del 70% del valor, el modelo es una perpetuidad disfrazada.',
+   'Compara siempre el valor de equilibrio contra lo que la operación ha logrado de verdad.'
+  ].forEach(t=>{
+    const f = el('div','field'); f.style.gridTemplateColumns='18px 1fr';
+    const m = el('div'); m.style.cssText='color:var(--accent);font-weight:700'; m.textContent='▸';
+    const p = el('div'); p.style.cssText='font-size:.82rem;color:var(--ink-2);line-height:1.45'; p.textContent=t;
+    f.appendChild(m); f.appendChild(p); br.appendChild(f);
+  });
+  b.appendChild(cr);
+  grid.style.gridTemplateColumns='';
+  grid.appendChild(a); grid.appendChild(b);
+  if(window.matchMedia('(min-width:1040px)').matches) grid.style.gridTemplateColumns='1fr 1fr';
+  w.appendChild(grid);
+  const foot = el('div','card'); const fb = body(foot);
+  fb.style.cssText='font-size:.78rem;color:var(--ink-3);line-height:1.55';
+  fb.textContent = 'Los valores cargados son un ejemplo ilustrativo, no una recomendación. Las tasas de depreciación fiscal de cada activo deben confirmarse con un contador. Esta herramienta es de análisis y no sustituye asesoría fiscal, legal ni de inversión.';
+  w.appendChild(foot);
+  return w;
+}
+
+/* ============================ tabs ============================ */
+const TABS = [
+  {id:'sup',  n:'Supuestos',   b:panelSup},
+  {id:'maq',  n:'Maquinaria',  b:panelMaq},
+  {id:'inm',  n:'Inmueble',    b:panelInm},
+  {id:'ter',  n:'Terreno',     b:panelTer},
+  {id:'auto', n:'Vehículo',    b:panelAuto},
+  {id:'emp',  n:'Empresa nueva', b:panelEmp},
+  {id:'res',  n:'Resultados',  b:panelRes},
+  {id:'sen',  n:'Sensibilidad',b:panelSen},
+  {id:'esc',  n:'Escenarios',  b:panelEsc},
+  {id:'glo',  n:'Glosario',    b:panelGlo}
+];
+let current = 'sup';
+
+function rebuild(){
+  UPD.length = 0;
+  const row = $('#tabrow'), main = $('#main');
+  row.innerHTML=''; main.innerHTML='';
+  recompute();
+  TABS.forEach(t=>{
+    const btn = el('button','tab'); btn.type='button'; btn.setAttribute('role','tab');
+    btn.setAttribute('aria-selected', String(t.id===current));
+    btn.setAttribute('aria-controls','p_'+t.id);
+    const dot = el('span','dot'); btn.appendChild(dot);
+    btn.appendChild(document.createTextNode(t.n));
+    btn.addEventListener('click', ()=> select(t.id));
+    row.appendChild(btn); t._btn = btn;
+    const p = el('div','panel'); p.id='p_'+t.id; p.setAttribute('role','tabpanel');
+    p.appendChild(t.b());
+    p.hidden = (t.id!==current);
+    main.appendChild(p); t._panel = p;
+  });
+  out(()=>{
+    $('#chipWacc').textContent = nfP2(R.sup.wacc);
+    $('#chipKe').textContent   = nfP2(R.sup.ke);
+    $('#chipIsr').textContent  = nfP(R.sup.isr);
+  });
+  refreshAll();
+}
+function select(id){
+  current = id;
+  TABS.forEach(t=>{ t._btn.setAttribute('aria-selected', String(t.id===id)); t._panel.hidden = (t.id!==id); });
+  window.scrollTo({top:0, behavior:'auto'});
+}
+
+/* tema */
+(function(){
+  const b = $('#themebtn');
+  let mode = null;
+  try{ mode = localStorage.getItem(KEY+'-theme'); }catch(e){}
+  if(mode) document.documentElement.setAttribute('data-theme', mode);
+  b.addEventListener('click', ()=>{
+    const cur = document.documentElement.getAttribute('data-theme');
+    const dark = cur ? cur==='dark'
+      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const next = dark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem(KEY+'-theme', next); }catch(e){}
+  });
+})();
+
+rebuild();
+})();
+</script>

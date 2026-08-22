@@ -1,0 +1,95 @@
+import React from "react";
+import { Card } from "../../components/ui";
+import { Head, Cols, SecHead, Campo, Derivado, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, fAnios } from "./piezas";
+import { ok } from "../../lib/activos";
+
+/* ============================================================
+   ACTIVO · 2. MAQUINARIA Y EQUIPO PRODUCTIVO
+   ============================================================ */
+export default function TabMaquinaria({ A, up, R }) {
+  const r = R.maq;
+  return (
+    <>
+      <Head titulo="Maquinaria y equipo productivo"
+        texto="Flujo incremental: sólo lo que cambia por tener el activo. Sirve igual para ampliación que para reemplazo. Si el equipo no genera ventas nuevas, deja los ingresos en cero y captura sólo los ahorros." />
+      <Cols
+        izq={
+          <Card title="Supuestos">
+            <SecHead>Inversión inicial</SecHead>
+            <Campo A={A} up={up} g="maq" k="precio" label="Precio del equipo" />
+            <Campo A={A} up={up} g="maq" k="fletes" label="Fletes, aranceles y seguro" />
+            <Campo A={A} up={up} g="maq" k="instal" label="Instalación y puesta en marcha" />
+            <Campo A={A} up={up} g="maq" k="capac" label="Capacitación" />
+            <Derivado label="Base de depreciación" valor={fM(r.base)} />
+            <Derivado label="Capital de trabajo inicial" hint="Se calcula con el % de abajo" valor={fM(r.ct0)} />
+            <Campo A={A} up={up} g="maq" k="venta" label="Venta del activo reemplazado" hint="0 si es ampliación" />
+            <Campo A={A} up={up} g="maq" k="libros" label="Valor en libros del reemplazado" />
+            <Derivado label="Inversión neta año 0" valor={fM(r.inv0)} />
+
+            <SecHead>Operación</SecHead>
+            <Campo A={A} up={up} g="maq" k="ve" label="Vida económica (años)" hint="Cuántos lo vas a usar de verdad" tipo="int" />
+            <Campo A={A} up={up} g="maq" k="vf" label="Vida fiscal (años)" hint="Confírmala con tu contador" tipo="int" />
+            <Derivado label="Depreciación anual" valor={fM(r.depA)} />
+            <Campo A={A} up={up} g="maq" k="ing1" label="Ingresos incrementales año 1" />
+            <Campo A={A} up={up} g="maq" k="gIng" label="Crecimiento de ingresos" tipo="pct" />
+            <Campo A={A} up={up} g="maq" k="aho1" label="Ahorros en costos año 1" hint="Mano de obra, energía, merma" />
+            <Campo A={A} up={up} g="maq" k="cos1" label="Costos incrementales año 1" />
+            <Campo A={A} up={up} g="maq" k="gCos" label="Crecimiento de costos" tipo="pct" />
+            <Campo A={A} up={up} g="maq" k="pctCT" label="Capital de trabajo (% de ingresos)" tipo="pct" />
+            <Campo A={A} up={up} g="maq" k="mto1" label="CapEx de mantenimiento año 1" />
+            <Campo A={A} up={up} g="maq" k="rv" label="Valor de rescate" hint="Precio real de mercado secundario" />
+            <Derivado label="Valor en libros al final" valor={fM(r.vl)} />
+            <Derivado label="Tasa de descuento" valor={fP2(r.td)} />
+          </Card>
+        }
+        der={<>
+          <Card title="Resultados">
+            <Stats items={[
+              { k: "VPN", valor: r.vpn, clave: true, n: "Pesos de hoy que agrega" },
+              { k: "TIR", valor: r.tir, fmt: fP, signo: false, n: "Contra la tasa exigida" },
+              { k: "TIRM", valor: r.tirm, fmt: fP, signo: false, n: "Reinversión al WACC" },
+              { k: "VAE", valor: r.vaeV, n: "Renta anual equivalente" },
+              { k: "Índice rentab.", valor: r.ir, fmt: fX, signo: false, n: "VPN por peso invertido" },
+              { k: "Payback desc.", valor: r.pb, fmt: fAnios, signo: false, n: "Años de exposición" },
+            ]} />
+            {(() => {
+              if (!ok(r.vpn)) return <Veredicto tono="mid" texto="Faltan datos para concluir." />;
+              if (r.vpn > 0) return <Veredicto tono="ok" texto={`Crea valor. La TIR de ${fP(r.tir)} supera la tasa exigida de ${fP(r.td)}.`} />;
+              return <Veredicto tono="no" texto="Destruye valor. En estos términos el equipo no se paga." />;
+            })()}
+            <div className="mt-4">
+              <AreaChart vals={r.Y.map((y) => y.acum)} label="Flujo descontado acumulado, año 0 al 10. Cruza el cero en el payback descontado." />
+            </div>
+          </Card>
+
+          <Card title="Flujo de efectivo incremental" pad={false}>
+            <FlowTable Y={r.Y} rows={[
+              { lab: "Ingresos incrementales", f: (y) => y.ing },
+              { lab: "Ahorros en costos", f: (y) => y.aho },
+              { lab: "Costos y gastos (−)", f: (y) => y.cos },
+              { lab: "EBITDA incremental", f: (y) => y.ebitda, sum: true },
+              { lab: "Depreciación fiscal (−)", f: (y) => y.dep },
+              { lab: "EBIT", f: (y) => y.ebit, sum: true },
+              { lab: "ISR (−)", f: (y) => y.imp },
+              { lab: "NOPAT", f: (y) => y.nopat, sum: true },
+              { lab: "+ Depreciación", f: (y) => y.addDep },
+              { lab: "Capital de trabajo (−)", f: (y) => y.dct },
+              { lab: "CapEx de mantenimiento (−)", f: (y) => y.capex },
+              { lab: "Flujo operativo", f: (y) => y.fcfOp, sum: true },
+              { lab: "Inversión inicial", f: (y) => y.invR },
+              { lab: "Rescate después de impuestos", f: (y) => y.resc },
+              { lab: "Recuperación de capital de trabajo", f: (y) => y.recCT },
+              { lab: "FLUJO TOTAL", f: (y) => y.total, sum: true, hi: true },
+              { lab: "Flujo descontado", f: (y) => y.desc },
+              { lab: "Descontado acumulado", f: (y) => y.acum },
+            ]} />
+            <Nota>
+              El flujo no incluye intereses ni pago de capital: el costo del financiamiento ya está dentro de la tasa de descuento.
+              Meterlo aquí sería contarlo dos veces.
+            </Nota>
+          </Card>
+        </>}
+      />
+    </>
+  );
+}

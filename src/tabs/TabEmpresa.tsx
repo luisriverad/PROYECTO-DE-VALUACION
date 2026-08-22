@@ -10,7 +10,7 @@ export default function TabEmpresa({ s, up, m }: any) {
   const sp = s.supuestos;
   const Tg = ({ k, label, hint }: any) => (
     <div className="flex items-start gap-2 py-1.5">
-      <input type="checkbox" checked={sp[k]} onChange={(e) => up((n) => { n.supuestos[k] = e.target.checked; })} className="mt-0.5" />
+      <input type="checkbox" checked={sp[k]} onChange={(e) => up((n) => { n.supuestos[k] = e.target.checked; })} className="mt-0.5" style={{ accentColor: C.azul }} />
       <div>
         <div className="text-[12.5px]">{label}</div>
         {hint && <div className="text-[11px]" style={{ color: C.muted }}>{hint}</div>}
@@ -56,14 +56,16 @@ export default function TabEmpresa({ s, up, m }: any) {
           </div>
         </Card>
 
-        <Card title="Capital de trabajo" sub="Define cuánta caja consume la operación al crecer.">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Días de cartera (DSO)"><NumIn value={sp.dso} dec={0} onChange={(v) => up((n) => { n.supuestos.dso = v; })} /></Field>
-            <Field label="% de clientes a crédito"><PctIn value={sp.pctCredito} onChange={(v) => up((n) => { n.supuestos.pctCredito = v; })} /></Field>
-            <Field label="Días de inventario (DIO)"><NumIn value={sp.dio} dec={0} onChange={(v) => up((n) => { n.supuestos.dio = v; })} /></Field>
-            <Field label="Días de proveedores (DPO)"><NumIn value={sp.dpo} dec={0} onChange={(v) => up((n) => { n.supuestos.dpo = v; })} /></Field>
-            <Field label="Días base del año"><NumIn value={sp.diasBase} dec={0} onChange={(v) => up((n) => { n.supuestos.diasBase = v; })} /></Field>
-          </div>
+        <Card title="Capital de trabajo" sub="Define cuánta caja consume la operación al crecer. Se captura en Rentabilidad y valuación, junto a la tabla que mueve.">
+          <table className="w-full">
+            <tbody>
+              <tr><Td align="left">Días de cartera (DSO)</Td><Td>{num(sp.dso, 0)}</Td></tr>
+              <tr><Td align="left">Clientes con crédito</Td><Td>{pct(sp.pctCredito, 1)}</Td></tr>
+              <tr><Td align="left">Días de inventario (DIO)</Td><Td>{num(sp.dio, 0)}</Td></tr>
+              <tr><Td align="left">Días de proveedores (DPO)</Td><Td>{num(sp.dpo, 0)}</Td></tr>
+              <tr><Td align="left">Días base del año</Td><Td>{num(sp.diasBase, 0)}</Td></tr>
+            </tbody>
+          </table>
           <div className="text-[11px] mt-2 px-2 py-2 rounded" style={{ background: C.soft, color: C.muted }}>
             Ciclo de conversión de efectivo: <b style={{ color: C.ink }}>{num(sp.dso + sp.dio - sp.dpo, 0)} días</b>
           </div>

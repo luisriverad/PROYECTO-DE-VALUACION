@@ -4,60 +4,96 @@ import { uid, money, num, pct, nfmt, MESES } from "../lib/format";
 import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
 
 /* ============================================================
-   4. PRODUCTOS Y COSTEO
+   4. PRICING
    ============================================================ */
 export default function TabProductos({ s, up, m, L }) {
-  const [sel, setSel] = useState(0);
+  const [selRaw, setSel] = useState(0);
+  const sel = Math.min(selRaw, Math.max(0, s.productos.length - 1));
   const p = s.productos[sel];
   const pc = m.prod[sel];
-  const mixTotal = s.productos.reduce((a, x) => a + (x.mix || 0), 0);
+
+  const u1 = m.unidadesAnio[0] || 0;
+  const GASTOS = [
+    { lab: "Gasto administrativo", total: (m.gAdmin1 || 0) * 12 },
+    { lab: "Gasto de operación", total: (m.gOper1 || 0) * 12 },
+    { lab: "Gasto de venta", total: (m.gVenta1 || 0) * 12 },
+    { lab: "Gasto variable por pieza", total: (m.costoPorPieza || 0) * u1 },
+  ];
 
   const addProd = () => up((n) => { n.productos.push({ id: uid(), nombre: "Nuevo " + L.prodS.toLowerCase(), mix: 0, margen: 0.2, precio: 0, bom: [], mo: [] }); });
 
   return (
     <>
-      <Card title={L.prod} sub="La mezcla define cuánto pesa cada línea en el resultado. Debe sumar 100%."
+      <Card title="Pricing"
+        sub="Del costo unitario al precio de lista: cuánto gasto absorbe cada pieza, qué margen le pides y en cuánto la vendes. Haz clic en un renglón para ver su costeo abajo."
         right={<Btn kind="primary" small onClick={addProd}>+ Agregar {L.prodS.toLowerCase()}</Btn>}>
         {s.productos.length === 0 ? <Empty texto="Sin productos capturados." /> : (
-          <table className="w-full">
-            <thead><tr>
-              <Th align="left" w="20%">{L.prodS}</Th><Th>Mezcla</Th><Th>Materiales + MO</Th><Th>Costos de {L.cp}</Th>
-              <Th>Costo de {L.cp}</Th><Th>Absorción de gasto</Th><Th>Costo estándar</Th><Th>Margen objetivo</Th>
-              <Th>Precio sugerido</Th><Th>Precio de lista</Th><Th>Margen real</Th><Th w="40"></Th>
-            </tr></thead>
-            <tbody>
-              {m.prod.map((x, i) => (
-                <tr key={x.id} style={{ background: i === sel ? C.soft : undefined, cursor: "pointer" }} onClick={() => setSel(i)}>
-                  <Td align="left"><TxtIn value={x.nombre} onChange={(v) => up((n) => { n.productos[i].nombre = v; })} /></Td>
-                  <Td><PctIn value={x.mix} dec={1} onChange={(v) => up((n) => { n.productos[i].mix = v; })} /></Td>
-                  <Td>{money(x.directo, 2)}</Td>
-                  <Td>{money(x.cp, 2)}</Td>
-                  <Td>{money(x.produccion, 2)}</Td>
-                  <Td>{money(x.absorcion, 2)}</Td>
-                  <Td bold>{money(x.estandar, 2)}</Td>
-                  <Td><PctIn value={x.margen} dec={1} onChange={(v) => up((n) => { n.productos[i].margen = v; })} /></Td>
-                  <Td>{money(x.sugerido, 2)}</Td>
-                  <Td><NumIn value={x.precio} dec={0} onChange={(v) => up((n) => { n.productos[i].precio = v; })} /></Td>
-                  <Td bold color={x.margenReal < 0 ? C.neg : C.pos}>{pct(x.margenReal)}</Td>
-                  <Td><Btn small kind="danger" onClick={(e) => { up((n) => { n.productos.splice(i, 1); }); setSel(0); }}>×</Btn></Td>
-                </tr>
-              ))}
-              <tr>
-                <Td align="left" bold>Total</Td>
-                <Td bold color={Math.abs(mixTotal - 1) > 0.001 ? C.neg : C.pos}>{pct(mixTotal)}</Td>
-                <Td colSpan={10}></Td>
+          <div style={{ overflowX: "auto" }}>
+            <table className="w-full" style={{ minWidth: 1040 }}>
+              <thead><tr>
+                <Th align="left" w="16%">{L.prodS}</Th>
+                <Th>Costo unitario (MP &amp; MOD)</Th><Th>Costos de {L.cp}</Th><Th>Absorción de gasto</Th>
+                <Th>% de gasto vs costo</Th><Th>Costo unitario estándar</Th><Th>Margen esperado</Th>
+                <Th>Precio de venta</Th><Th>Redondeo</Th><Th>Margen real</Th>
+              </tr></thead>
+              <tbody>
+                {m.prod.map((x, i) => (
+                  <tr key={x.id} style={{ background: i === sel ? C.soft : undefined, cursor: "pointer" }} onClick={() => setSel(i)}>
+                    <Td align="left">{x.nombre}</Td>
+                    <Td>{money(x.directo, 2)}</Td>
+                    <Td>{money(x.cp, 2)}</Td>
+                    <Td>{money(x.absorcion, 2)}</Td>
+                    <Td color={C.muted}>{x.produccion > 0 ? pct(x.absorcion / x.produccion, 1) : "—"}</Td>
+                    <Td bold>{money(x.estandar, 2)}</Td>
+                    <Td><PctIn value={x.margen} dec={1} onChange={(v) => up((n) => { n.productos[i].margen = v; })} /></Td>
+                    <Td>{money(x.sugerido, 2)}</Td>
+                    <Td><NumIn value={x.precio} dec={0} onChange={(v) => up((n) => { n.productos[i].precio = v; })} /></Td>
+                    <Td bold color={x.margenReal < 0 ? C.neg : C.pos}>{pct(x.margenReal)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="mt-2 text-[11px]" style={{ color: C.muted }}>
+          Costo unitario estándar = costo directo + costos de {L.cp} + absorción de gasto. El precio de venta es ese costo con
+          el margen esperado encima; el <b style={{ color: C.ink }}>redondeo</b> es el precio de lista con el que realmente
+          sales al mercado, y de ahí se calcula el margen real.
+        </div>
+      </Card>
+
+      <Card title="De dónde sale la absorción de gasto"
+        sub={`El gasto del Año 1 repartido entre las piezas del plan: ${num(u1, 0)} pzas.`}>
+        <table className="w-full">
+          <thead><tr>
+            <Th align="left" w="40%">Concepto</Th><Th>Gasto total Año 1</Th><Th>Volumen estimado (pzas)</Th><Th>Absorción por pieza</Th>
+          </tr></thead>
+          <tbody>
+            {GASTOS.map((g) => (
+              <tr key={g.lab}>
+                <Td align="left">{g.lab}</Td>
+                <Td>{money(g.total)}</Td>
+                <Td color={C.muted}>{num(u1, 0)}</Td>
+                <Td>{money(u1 > 0 ? g.total / u1 : 0, 2)}</Td>
               </tr>
-            </tbody>
-          </table>
-        )}
-        {Math.abs(mixTotal - 1) > 0.001 && s.productos.length > 0 && (
-          <div className="mt-2 text-[11px]" style={{ color: C.neg }}>La mezcla no suma 100%: el volumen proyectado no se está repartiendo completo.</div>
-        )}
+            ))}
+            <tr>
+              <Td align="left" bold>Total de gastos</Td>
+              <Td bold>{money(m.gastoTotalAnio1)}</Td>
+              <Td color={C.muted}>{num(u1, 0)}</Td>
+              <Td bold bg={C.accentSoft}>{money(m.absorcion, 2)}</Td>
+            </tr>
+          </tbody>
+        </table>
+        <div className="mt-2 text-[11px]" style={{ color: C.muted }}>
+          Es la misma absorción para todas las líneas: el gasto no se traza a un modelo en particular, se reparte por pieza.
+          Los importes se capturan en <b style={{ color: C.ink }}>Gastos</b> y el volumen sale del Forecast.
+        </div>
       </Card>
 
       {p && (
         <div className="grid grid-cols-2 gap-4">
-          <Card title={L.bom + " — " + p.nombre} sub="Consumo por unidad producida."
+          <Card title={L.bom + " — " + p.nombre} sub="Consumo por unidad producida. La cantidad se captura en Explosionado de materiales: aquí sólo se lee, para que sea el mismo número."
             right={<Btn small onClick={() => up((n) => { if (s.insumos[0]) n.productos[sel].bom.push({ insumoId: s.insumos[0].id, cant: 0 }); })} disabled={!s.insumos.length}>+ Renglón</Btn>}>
             {!s.insumos.length ? <Empty texto={`Primero captura ${L.insumos.toLowerCase()}.`} /> : (
               <table className="w-full">
@@ -72,9 +108,9 @@ export default function TabProductos({ s, up, m, L }) {
                             {s.insumos.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
                           </select>
                         </Td>
-                        <Td><NumIn value={b.cant} dec={4} onChange={(v) => up((n) => { n.productos[sel].bom[i].cant = v; })} /></Td>
+                        <Td><span title="Se captura en Explosionado de materiales">{num(b.cant || 0, 3)}</span></Td>
                         <Td align="left" color={C.muted}>{ins?.unidad}</Td>
-                        <Td>{money((m.insumoUnit[b.insumoId] || 0) * b.cant, 2)}</Td>
+                        <Td>{money((m.insumoUnit[b.insumoId] || 0) * b.cant, 3)}</Td>
                         <Td><Btn small kind="danger" onClick={() => up((n) => { n.productos[sel].bom.splice(i, 1); })}>×</Btn></Td>
                       </tr>
                     );
@@ -83,6 +119,10 @@ export default function TabProductos({ s, up, m, L }) {
                 </tbody>
               </table>
             )}
+            <div className="mt-2 text-[11px]" style={{ color: C.muted }}>
+              Las cantidades vienen de <b style={{ color: C.ink }}>Explosionado de materiales</b>. Cámbialas allá y aquí se
+              actualizan solas: es el mismo renglón, no una copia.
+            </div>
           </Card>
 
           <Card title={"Mano de obra — " + p.nombre} sub="Horas que consume cada unidad."

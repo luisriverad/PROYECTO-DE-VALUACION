@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { C } from "../lib/theme";
 import { nfmt } from "../lib/format";
+import { llaveGuardada, guardarLlave, borrarLlave } from "../lib/claude";
 
 /* ============================================================
    COMPONENTES BASE
@@ -35,6 +36,45 @@ export const Btn = ({ children, onClick, kind = "ghost", small, disabled, title 
   );
 };
 
+/* ---------- llave de la API de Claude, que cada quien carga en su navegador ---------- */
+export function LlaveIA({ alineado = "der" }: any) {
+  const [abierto, setAbierto] = useState(false);
+  const [txt, setTxt] = useState("");
+  const [tiene, setTiene] = useState(() => !!llaveGuardada());
+  const abrir = () => { setTxt(llaveGuardada()); setAbierto(!abierto); };
+  const guardar = () => { guardarLlave(txt); setTiene(!!txt.trim()); setAbierto(false); };
+  const quitar = () => { borrarLlave(); setTiene(false); setTxt(""); setAbierto(false); };
+  return (
+    <span className="relative inline-block">
+      <Btn small kind={tiene ? "ghost" : "dark"} onClick={abrir}
+        title={tiene ? "Cambia o quita la llave guardada en este navegador" : "Pega tu llave de Anthropic para usar la IA"}>
+        {tiene ? "API key cargada ✓" : "Cargar API key"}
+      </Btn>
+      {abierto && (
+        <div className="absolute mt-1 rounded-lg p-3 text-left"
+          style={{ [alineado === "der" ? "right" : "left"]: 0, top: "100%", width: 330, zIndex: 30,
+            background: C.white, border: `1px solid ${C.line}`, boxShadow: "0 8px 28px rgba(0,0,0,.14)" }}>
+          <div className="text-[11px] mb-2 leading-relaxed" style={{ color: C.muted }}>
+            Pega tu llave de Anthropic (empieza con <b style={{ color: C.ink }}>sk-ant-</b>). Se guarda únicamente en este
+            navegador: no viaja al servidor ni la ve nadie más que abra la liga.
+          </div>
+          <input type="password" className={inputCls} style={inputSt} value={txt} placeholder="sk-ant-…"
+            autoComplete="off" onChange={(e) => setTxt(e.target.value)} />
+          <div className="flex gap-2 mt-2">
+            <Btn small kind="primary" onClick={guardar}>Guardar</Btn>
+            {tiene && <Btn small kind="danger" onClick={quitar}>Quitar</Btn>}
+            <Btn small onClick={() => setAbierto(false)}>Cerrar</Btn>
+          </div>
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer"
+            className="text-[11px] mt-2 inline-block" style={{ color: C.azul }}>
+            Consigue una llave en console.anthropic.com
+          </a>
+        </div>
+      )}
+    </span>
+  );
+}
+
 export function Field({ label, hint, children, w }: any) {
   return (
     <label className="block" style={{ width: w }}>
@@ -46,7 +86,9 @@ export function Field({ label, hint, children, w }: any) {
 }
 
 export const inputCls = "w-full px-2 py-1.5 rounded text-[13px] outline-none";
-export const inputSt = { background: C.white, border: `1px solid ${C.line}`, color: C.ink };
+/* Convención de modelo financiero: lo que se captura a mano va en azul,
+   lo que sale de una fórmula o se jala de otra pestaña va en negro. */
+export const inputSt = { background: C.white, border: `1px solid ${C.line}`, color: C.azul };
 
 export function NumIn({ value, onChange, dec = 2, suffix, align = "right", disabled, plain }: any) {
   const [txt, setTxt] = useState(null);
@@ -71,6 +113,48 @@ export function PctIn({ value, onChange, dec = 2 }: any) {
 }
 export function TxtIn({ value, onChange, placeholder }: any) {
   return <input className={inputCls} style={inputSt} value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;
+}
+export function TxtArea({ value, onChange, placeholder, rows = 4 }: any) {
+  return <textarea className={inputCls} style={{ ...inputSt, resize: "vertical", lineHeight: 1.55 }} rows={rows}
+    value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;
+}
+
+export function Slider({ value, onChange, min = 0, max = 100, step = 0.5, tramos, color }: any) {
+  const pista = tramos && tramos.length
+    ? `linear-gradient(90deg, ${tramos.map((t) => `${t.color} ${t.desde}%, ${t.color} ${t.hasta}%`).join(", ")})`
+    : C.line;
+  return (
+    <div className="relative select-none" style={{ height: 28 }}>
+      <div className="absolute left-0 right-0 rounded-full" style={{ top: 11, height: 6, background: pista }} />
+      <input type="range" className="p120-range absolute left-0 right-0 w-full" style={{ top: 0, height: 28, color }}
+        min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} />
+    </div>
+  );
+}
+
+export const UNIDADES = [
+  { v: "m", label: "Metros (m)" },
+  { v: "pza", label: "Piezas (pza)" },
+  { v: "lt", label: "Litros (lt)" },
+];
+export function UnidadIn({ value, onChange }: any) {
+  const std = UNIDADES.some((u) => u.v === value);
+  const [otro, setOtro] = useState(!std);
+  const modo = std && !otro ? value : "otro";
+  return (
+    <div className="flex items-center gap-1">
+      <select
+        className={inputCls} style={{ ...inputSt, cursor: "pointer" }} value={modo}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "otro") { setOtro(true); onChange(""); } else { setOtro(false); onChange(v); }
+        }}>
+        {UNIDADES.map((u) => <option key={u.v} value={u.v}>{u.label}</option>)}
+        <option value="otro">Otro…</option>
+      </select>
+      {modo === "otro" && <TxtIn value={value} placeholder="ej. kg" onChange={onChange} />}
+    </div>
+  );
 }
 
 export const Th = ({ children, align = "right", w }: any) => (

@@ -13,10 +13,10 @@ export const seed = () => {
     I("Pegamento", 900, 10, "lt"), I("Agujetas", 300, 100, "pza"), I("Hilo", 100, 100, "m"),
   ];
   const mo = [
-    { id: uid(), nombre: "Técnico 1", sueldoMensual: 10000, personas: 1, horasMes: 160 },
-    { id: uid(), nombre: "Técnico 2", sueldoMensual: 10000, personas: 1, horasMes: 160 },
-    { id: uid(), nombre: "Técnico 3", sueldoMensual: 12000, personas: 1, horasMes: 160 },
-    { id: uid(), nombre: "Técnico 4", sueldoMensual: 15000, personas: 1, horasMes: 160 },
+    { id: uid(), nombre: "Técnico 1", sueldoMensual: 10000, personas: 1, horasMes: 160, ineficiencia: 0 },
+    { id: uid(), nombre: "Técnico 2", sueldoMensual: 10000, personas: 1, horasMes: 160, ineficiencia: 0 },
+    { id: uid(), nombre: "Técnico 3", sueldoMensual: 12000, personas: 1, horasMes: 160, ineficiencia: 0 },
+    { id: uid(), nombre: "Técnico 4", sueldoMensual: 15000, personas: 1, horasMes: 160, ineficiencia: 0 },
   ];
   const base = (pielIdx, moIdx) => ({
     bom: [
@@ -87,8 +87,11 @@ export const seed = () => {
     credito: { activo: true, monto: 500000, tasaAnual: 0.15, plazoAnios: 3, tipo: "insoluto", mesInicio: 1 },
     wacc: {
       rf: 0.08724, beta: 1.2, erp: 0.0433, pTamano: 0, pStartup: 0.05, crp: 0.0379, conv: 0.02,
-      wE: 1, wD: 0, sector: "Apparel / Footwear",
-      notas: { rf: "Bono M 10 años", beta: "Unlevered beta sector", erp: "ERP implícita S&P 500", crp: "Country risk premium México" },
+      wE: 1, wD: 0, sector: "Apparel / Footwear", perfil: "",
+      notas: {
+        rf: "Bono M 10 años", beta: "Unlevered beta sector", erp: "ERP implícita S&P 500", crp: "Country risk premium México",
+        pTamano: "Empresa pequeña, menor liquidez", pStartup: "Riesgo de ejecución del arranque", conv: "Ajuste discrecional del inversionista",
+      },
       fuente: "",
     },
     valuacion: { multiplo: 8.85, caja: 0, pasLab: 0, pasFin: 0, capex: [0, 0, 0, 0, 0], inversionManual: null },
@@ -112,8 +115,14 @@ export function computeModel(s) {
   // --- costos unitarios de insumos
   const insumoUnit = {};
   s.insumos.forEach((i) => { insumoUnit[i.id] = i.volumenLote > 0 ? i.costoLote / i.volumenLote : 0; });
-  const moHora = {};
-  s.recursosMO.forEach((m) => { moHora[m.id] = m.horasMes > 0 ? m.sueldoMensual / m.horasMes : 0; });
+  // el índice de ineficiencia recorta las horas realmente productivas: el mismo sueldo
+  // se reparte entre menos horas, así que la tarifa sube y la capacidad baja
+  const moHora = {}, moHorasEfect = {};
+  s.recursosMO.forEach((m) => {
+    const hef = (m.horasMes || 0) * (1 - (m.ineficiencia || 0));
+    moHorasEfect[m.id] = hef;
+    moHora[m.id] = hef > 0 ? m.sueldoMensual / hef : 0;
+  });
 
   // --- costo directo por producto
   const prod = s.productos.map((p) => {
@@ -168,7 +177,7 @@ export function computeModel(s) {
   });
 
   // --- capacidad instalada
-  const horasDisp = s.recursosMO.reduce((a, m) => a + (m.horasMes || 0) * (m.personas || 1) * 12, 0);
+  const horasDisp = s.recursosMO.reduce((a, m) => a + (moHorasEfect[m.id] || 0) * (m.personas || 1) * 12, 0);
   const horasReq = prod.reduce((a, p, idx) => a + p.horas * u1 * (s.productos[idx].mix || 0), 0);
   const capacidad = { horasDisp, horasReq, uso: horasDisp > 0 ? horasReq / horasDisp : 0 };
 
@@ -364,13 +373,14 @@ export function computeModel(s) {
   const pePesos = peUnidades * precioProm;
 
   return {
-    insumoUnit, moHora, prod: pricing, absorcion, unidadesAnio, meses, anios, cred, capacidad,
+    insumoUnit, moHora, moHorasEfect, prod: pricing, absorcion, unidadesAnio, meses, anios, cred, capacidad,
     inversion, inversionAuto, minMes, minAnio,
     capmNom, capmReal, kdNom, kdReal, waccNom, waccReal, kdAntes,
     ct, flujos, vt, vpVT, vpOperacion, vpn, vpnPerp, tir, tirPerp, dpbp, acumSerie,
     ev, equity, preMoney, pctPost, pctPre, medEbit, valMultiplo,
     anioEquilibrio, mesEquilibrio, peUnidades, pePesos, precioProm, cvProm, cmuProm, costosFijosAnio1,
     gFijoMes1, gFijoMes2, nominaMes, costoPorPieza, gastoTotalAnio1, tasaFiscal,
+    gAdmin1, gOper1, gVenta1,
     horasProm, cpFijoDirMes, cpFijoIndMes, cpFijoMes, cpVarDirU, cpVarIndU, cpVarU, cpFijoUnit,
   };
 }
