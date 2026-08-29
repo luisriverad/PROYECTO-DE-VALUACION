@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { C } from "../lib/theme";
 import { uid, money, num, pct, nfmt, MESES } from "../lib/format";
 import { Card, Btn, Field, NumIn, PctIn, TxtIn, TxtArea, Slider, LlaveIA, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
-import { claudeFetch, textoDe } from "../lib/claude";
+import { iaFetch } from "../lib/ia";
 
 /* ============================================================
    10. COSTO DE CAPITAL + IA DAMODARAN
@@ -51,13 +51,10 @@ export default function TabWACC({ s, up, m, flash }: any) {
     }
     setCargando(true); setRes(null);
     try {
-      const data = await claudeFetch({
-          model: "claude-sonnet-4-6",
-          max_tokens: 2000,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{
-            role: "user",
-            content: `Eres analista financiero. Vas a llenar los parámetros de mercado del costo de capital (CAPM) de esta empresa.
+      const { texto: txt } = await iaFetch({
+          maxTokens: 8000,
+          buscar: true,
+          prompt: `Eres analista financiero. Vas a llenar los parámetros de mercado del costo de capital (CAPM) de esta empresa.
 
 DESCRIPCIÓN DE LA EMPRESA:
 """
@@ -83,10 +80,8 @@ Devuelve estos campos:
 
 Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin backticks y sin texto adicional, con esta forma exacta:
 {"sector":"...","rf":0.0872,"beta":1.15,"erp":0.0433,"crp":0.0379,"pTamano":0.02,"pStartup":0.05,"conv":0.00,"notas":{"rf":"...","beta":"...","erp":"...","crp":"...","pTamano":"...","pStartup":"...","conv":"..."},"fecha":"...","nota":"..."}
-Los valores numéricos deben ser decimales (0.045 = 4.5%).`
-          }],
+Los valores numéricos deben ser decimales (0.045 = 4.5%).`,
         });
-      const txt = textoDe(data);
       const j = txt.replace(/```json|```/g, "").trim();
       const start = j.indexOf("{"), end = j.lastIndexOf("}");
       const parsed = JSON.parse(j.slice(start, end + 1));

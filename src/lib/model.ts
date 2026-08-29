@@ -84,7 +84,7 @@ export const seed = () => {
       { id: uid(), nombre: "Acondicionamiento oficinas", inversion: 65000, anios: 1, tipo: "amort", mesInicio: 1 },
     ],
     plan: { unidadesMes: [0, 25, 25, 25, 50, 75, 75, 125, 150, 150, 200, 150], crec: [0.3, 0.25, 0.2, 0.15] },
-    credito: { activo: true, monto: 500000, tasaAnual: 0.15, plazoAnios: 3, tipo: "insoluto", mesInicio: 1 },
+    credito: { activo: true, monto: 500000, tasaAnual: 0.15, plazoAnios: 3, tipo: "insoluto", mesInicio: 1, prepagos: [] },
     wacc: {
       rf: 0.08724, beta: 1.2, erp: 0.0433, pTamano: 0, pStartup: 0.05, crp: 0.0379, conv: 0.02,
       wE: 1, wD: 0, sector: "Apparel / Footwear", perfil: "",
@@ -201,21 +201,56 @@ export function computeModel(s) {
     return { dep, amo };
   };
 
-  // --- tabla de crédito
+  // --- tabla de crédito, con pagos anticipados a capital
   const cred = [];
+  const prepagos = s.credito.prepagos || [];
+  let plazoOriginal = 0, totalIntSin = 0;
   if (s.credito.activo && s.credito.monto > 0) {
     const n = Math.round(s.credito.plazoAnios * 12);
     const i = s.credito.tasaAnual / 12;
-    let saldo = s.credito.monto;
+    const frances = s.credito.tipo === "frances";
+    plazoOriginal = n;
     const cuotaFija = i > 0 ? (s.credito.monto * i) / (1 - Math.pow(1 + i, -n)) : s.credito.monto / n;
+
+    /* corrida de referencia sin anticipos, para poder medir el ahorro */
+    let sRef = s.credito.monto;
     for (let k = 1; k <= n; k++) {
+      const int = sRef * i;
+      totalIntSin += int;
+      sRef -= frances ? cuotaFija - int : s.credito.monto / n;
+    }
+
+    /* corrida real: cada anticipo baja el saldo y, según su modo, el plazo o la mensualidad */
+    let saldo = s.credito.monto, cuota = cuotaFija, capFijo = s.credito.monto / n;
+    for (let k = 1; k <= n && saldo > 0.005; k++) {
       const interes = saldo * i;
-      const capital = s.credito.tipo === "frances" ? cuotaFija - interes : s.credito.monto / n;
-      const pago = interes + capital;
-      cred.push({ periodo: k, mesGlobal: (s.credito.mesInicio || 1) + k - 1, interes, capital, pago, saldo: saldo - capital });
-      saldo -= capital;
+      let capital = frances ? cuota - interes : capFijo;
+      capital = Math.min(Math.max(capital, 0), saldo);
+      let sal = saldo - capital;
+      const delMes = prepagos.filter((p) => Math.round(p.periodo || 0) === k);
+      const prepago = Math.min(Math.max(delMes.reduce((a, p) => a + (p.monto || 0), 0), 0), sal);
+      sal -= prepago;
+      cred.push({
+        periodo: k, mesGlobal: (s.credito.mesInicio || 1) + k - 1,
+        interes, capital, prepago, pago: interes + capital + prepago, saldo: sal,
+      });
+      /* si el anticipo era para bajar la mensualidad, el saldo se reparte en el plazo que queda */
+      if (prepago > 0 && sal > 0 && delMes.some((p) => p.modo === "pago")) {
+        const rest = n - k;
+        if (rest > 0) {
+          cuota = i > 0 ? (sal * i) / (1 - Math.pow(1 + i, -rest)) : sal / rest;
+          capFijo = sal / rest;
+        }
+      }
+      saldo = sal;
     }
   }
+  const credTotalInt = cred.reduce((a, r) => a + r.interes, 0);
+  const credInfo = {
+    totalInt: credTotalInt, totalIntSin, ahorro: totalIntSin - credTotalInt,
+    plazoOriginal, plazoReal: cred.length,
+    totalPrepago: cred.reduce((a, r) => a + (r.prepago || 0), 0),
+  };
   const interesMes = (y, m) => {
     const g = (y - 1) * 12 + m + 1;
     const r = cred.find((c) => c.mesGlobal === g);
@@ -373,7 +408,7 @@ export function computeModel(s) {
   const pePesos = peUnidades * precioProm;
 
   return {
-    insumoUnit, moHora, moHorasEfect, prod: pricing, absorcion, unidadesAnio, meses, anios, cred, capacidad,
+    insumoUnit, moHora, moHorasEfect, prod: pricing, absorcion, unidadesAnio, meses, anios, cred, credInfo, capacidad,
     inversion, inversionAuto, minMes, minAnio,
     capmNom, capmReal, kdNom, kdReal, waccNom, waccReal, kdAntes,
     ct, flujos, vt, vpVT, vpOperacion, vpn, vpnPerp, tir, tirPerp, dpbp, acumSerie,

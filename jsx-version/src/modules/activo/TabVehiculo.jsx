@@ -1,6 +1,6 @@
 import React from "react";
 import { Card } from "../../components/ui";
-import { Head, Cols, SecHead, Campo, Derivado, Stats, Veredicto, Nota, FlowTable, BarsChart, fM, fP2 } from "./piezas";
+import { Head, Cols, SecHead, Campo, Derivado, Slider, Reparto, Stats, Veredicto, Nota, FlowTable, BarsChart, fM, fP2, NotaTasa, TasaBox } from "./piezas";
 import { money } from "../../lib/format";
 
 /* ============================================================
@@ -28,7 +28,12 @@ export default function TabVehiculo({ A, up, R }) {
             <Campo A={A} up={up} g="auto" k="combustible" label="Combustible y casetas" hint="Déjalo en 0 si es idéntico en las tres" />
 
             <SecHead>Opción B — crédito</SecHead>
-            <Campo A={A} up={up} g="auto" k="pctEng" label="Enganche" tipo="pct" />
+            <Slider label="Enganche" value={A.auto.pctEng}
+              onChange={(v) => up((n) => { n.auto.pctEng = v; })}
+              min={0} max={1} step={0.05}
+              izq="Todo a crédito" der="De contado"
+              hint="Aquí no hay DSCR que te frene: el tope lo pone la agencia y tu flujo." />
+            <Reparto deuda={A.auto.precio - A.auto.precio * A.auto.pctEng} propio={A.auto.precio * A.auto.pctEng} />
             <Derivado label="Enganche $" valor={fM(r.eng)} />
             <Derivado label="Monto financiado" valor={fM(r.fin)} />
             <Campo A={A} up={up} g="auto" k="tc" label="Tasa anual del crédito" tipo="pct" />
@@ -45,7 +50,8 @@ export default function TabVehiculo({ A, up, R }) {
             <Campo A={A} up={up} g="auto" k="ded" label="% del uso que es deducible" hint="Confirma topes con tu contador" tipo="pct" />
             <Campo A={A} up={up} g="auto" k="vfisc" label="Vida fiscal (años)" tipo="int" />
             <Derivado label="Depreciación anual" valor={fM(r.depA)} />
-            <Derivado label="Tasa de descuento" valor={fP2(r.td)} />
+            <TasaBox valor={fP2(r.td)} nota="Tasa base de la empresa más la prima adicional del vehículo." origen="Sólo lectura. Se define en la pestaña «Tasa de descuento»." />
+            <NotaTasa detalle="allá defines la tasa base de la empresa y la prima adicional del vehículo." />
           </Card>
         }
         der={<>

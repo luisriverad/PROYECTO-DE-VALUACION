@@ -1,6 +1,6 @@
 import React from "react";
 import { Card } from "../../components/ui";
-import { Head, Cols, SecHead, Campo, Derivado, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, fAnios } from "./piezas";
+import { Head, Cols, SecHead, Campo, Derivado, Slider, Reparto, Apalancamiento, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, fAnios, NotaTasa, TasaBox } from "./piezas";
 import { ok } from "../../lib/activos";
 
 /* ============================================================
@@ -26,6 +26,25 @@ export default function TabMaquinaria({ A, up, R }: any) {
             <Campo A={A} up={up} g="maq" k="libros" label="Valor en libros del reemplazado" />
             <Derivado label="Inversión neta año 0" valor={fM(r.inv0)} />
 
+            <SecHead>Financiamiento</SecHead>
+            <Slider label="¿Cuánto pone el banco?" value={A.maq.ltvM}
+              onChange={(v) => up((n) => { n.maq.ltvM = v; })}
+              min={0} max={0.9} step={0.05}
+              tope={ok(r.ltvMax) ? Math.min(r.ltvMax, 0.9) : null}
+              izq="Todo de tu bolsa" der="90%"
+              topeLabel={ok(r.ltvMax) ? "te prestan hasta " + fP(r.ltvMax) : null}
+              hint="Crédito refaccionario sobre el equipo. El capital de trabajo no se financia: ése siempre sale de ti." />
+            <Reparto deuda={r.monto} propio={r.capProp} />
+            <Campo A={A} up={up} g="maq" k="tcM" label="Tasa del crédito" tipo="pct" />
+            <Campo A={A} up={up} g="maq" k="plazoM" label="Plazo (años)" tipo="int" />
+            <Campo A={A} up={up} g="maq" k="dscrMin" label="DSCR mínimo del banco" hint="EBITDA entre servicio de deuda. Casi siempre 1.20x o 1.25x" tipo="num" />
+            <Campo A={A} up={up} g="maq" k="ltvTope" label="LTV máximo por garantía" hint="Lo más que presta el banco contra el equipo, rinda lo que rinda" tipo="pct" />
+            <Derivado label="Pago anual" valor={fM(r.pago)} />
+            <Derivado label="Hasta dónde te prestan"
+              hint={r.limita === "garantia" ? "Aquí topa la garantía" : `LTV al que el DSCR toca ${fX(A.maq.dscrMin)}`}
+              valor={fP(r.ltvMax)} />
+            <Derivado label="Mínimo que pones tú" hint="Aun apalancándote al tope" valor={fM(r.propioMin)} />
+
             <SecHead>Operación</SecHead>
             <Campo A={A} up={up} g="maq" k="ve" label="Vida económica (años)" hint="Cuántos lo vas a usar de verdad" tipo="int" />
             <Campo A={A} up={up} g="maq" k="vf" label="Vida fiscal (años)" hint="Confírmala con tu contador" tipo="int" />
@@ -39,10 +58,21 @@ export default function TabMaquinaria({ A, up, R }: any) {
             <Campo A={A} up={up} g="maq" k="mto1" label="CapEx de mantenimiento año 1" />
             <Campo A={A} up={up} g="maq" k="rv" label="Valor de rescate" hint="Precio real de mercado secundario" />
             <Derivado label="Valor en libros al final" valor={fM(r.vl)} />
-            <Derivado label="Tasa de descuento" valor={fP2(r.td)} />
+            <TasaBox valor={fP2(r.td)} nota="Tasa base de la empresa más la prima adicional del equipo." origen="Sólo lectura. Se define en la pestaña «Tasa de descuento»." />
+            <NotaTasa detalle="allá defines la tasa base de la empresa y la prima adicional del equipo." />
           </Card>
         }
         der={<>
+          <Card title="¿Hasta dónde te puedes apalancar?"
+            sub="Mueve el deslizador. El proyecto no cambia; cambia cuánto sale de tu bolsa y qué tan amplificado te regresa.">
+            <Apalancamiento activo="el equipo"
+              ltv={A.maq.ltvM} monto={r.monto} propio={r.capProp}
+              dscr={r.dscr} dscrMin={A.maq.dscrMin}
+              ltvMax={r.ltvMax} ltvDscr={r.ltvDscr} limita={r.limita} propioMin={r.propioMin}
+              apalancaSuma={r.apalancaSuma} rinde={r.tir} cuesta={A.maq.tcM}
+              vpn={r.vpn} tirSin={r.tir} tirCon={r.tirL} />
+          </Card>
+
           <Card title="Resultados">
             <Stats items={[
               { k: "VPN", valor: r.vpn, clave: true, n: "Pesos de hoy que agrega" },

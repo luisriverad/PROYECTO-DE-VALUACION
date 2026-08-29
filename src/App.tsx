@@ -93,7 +93,7 @@ export default function App() {
       insumos: [], recursosMO: [], productos: [], prodCostos: { directos: [], indirectos: [] },
       gastos: { admin: [], oper: [], venta: [], porPieza: [] }, activos: [],
       plan: { unidadesMes: Array(12).fill(0), crec: [0.2, 0.15, 0.12, 0.1] },
-      credito: { activo: false, monto: 0, tasaAnual: 0.15, plazoAnios: 3, tipo: "insoluto", mesInicio: 1 },
+      credito: { activo: false, monto: 0, tasaAnual: 0.15, plazoAnios: 3, tipo: "insoluto", mesInicio: 1, prepagos: [] },
     });
     flash("Plataforma en blanco. Empieza por Empresa y supuestos.");
   };

@@ -1,6 +1,6 @@
 import React from "react";
 import { Card } from "../../components/ui";
-import { Head, Cols, SecHead, Campo, Derivado, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX } from "./piezas";
+import { Head, Cols, SecHead, Campo, Derivado, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, NotaTasa, TasaBox } from "./piezas";
 import { ok } from "../../lib/activos";
 
 /* ============================================================
@@ -30,7 +30,8 @@ export default function TabTerreno({ A, up, R }) {
             <Campo A={A} up={up} g="ter" k="plus" label="Plusvalía anual esperada" hint="Arriba de la inflación hay que justificarla" tipo="pct" />
             <Campo A={A} up={up} g="ter" k="hor" label="Horizonte hasta la venta (años)" tipo="int" />
             <Campo A={A} up={up} g="ter" k="pctCV" label="Costo de venta" tipo="pct" />
-            <Derivado label="Tasa de descuento" valor={fP2(r.td)} />
+            <TasaBox valor={fP2(r.td)} nota="Sale de si el terreno es uso productivo o pura plusvalía." origen="Sólo lectura. Se define en la pestaña «Tasa de descuento»." />
+            <NotaTasa detalle="allá eliges si el terreno es uso productivo o pura plusvalía, y de esa decisión sale la tasa." />
           </Card>
         }
         der={<>

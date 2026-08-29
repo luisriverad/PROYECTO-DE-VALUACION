@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { C } from "../lib/theme";
 import { nfmt } from "../lib/format";
-import { llaveGuardada, guardarLlave, borrarLlave } from "../lib/claude";
+import { cargarConfig, guardarConfig, borrarConfig, detectaProveedor, PROVEEDORES, LISTA } from "../lib/ia";
 
 /* ============================================================
    COMPONENTES BASE
@@ -36,39 +36,93 @@ export const Btn = ({ children, onClick, kind = "ghost", small, disabled, title 
   );
 };
 
-/* ---------- llave de la API de Claude, que cada quien carga en su navegador ---------- */
+/* ---------- llave de la IA, que cada quien carga en su navegador ----------
+   Acepta llaves de cualquier proveedor, porque no todos tienen cuenta de
+   Anthropic. Se dice de frente cuál funciona mejor y por qué. */
 export function LlaveIA({ alineado = "der" }) {
   const [abierto, setAbierto] = useState(false);
-  const [txt, setTxt] = useState("");
-  const [tiene, setTiene] = useState(() => !!llaveGuardada());
-  const abrir = () => { setTxt(llaveGuardada()); setAbierto(!abierto); };
-  const guardar = () => { guardarLlave(txt); setTiene(!!txt.trim()); setAbierto(false); };
-  const quitar = () => { borrarLlave(); setTiene(false); setTxt(""); setAbierto(false); };
+  const [c, setC] = useState(() => cargarConfig());
+  const [tiene, setTiene] = useState(() => !!cargarConfig().llave);
+  const P = PROVEEDORES[c.prov] || PROVEEDORES.anthropic;
+
+  const abrir = () => { setC(cargarConfig()); setAbierto(!abierto); };
+  const set = (k, v) => setC((x) => Object.assign({}, x, { [k]: v }));
+  /* al pegar la llave se adivina el proveedor por el prefijo, para no preguntar */
+  const pegar = (v) => {
+    const p = detectaProveedor(v);
+    setC((x) => Object.assign({}, x, { llave: v }, p ? { prov: p } : {}));
+  };
+  const guardar = () => { guardarConfig(c); setTiene(!!(c.llave || "").trim()); setAbierto(false); };
+  const quitar = () => { borrarConfig(); setC(cargarConfig()); setTiene(false); setAbierto(false); };
+
   return (
     <span className="relative inline-block">
       <Btn small kind={tiene ? "ghost" : "dark"} onClick={abrir}
-        title={tiene ? "Cambia o quita la llave guardada en este navegador" : "Pega tu llave de Anthropic para usar la IA"}>
+        title={tiene ? `Llave de ${P.nombre} cargada en este navegador` : "Pega tu API key para usar la IA"}>
         {tiene ? "API key cargada ✓" : "Cargar API key"}
       </Btn>
       {abierto && (
         <div className="absolute mt-1 rounded-lg p-3 text-left"
-          style={{ [alineado === "der" ? "right" : "left"]: 0, top: "100%", width: 330, zIndex: 30,
+          style={{ [alineado === "der" ? "right" : "left"]: 0, top: "100%", width: 370, zIndex: 30,
             background: C.white, border: `1px solid ${C.line}`, boxShadow: "0 8px 28px rgba(0,0,0,.14)" }}>
+
           <div className="text-[11px] mb-2 leading-relaxed" style={{ color: C.muted }}>
-            Pega tu llave de Anthropic (empieza con <b style={{ color: C.ink }}>sk-ant-</b>). Se guarda únicamente en este
-            navegador: no viaja al servidor ni la ve nadie más que abra la liga.
+            Sirve la llave de cualquier proveedor. Se guarda únicamente en este navegador: no viaja al
+            servidor ni la ve nadie más que abra la liga.
           </div>
-          <input type="password" className={inputCls} style={inputSt} value={txt} placeholder="sk-ant-…"
-            autoComplete="off" onChange={(e) => setTxt(e.target.value)} />
-          <div className="flex gap-2 mt-2">
+
+          <div className="rounded px-2.5 py-2 mb-2.5" style={{ background: C.accentSoft, border: `1px solid ${C.accent}` }}>
+            <div className="text-[11px] leading-relaxed" style={{ color: C.ink }}>
+              <b>El modelo funciona mejor con API key de Anthropic.</b> Es el único que busca los datos de
+              mercado en internet al momento; con los demás el modelo contesta de memoria y te lo advierte
+              en la nota.
+            </div>
+          </div>
+
+          <div className="text-[11px] mb-1 font-medium" style={{ color: C.muted }}>Proveedor</div>
+          <select className={inputCls} style={{ ...inputSt, cursor: "pointer" }} value={c.prov}
+            onChange={(e) => set("prov", e.target.value)}>
+            {LISTA.map((k) => (
+              <option key={k} value={k}>{PROVEEDORES[k].nombre}{PROVEEDORES[k].recomendado ? " — recomendado" : ""}</option>
+            ))}
+          </select>
+
+          <div className="text-[11px] mb-1 mt-2 font-medium" style={{ color: C.muted }}>API key</div>
+          <input type="password" className={inputCls} style={inputSt} value={c.llave}
+            placeholder={P.prefijo ? P.prefijo + "…" : "tu llave"} autoComplete="off"
+            onChange={(e) => pegar(e.target.value)} />
+          <div className="text-[10px] mt-1" style={{ color: C.muted }}>{P.ayudaLlave}</div>
+
+          {P.pideUrl && (
+            <>
+              <div className="text-[11px] mb-1 mt-2 font-medium" style={{ color: C.muted }}>Dirección del servicio</div>
+              <input className={inputCls} style={inputSt} value={c.url}
+                placeholder="https://openrouter.ai/api/v1/chat/completions"
+                onChange={(e) => set("url", e.target.value)} />
+              <div className="text-[10px] mt-1" style={{ color: C.muted }}>La URL completa del endpoint, con /chat/completions al final.</div>
+            </>
+          )}
+
+          <div className="text-[11px] mb-1 mt-2 font-medium" style={{ color: C.muted }}>Modelo</div>
+          <input className={inputCls} style={inputSt} value={c.modelo}
+            placeholder={P.modelo || "nombre del modelo"}
+            onChange={(e) => set("modelo", e.target.value)} />
+          <div className="text-[10px] mt-1" style={{ color: C.muted }}>
+            {P.modelo ? `Déjalo vacío para usar ${P.modelo}. Cámbialo si tu cuenta tiene otro.` : "Escribe el nombre exacto del modelo de tu servicio."}
+          </div>
+
+          <div className="flex gap-2 mt-3">
             <Btn small kind="primary" onClick={guardar}>Guardar</Btn>
             {tiene && <Btn small kind="danger" onClick={quitar}>Quitar</Btn>}
             <Btn small onClick={() => setAbierto(false)}>Cerrar</Btn>
           </div>
-          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer"
-            className="text-[11px] mt-2 inline-block" style={{ color: C.azul }}>
-            Consigue una llave en console.anthropic.com
-          </a>
+
+          {P.consola && (
+            <a href={P.consola} target="_blank" rel="noreferrer"
+              className="text-[11px] mt-2 inline-block" style={{ color: C.azul }}>
+              Consigue una llave de {P.nombre}
+            </a>
+          )}
         </div>
       )}
     </span>

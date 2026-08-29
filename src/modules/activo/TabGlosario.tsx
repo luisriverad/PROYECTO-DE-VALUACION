@@ -24,10 +24,14 @@ const GLO = [
     ["Escudo fiscal", "La depreciación no es salida de efectivo, pero reduce el impuesto. Ese ahorro sí es flujo."],
     ["Rescate después de impuestos", "Precio de venta menos el impuesto sobre la diferencia contra el valor en libros."],
   ]],
-  ["Costo de capital", [
-    ["WACC", "El promedio ponderado de lo que cuestan tu deuda y tu capital propio."],
-    ["Ke", "Tasa libre de riesgo más beta por la prima de mercado, más primas por tamaño e iliquidez."],
-    ["Beta", "Cuánto se mueve el riesgo de un negocio frente al mercado. Si el activo es de otro sector, usa la beta de ese sector."],
+  ["Tasa de descuento", [
+    ["Tasa base", "El mínimo que le exiges a una inversión de riesgo promedio. Se fija una vez al año, no por proyecto."],
+    ["Ke", "Lo que cuesta tu propio dinero. En una empresa que no cotiza se estima como tu costo de deuda más unos puntos, no con beta."],
+    ["WACC", "El promedio ponderado de lo que cuestan tu deuda y tu capital propio. Es la tasa base cuando el activo sirve a tu operación."],
+    ["Prima adicional", "Lo que le sumas a la tasa base según lo que vas a hacer con el activo: reemplazar, ampliar, estrenar o especular."],
+    ["Beta", "Cuánto se mueve el riesgo de un negocio frente al mercado. Sólo se observa en empresas que cotizan, por eso este módulo no la usa."],
+    ["Aguanta hasta", "La tasa a la que el VPN se hace cero. Si está muy arriba de la que le exiges, errar la tasa por un punto no cambia la decisión."],
+    ["Colchón de tasa", "Cuántos puntos separan lo que rinde el proyecto de lo que le exiges. Es lo que se defiende, no el decimal de la tasa."],
   ]],
   ["Inmuebles", [
     ["NOI", "Renta efectiva menos gastos operativos. No resta hipoteca ni depreciación."],

@@ -49,14 +49,14 @@ export default function TabSensibilidadActivo({ A, R }) {
         <GridTable
           head={["Variación sobre la tasa base", "Maquinaria", "Inmueble", "Terreno"]}
           rows={tasas.map((r) => ({
-            hi: r.d === 0,
+            tasa: r.d === 0,
             cells: [
-              r.d === 0 ? "base · sin cambio" : (r.d > 0 ? "+" : "−") + Math.abs(r.d * 100).toFixed(0) + (Math.abs(r.d * 100) < 1.5 ? " punto" : " puntos"),
+              r.d === 0 ? "tu tasa de descuento · sin cambio" : (r.d > 0 ? "+" : "−") + Math.abs(r.d * 100).toFixed(0) + (Math.abs(r.d * 100) < 1.5 ? " punto" : " puntos"),
               cel(r.maq), cel(r.inm), cel(r.ter),
             ],
           }))}
         />
-        <Nota>Si el VPN cambia de signo dentro de dos puntos, la decisión depende de la tasa y no del activo. Ahí conviene afinar el WACC antes de firmar nada.</Nota>
+        <Nota>Si el VPN cambia de signo dentro de dos puntos, la decisión depende de la tasa y no del activo. Ahí conviene afinar la tasa base antes de firmar nada.</Nota>
       </Card>
 
       <Card title="Maquinaria — VPN según ingresos y costos" pad={false}>

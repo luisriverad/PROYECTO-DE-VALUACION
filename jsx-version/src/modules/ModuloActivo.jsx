@@ -16,7 +16,7 @@ import TabSensibilidadActivo from "./activo/TabSensibilidadActivo";
 import TabEscenarios from "./activo/TabEscenarios";
 
 const NAV = [
-  { g: "Configuración", items: [["sup", "Supuestos generales"]] },
+  { g: "Configuración", items: [["sup", "Tasa de descuento"]] },
   { g: "Tipos de activo", items: [["maq", "Maquinaria y equipo"], ["inm", "Inmueble"], ["ter", "Terreno"], ["auto", "Vehículo"]] },
   { g: "Evaluación", items: [["res", "Tablero comparativo"], ["sen", "Sensibilidad"], ["esc", "Escenarios"]] },
 ];

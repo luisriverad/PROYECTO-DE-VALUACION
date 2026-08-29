@@ -1,6 +1,6 @@
 import React from "react";
 import { Card } from "../../components/ui";
-import { Head, Cols, SecHead, Campo, Derivado, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX } from "./piezas";
+import { Head, Cols, SecHead, Campo, Derivado, Slider, Reparto, Apalancamiento, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, NotaTasa, TasaBox } from "./piezas";
 import { ok } from "../../lib/activos";
 
 /* ============================================================
@@ -25,12 +25,23 @@ export default function TabInmueble({ A, up, R }) {
             <Derivado label="Valor de la propiedad" hint="Inversión total: base del cap rate de entrada" valor={fM(r.invTot)} />
 
             <SecHead>Financiamiento</SecHead>
-            <Campo A={A} up={up} g="inm" k="ltv" label="LTV — % financiado" hint="0% si compras de contado" tipo="pct" />
-            <Derivado label="Monto del crédito" valor={fM(r.monto)} />
-            <Derivado label="Capital propio invertido" valor={fM(r.capProp)} />
+            <Slider label="¿Cuánto pone el banco?" value={A.inm.ltv}
+              onChange={(v) => up((n) => { n.inm.ltv = v; })}
+              min={0} max={0.9} step={0.01}
+              tope={ok(r.ltvMax) ? Math.min(r.ltvMax, 0.9) : null}
+              izq="Todo de tu bolsa" der="90%"
+              topeLabel={ok(r.ltvMax) ? "te prestan hasta " + fP(r.ltvMax) : null}
+              hint="Muévelo: el proyecto sin deuda no cambia, lo que cambia es cuánto sacas de tu bolsa." />
+            <Reparto deuda={r.monto} propio={r.capProp} />
             <Campo A={A} up={up} g="inm" k="th" label="Tasa hipotecaria" tipo="pct" />
             <Campo A={A} up={up} g="inm" k="plazo" label="Plazo (años)" tipo="int" />
+            <Campo A={A} up={up} g="inm" k="dscrMin" label="DSCR mínimo del banco" hint="La prueba que te aplican. Casi siempre 1.20x o 1.25x" tipo="num" />
+            <Campo A={A} up={up} g="inm" k="ltvTope" label="LTV máximo por garantía" hint="Lo más que presta el banco contra el inmueble, pague lo que pague" tipo="pct" />
             <Derivado label="Pago anual" valor={fM(r.pago)} />
+            <Derivado label="Hasta dónde te prestan"
+              hint={r.limita === "garantia" ? "Aquí topa la garantía" : `LTV al que el DSCR toca ${fX(A.inm.dscrMin)}`}
+              valor={fP(r.ltvMax)} />
+            <Derivado label="Mínimo que pones tú" hint="Aun apalancándote al tope" valor={fM(r.propioMin)} />
 
             <SecHead>Operación</SecHead>
             <Campo A={A} up={up} g="inm" k="rentaMes" label="Renta mensual inicial" />
@@ -48,11 +59,28 @@ export default function TabInmueble({ A, up, R }) {
             <Campo A={A} up={up} g="inm" k="hor" label="Horizonte de tenencia (años)" hint="Máximo 10" tipo="int" />
             <Campo A={A} up={up} g="inm" k="capSal" label="Cap rate de salida" hint="Prudente: igual o mayor al de entrada" tipo="pct" />
             <Campo A={A} up={up} g="inm" k="pctCV" label="Costo de venta" tipo="pct" />
-            <Derivado label="Tasa sin deuda" valor={fP2(r.td)} />
-            <Derivado label="Tasa del capital propio (Ke)" valor={fP2(r.ke)} />
+            <TasaBox label="Tasa de descuento — sin deuda" valor={fP2(r.td)}
+              nota={R.sup.opInm ? "Lo vas a ocupar: parte de la tasa base de tu empresa."
+                : "Lo vas a rentar: la pone el mercado inmobiliario, cap rate más crecimiento."}
+              origen="Sólo lectura. Se define en la pestaña «Tasa de descuento»." />
+            <TasaBox chico label="Tasa del capital propio (Ke)" valor={fP2(r.ke)}
+              nota={R.sup.opInm ? "El Ke de tu empresa"
+                : "Reapalancada desde la tasa del mercado, no desde tu costo de capital"} />
+            <NotaTasa detalle="allá eliges si lo vas a ocupar o a rentar, y de esa decisión sale si se descuenta a tu tasa base o a la del mercado inmobiliario." />
           </Card>
         }
         der={<>
+          <Card title="¿Hasta dónde te puedes apalancar?"
+            sub="Mueve el LTV a la izquierda. El proyecto no cambia; cambia cuánto sale de tu bolsa y qué tan amplificado te regresa.">
+            <Apalancamiento activo="el inmueble"
+              ltv={A.inm.ltv} monto={r.monto} propio={r.capProp}
+              dscr={r.dscr} dscrMin={A.inm.dscrMin}
+              ltvMax={r.ltvMax} ltvDscr={r.ltvDscr} limita={r.limita} propioMin={r.propioMin}
+              apalancaSuma={r.apalancaSuma} rinde={r.tir} cuesta={A.inm.th}
+              vpn={r.vpn} tirSin={r.tir} tirCon={r.tirL}
+              extra={[{ k: "Cash-on-cash", valor: r.coc, fmt: fP, signo: false, n: "Lo que te deja el año 1 sobre tu capital propio" }]} />
+          </Card>
+
           <Card title="Resultados">
             <Stats items={[
               { k: "VPN sin deuda", valor: r.vpn, clave: true, n: "Del proyecto en sí" },
@@ -62,7 +90,7 @@ export default function TabInmueble({ A, up, R }) {
               { k: "NOI año 1", valor: noi1, signo: false, n: "Renta efectiva − gastos operativos" },
               { k: "Cap rate entrada", valor: r.capEnt, fmt: fP, signo: false, n: "NOI ÷ valor de la propiedad" },
               { k: "Cash-on-cash", valor: r.coc, fmt: fP, signo: false, n: "Año 1 sobre capital propio" },
-              { k: "DSCR año 1", valor: r.dscr, fmt: fX, signo: false, n: "Sano arriba de 1.25x" },
+              { k: "DSCR año 1", valor: r.dscr, fmt: fX, signo: false, n: `Sano arriba de ${fX(A.inm.dscrMin)}` },
               { k: "VAE sin deuda", valor: r.vaeV },
             ]} />
             <div className="mt-4">
@@ -74,7 +102,7 @@ export default function TabInmueble({ A, up, R }) {
               <Derivado label="Valor de la propiedad a la salida" hint={`NOI del año ${r.i.hor + 1} ÷ cap rate de salida (${fP2(r.i.capSal)})`} valor={fM(vSal)} />
             </div>
             {(() => {
-              if (r.vpn > 0 && ok(r.dscr) && r.dscr < 1.25)
+              if (r.vpn > 0 && ok(r.dscr) && r.dscr < A.inm.dscrMin)
                 return <Veredicto tono="mid" texto={`El inmueble crea valor, pero el DSCR de ${fX(r.dscr)} deja poco colchón: un par de meses vacío y el crédito aprieta.`} />;
               if (r.vpn > 0) return <Veredicto tono="ok" texto="Crea valor. Sensibiliza el cap rate de salida antes de firmar." />;
               return <Veredicto tono="no" texto="Destruye valor a la tasa que le estás exigiendo." />;

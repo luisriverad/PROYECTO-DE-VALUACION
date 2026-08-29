@@ -62,9 +62,22 @@ export function solve(f, lo, hi) {
 /* ---------- estado inicial (ejemplo ilustrativo) ---------- */
 export const DEF_ACTIVOS = {
   sup: {
-    isr: 0.30, inf: 0.045, rf: 0.095, prm: 0.065, beta: 1.10, ptam: 0.020,
-    kd: 0.145, wd: 0.30,
-    pMaq: 0.00, pInm: -0.050, pAuto: 0.00, pTer: 0.030,
+    isr: 0.30, inf: 0.045,
+    /* Ancla: lo que te cobra el banco hoy. Es el único dato de mercado que el
+       dueño ya conoce de memoria, y trae dentro su tamaño, su sector y su
+       riesgo de crédito, que es justo lo que el CAPM reconstruye a mano. */
+    metodo: "kd", kd: 0.145, primaEq: 0.050, wd: 0.30,
+    /* Camino formal, por si hay que defenderlo ante un tercero: build-up.
+       Suma primas en vez de multiplicarlas, así que no necesita beta. */
+    rf: 0.095, prm: 0.065, ptam: 0.020, pneg: 0.030,
+    /* Camino manual: la tasa se captura y punto. */
+    baseDirecta: 0.160,
+    /* La tasa depende del uso, no del nombre del activo. Si el inmueble o el
+       terreno son inversión y no herramienta, la tasa la pone el mercado. */
+    usoInm: "inv", usoTer: "inv",
+    capMkt: 0.085, gMkt: 0.045, rendTer: 0.130,
+    /* Prima adicional del proyecto: se suma a la tasa base. */
+    pMaq: 0.00, pInm: 0.00, pAuto: 0.00, pTer: 0.00,
     perfil: "",
   },
   maq: {
@@ -72,10 +85,12 @@ export const DEF_ACTIVOS = {
     venta: 0, libros: 0, ve: 8, vf: 10,
     ing1: 900000, gIng: 0.05, aho1: 120000, cos1: 480000, gCos: 0.045,
     pctCT: 0.15, mto1: 35000, rv: 180000,
+    /* Crédito refaccionario: el banco financia el equipo, no el capital de trabajo */
+    ltvM: 0.60, tcM: 0.155, plazoM: 5, dscrMin: 1.25, ltvTope: 0.80,
   },
   inm: {
     precio: 3500000, pctAdq: 0.06, remod: 120000,
-    ltv: 0.50, th: 0.115, plazo: 15,
+    ltv: 0.50, th: 0.115, plazo: 15, dscrMin: 1.25, ltvTope: 0.80,
     rentaMes: 37500, gRenta: 0.05, vac: 0.08, predial: 9000, seguro: 7000,
     pctMan: 0.05, pctAdm: 0.06, pctConstr: 0.70, tasaDep: 0.05,
     hor: 10, capSal: 0.080, pctCV: 0.06,
@@ -96,7 +111,7 @@ export const DEF_ACTIVOS = {
     p1: 0.25, p2: 0.50, p3: 0.25,
     ing1: [650000, 900000, 1100000], gIng: [0.00, 0.05, 0.08],
     cos1: [560000, 480000, 430000], precio: [1350000, 1200000, 1150000],
-    rv: [90000, 180000, 240000], ve: [6, 8, 9], td: [0.19, 0.161, 0.145],
+    rv: [90000, 180000, 240000], ve: [6, 8, 9],
   },
 };
 
@@ -117,17 +132,53 @@ export function guardarActivos(A) { try { localStorage.setItem(KEY, JSON.stringi
 /* ============================================================
    SUPUESTOS: costo de capital y tasa exigida a cada activo
    ============================================================ */
+
+/* Primas adicionales del proyecto: lo que se le suma a la tasa base.
+   Los porcentajes enseñan el criterio, no son la verdad: se pueden mover.
+   Sobre una tasa base de 14% reproducen 12 / 14 / 15 / 18 / 22 por ciento. */
+export const PRIMAS = [
+  { k: "reemplazo", label: "Reemplazo de algo que ya opera", riesgo: "Bajo", p: -0.020,
+    ej: "Cambias una máquina por otra parecida. Ya conoces el flujo porque lleva años pasando." },
+  { k: "capacidad", label: "Ampliar capacidad de lo que ya haces", riesgo: "Medio", p: 0.000,
+    ej: "Más de lo mismo, pero la demanda extra todavía está por confirmarse." },
+  { k: "nuevouso", label: "Uso productivo nuevo pero definido", riesgo: "Medio-alto", p: 0.010,
+    ej: "Un terreno con destino ya decidido, o una línea nueva de un producto que dominas." },
+  { k: "especula", label: "Sin flujo, apostando a la plusvalía", riesgo: "Alto", p: 0.040,
+    ej: "Sólo se carga con predial y vigilancia, y se espera que suba de precio." },
+  { k: "nuevo", label: "Negocio nuevo o tecnología sin probar", riesgo: "Muy alto", p: 0.080,
+    ej: "No tienes historia propia con qué compararlo." },
+];
+
+/* Qué escalón corresponde a una prima ya capturada; null si la movieron a mano */
+export const primaDe = (p) => {
+  const b = PRIMAS.find((x) => Math.abs(x.p - p) < 1e-9);
+  return b ? b.k : null;
+};
+
 export function calcSup(A) {
   const s = A.sup;
-  const ke = s.rf + s.beta * s.prm + s.ptam;
   const kdt = s.kd * (1 - s.isr);
   const we = 1 - s.wd;
-  const wacc = ke * we + kdt * s.wd;
+  /* Costo del capital propio sin beta: o el atajo sobre la deuda de la propia
+     empresa, o un build-up de primas. Ambos llegan al mismo vecindario. */
+  const ke = s.metodo === "buildup" ? s.rf + s.prm + s.ptam + s.pneg : s.kd + s.primaEq;
+  const waccCalc = ke * we + kdt * s.wd;
+  /* Tasa base de la empresa: el hurdle rate. Se fija una vez al año, no por proyecto. */
+  const base = s.metodo === "directo" ? s.baseDirecta : waccCalc;
+  /* Cuando el activo es inversión y no herramienta, la tasa la pone el mercado:
+     el inmueble en renta por Gordon (r = cap rate + crecimiento) y el terreno
+     por el rendimiento anual de comparables. */
+  const tInmMkt = s.capMkt + s.gMkt;
+  const tTerMkt = s.rendTer;
+  const opInm = s.usoInm === "op", opTer = s.usoTer === "op";
   return {
-    isr: s.isr, inf: s.inf, ke, kdt, we, wacc, kd: s.kd,
+    isr: s.isr, inf: s.inf, ke, kdt, we, kd: s.kd,
+    base, wacc: base, waccCalc, tInmMkt, tTerMkt, opInm, opTer,
     tasas: {
-      maq: wacc + s.pMaq, inm: wacc + s.pInm, auto: kdt + s.pAuto,
-      ter: wacc + s.pTer,
+      maq: base + s.pMaq,
+      auto: base + s.pAuto,
+      inm: (opInm ? base : tInmMkt) + s.pInm,
+      ter: (opTer ? base : tTerMkt) + s.pTer,
     },
   };
 }
@@ -145,7 +196,12 @@ export function calcMaq(A, sup, ov) {
   const inv0 = -(base + ct0) + m.venta + efec;
   const depA = m.vf ? base / m.vf : 0;
   const vl = Math.max(0, base - depA * Math.min(m.ve, m.vf));
-  const Y = []; let prevIng = 0, acum = 0;
+  /* Crédito refaccionario. Se presta contra el equipo, no contra el capital
+     de trabajo, así que el LTV se aplica sobre la base, no sobre la inversión. */
+  const monto = base * m.ltvM;
+  const capProp = Math.max(0, -inv0 - monto);
+  const pago = monto > 0 ? pmt(m.tcM, m.plazoM, monto) : 0;
+  const Y = []; let prevIng = 0, acum = 0, prevSaldo = monto;
   for (let t = 0; t <= 10; t++) {
     const on = t >= 1 && t <= m.ve;
     const ing = on ? m.ing1 * Math.pow(1 + m.gIng, t - 1) : 0;
@@ -166,14 +222,45 @@ export function calcMaq(A, sup, ov) {
     const total = t === 0 ? inv0 : fcfOp + invR + resc + recCT;
     const fac = 1 / Math.pow(1 + td, t);
     const desc = total * fac; acum += desc;
-    Y.push({ t, ing, aho, cos, ebitda, dep, ebit, imp, nopat, addDep, dct, capex, fcfOp, invR, resc, recCT, total, fac, desc, acum });
+    /* Rama apalancada: mismo proyecto, pero el banco pone una parte. El interés
+       es deducible, así que agrega escudo fiscal sobre el flujo sin deuda. */
+    let saldo;
+    if (t === 0) saldo = monto;
+    else if (t > Math.min(m.plazoM, m.ve)) saldo = 0;
+    else saldo = saldoRest(m.tcM, t, pago, monto);
+    const intr = on ? -(prevSaldo * m.tcM) : 0;
+    const amo = on ? -(prevSaldo - saldo) : 0;
+    const escI = -intr * isr;
+    const liq = t === m.ve ? -saldo : 0;
+    const fl = t === 0 ? inv0 + monto : total + intr + amo + escI + liq;
+    Y.push({ t, ing, aho, cos, ebitda, dep, ebit, imp, nopat, addDep, dct, capex, fcfOp, invR, resc, recCT, total, fac, desc, acum,
+      saldo, intr, amo, escI, liq, fl, dl: fl / Math.pow(1 + sup.ke, t) });
     prevIng = ing;
+    prevSaldo = saldo;
   }
   const cf = Y.map((y) => y.total);
   const vpn = Y.reduce((s, y) => s + y.desc, 0);
+  const vpnL = Y.reduce((s, y) => s + y.dl, 0);
+  const tir = irr(cf);
+  /* Hasta dónde te presta el banco: el EBITDA del año 1 es lo que puede pagar
+     el servicio de la deuda, así que el tope sale en forma cerrada igual que
+     en el inmueble, sólo que la prueba se hace contra EBITDA y no contra NOI. */
+  const ebitda1 = Y[1] ? Y[1].ebitda : 0;
+  const dscr = pago > 0 ? ebitda1 / pago : null;
+  const pagoMax = m.dscrMin > 0 ? ebitda1 / m.dscrMin : 0;
+  const montoMax = pagoMax <= 0 ? 0
+    : m.tcM === 0 ? pagoMax * m.plazoM
+      : (pagoMax * (1 - Math.pow(1 + m.tcM, -m.plazoM))) / m.tcM;
+  const ltvDscr = base > 0 ? Math.max(0, montoMax / base) : null;
+  const ltvMax = ok(ltvDscr) ? Math.min(ltvDscr, m.ltvTope) : m.ltvTope;
+  const limita = ok(ltvDscr) && ltvDscr < m.ltvTope ? "dscr" : "garantia";
+  const propioMin = ok(ltvMax) ? Math.max(0, -inv0 - base * Math.min(ltvMax, 1)) : null;
+  /* El crédito suma sólo si el equipo rinde más de lo que cobra el banco */
+  const apalancaSuma = ok(tir) && tir > m.tcM;
   return {
-    m, td, base, ct0, inv0, depA, vl, Y, vpn,
-    tir: irr(cf), tirm: mirr(cf, sup.kd, td),
+    m, td, base, ct0, inv0, depA, vl, Y, vpn, vpnL,
+    monto, capProp, pago, dscr, ltvMax, ltvDscr, limita, montoMax, propioMin, apalancaSuma,
+    tir, tirL: irr(Y.map((y) => y.fl)), tirm: mirr(cf, sup.kd, td),
     vaeV: vae(vpn, td, m.ve),
     ir: inv0 < 0 ? Y.slice(1).reduce((s, y) => s + y.desc, 0) / -inv0 : null,
     pb: paybackDesc(Y.map((y) => y.acum)),
@@ -188,11 +275,16 @@ export function calcInm(A, sup, ov) {
   const i = Object.assign({}, A.inm, ov);
   const isr = sup.isr, inf = sup.inf;
   const td = ov.td != null ? ov.td : sup.tasas.inm;
-  const ke = sup.ke;
   const gAdq = i.precio * i.pctAdq;
   const invTot = i.precio + gAdq + i.remod;
   const monto = i.precio * i.ltv;
   const capProp = invTot - monto;
+  /* Tasa del capital propio. Si el inmueble es herramienta de la operación es el
+     Ke de la empresa. Si es inversión, se reapalanca desde la tasa del propio
+     mercado inmobiliario: el accionista carga con el diferencial entre lo que
+     rinde el ladrillo y lo que cuesta la hipoteca, amplificado por su D/E. */
+  const de = capProp > 0 ? monto / capProp : 0;
+  const ke = sup.opInm ? sup.ke : td + (td - i.th) * de;
   const pago = monto > 0 ? pmt(i.th, i.plazo, monto) : 0;
   const depA = i.precio * i.pctConstr * i.tasaDep;
   const rentaAnual = i.rentaMes * 12;
@@ -230,9 +322,32 @@ export function calcInm(A, sup, ov) {
   let ac = 0; Y.forEach((y) => { ac += y.du; y.acum = ac; });
   const vpnU = Y.reduce((s, y) => s + y.du, 0);
   const vpnL = Y.reduce((s, y) => s + y.dl, 0);
+  /* Hasta dónde te presta el banco. El NOI no depende del crédito, así que el
+     tope sale en forma cerrada: el pago máximo que pasa la prueba de DSCR, y
+     de ahí para atrás el monto que ese pago amortiza en el plazo. */
+  const noi1 = Y[1] ? Y[1].noi : 0;
+  const pagoMax = i.dscrMin > 0 ? noi1 / i.dscrMin : 0;
+  const montoMax = pagoMax <= 0 ? 0
+    : i.th === 0 ? pagoMax * i.plazo
+      : (pagoMax * (1 - Math.pow(1 + i.th, -i.plazo))) / i.th;
+  /* Dos restricciones distintas, y manda la que pegue primero: el flujo tiene
+     que pagar el servicio (DSCR) y la garantía tiene que cubrir el saldo. */
+  const ltvDscr = i.precio > 0 ? Math.max(0, montoMax / i.precio) : null;
+  const ltvMax = ok(ltvDscr) ? Math.min(ltvDscr, i.ltvTope) : i.ltvTope;
+  const limita = ok(ltvDscr) && ltvDscr < i.ltvTope ? "dscr" : "garantia";
+  /* Con este crédito no te alcanza para menos de esto de tu bolsa */
+  const propioMin = ok(ltvMax) ? Math.max(0, invTot - i.precio * Math.min(ltvMax, 1)) : null;
+  /* El apalancamiento suma sólo si el ladrillo rinde de verdad más de lo que
+     cuesta la hipoteca. La prueba va contra el rendimiento real (la TIR sin
+     deuda), no contra la tasa que le exiges: exigirle mucho a un inmueble no
+     hace que pague la hipoteca. */
+  const tirU = irr(Y.map((y) => y.fu));
+  const apalancaSuma = ok(tirU) && tirU > i.th;
+
   return {
     i, td, ke, invTot, monto, capProp, pago, depA, rentaAnual, Y,
-    vpn: vpnU, vpnL, tir: irr(Y.map((y) => y.fu)), tirL: irr(Y.map((y) => y.fl)),
+    ltvMax, ltvDscr, limita, montoMax, propioMin, apalancaSuma, de,
+    vpn: vpnU, vpnL, tir: tirU, tirL: irr(Y.map((y) => y.fl)),
     capEnt: invTot ? Y[1].noi / invTot : null,
     coc: capProp ? Y[1].fl / capProp : null,
     dscr: pago ? Y[1].noi / pago : null,

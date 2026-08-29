@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { C } from "../lib/theme";
 import { uid, money, num, pct, nfmt, MESES } from "../lib/format";
 import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, LlaveIA, inputCls, inputSt } from "../components/ui";
-import { claudeFetch, textoDe } from "../lib/claude";
+import { iaFetch } from "../lib/ia";
 
 /* ============================================================
    13. DIAGNÓSTICO IA
@@ -30,12 +30,9 @@ export default function TabIA({ s, m }: any) {
       productos: m.prod.map((p) => ({ nombre: p.nombre, mix: p.mix, precio: p.precio, costoEstandar: Math.round(p.estandar), margenReal: p.margenReal })),
     };
     try {
-      const data = await claudeFetch({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          messages: [{
-            role: "user",
-            content: `Eres un consultor senior de rentabilidad evaluando un proyecto de inversión para un comité. Tono ejecutivo, directo, sin preámbulo, español de México. Nada de adjetivos vacíos.
+      const { texto: t } = await iaFetch({
+          maxTokens: 6000,
+          prompt: `Eres un consultor senior de rentabilidad evaluando un proyecto de inversión para un comité. Tono ejecutivo, directo, sin preámbulo, español de México. Nada de adjetivos vacíos.
 
 Datos del modelo:
 ${JSON.stringify(resumen, null, 1)}
@@ -45,10 +42,8 @@ LECTURA DEL CASO: 3 hallazgos duros, con los números que los sostienen.
 RIESGO PRINCIPAL: el supuesto que si falla tumba el caso.
 CONCLUSIÓN: una frase.
 DECISIÓN: invertir / negociar condiciones / rediseñar el modelo / no invertir, y por qué.
-ELIMINACIÓN: qué hay que quitar o dejar de hacer para que el número mejore.`
-          }],
+ELIMINACIÓN: qué hay que quitar o dejar de hacer para que el número mejore.`,
         });
-      const t = textoDe(data);
       setTexto(t || "Sin respuesta.");
     } catch (e) { setError("No se pudo generar el diagnóstico: " + e.message); }
     finally { setCargando(false); }

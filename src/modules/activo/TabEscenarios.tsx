@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { C } from "../../lib/theme";
 import { Card, NumIn, PctIn } from "../../components/ui";
-import { Head, Stats, Veredicto, Nota, fM, fP } from "./piezas";
+import { Head, Stats, Veredicto, Nota, fM, fP, fP2 } from "./piezas";
 import { calcMaq } from "../../lib/activos";
 import { money } from "../../lib/format";
 
@@ -16,7 +16,6 @@ const FILAS = [
   { k: "precio", label: "Precio del equipo", tipo: "money" },
   { k: "rv", label: "Valor de rescate", tipo: "money" },
   { k: "ve", label: "Vida económica (años)", tipo: "int" },
-  { k: "td", label: "Tasa de descuento", tipo: "pct" },
 ];
 const NOMBRES = ["Pesimista", "Base", "Optimista"];
 
@@ -71,6 +70,17 @@ export default function TabEscenarios({ A, up, R }: any) {
               ))}
               <tr>
                 <th className="text-[12px] px-2 py-1.5 text-left font-semibold whitespace-nowrap"
+                  style={{ color: C.tasaTexto, background: C.tasaBg, borderBottom: `1px solid ${C.tasaLinea}`, borderTop: `1px solid ${C.tasaLinea}`, borderRight: `1px solid ${C.line}` }}>
+                  Tasa de descuento
+                  <div className="text-[10.5px] italic font-normal" style={{ color: C.muted }}>Igual en los tres. Se define en la pestaña «Tasa de descuento»</div>
+                </th>
+                {[0, 1, 2].map((idx) => (
+                  <td key={idx} className="px-2 py-1.5 text-[14px] text-right font-semibold"
+                    style={{ color: C.ink, background: C.tasaBg, borderBottom: `1px solid ${C.tasaLinea}`, borderTop: `1px solid ${C.tasaLinea}`, fontVariantNumeric: "tabular-nums" }}>{fP2(R.sup.tasas.maq)}</td>
+                ))}
+              </tr>
+              <tr>
+                <th className="text-[12px] px-2 py-1.5 text-left font-semibold whitespace-nowrap"
                   style={{ color: C.ink, borderBottom: `1px solid ${C.soft}`, borderRight: `1px solid ${C.line}`, borderTop: `1px solid ${C.line}` }}>Probabilidad asignada</th>
                 {["p1", "p2", "p3"].map((pk) => (
                   <td key={pk} className="px-2 py-1.5" style={{ borderBottom: `1px solid ${C.soft}`, borderTop: `1px solid ${C.line}` }}>
@@ -89,7 +99,13 @@ export default function TabEscenarios({ A, up, R }: any) {
             </tbody>
           </table>
         </div>
-        <Nota>Sé coherente dentro de cada escenario: si en el pesimista baja el volumen, normalmente también baja el precio y sube la tasa que exiges.</Nota>
+        <Nota>
+          Sé coherente dentro de cada escenario: si en el pesimista baja el volumen, normalmente también baja el
+          precio. La tasa de descuento ya no se captura escenario por escenario — los tres se descuentan a la
+          misma, la que define la pestaña <b>Tasa de descuento</b>, para que lo único que cambie entre columnas
+          sea el negocio y no la vara con que lo mides. Si lo que quieres es ver qué pasa al mover la tasa, ésa
+          es la pestaña de sensibilidad.
+        </Nota>
       </Card>
 
       <Card title="Resultado ponderado">

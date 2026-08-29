@@ -52,12 +52,131 @@ export function Campo({ A, up, g, k, label, hint, tipo = "money", dec }: any) {
   );
 }
 
+/* Deslizador: para las decisiones donde importa recorrer el rango entero,
+   no atinarle a un número. `tope` pinta hasta dónde te dejan llegar. */
+export function Slider({ label, hint, value, onChange, min = 0, max = 1, step = 0.01,
+  fmt, tope, topeLabel, izq, der }: any) {
+  const f = fmt || ((v) => pct(v, 0));
+  const pos = (v) => Math.max(0, Math.min(100, ((v - min) / (max - min)) * 100));
+  const pasado = tope != null && value > tope;
+  return (
+    <div className="py-2.5" style={{ borderBottom: `1px dotted ${C.line}` }}>
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="text-[12.5px] leading-tight" style={{ color: C.ink }}>{label}</div>
+        <div className="text-[16px] font-semibold" style={{ color: pasado ? C.neg : C.azul, fontVariantNumeric: "tabular-nums" }}>{f(value)}</div>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full mt-1.5" style={{ accentColor: pasado ? C.neg : C.accent, display: "block" }} />
+      {/* regla: verde hasta donde te prestan, rojo mas alla */}
+      {tope != null && (
+        <div className="relative mt-0.5 mb-1" style={{ height: 4 }}>
+          <div className="absolute rounded-sm" style={{ left: 0, width: pos(tope) + "%", top: 0, bottom: 0, background: C.accent }} />
+          <div className="absolute rounded-sm" style={{ left: pos(tope) + "%", right: 0, top: 0, bottom: 0, background: C.neg, opacity: 0.75 }} />
+          <div className="absolute" style={{ left: pos(tope) + "%", top: -3, bottom: -3, width: 2, background: C.ink }} />
+        </div>
+      )}
+      <div className="flex justify-between text-[10px]" style={{ color: C.muted }}>
+        <span>{izq || f(min)}</span>
+        {tope != null && <span style={{ color: pasado ? C.neg : C.ink, fontWeight: 600 }}>{topeLabel || ("tope " + f(tope))}</span>}
+        <span>{der || f(max)}</span>
+      </div>
+      {hint && <div className="text-[10.5px] italic mt-0.5" style={{ color: C.muted }}>{hint}</div>}
+    </div>
+  );
+}
+
+/* Reparto visual de quien pone el dinero */
+export function Reparto({ deuda, propio }: any) {
+  const tot = (deuda || 0) + (propio || 0);
+  const pd = tot > 0 ? (deuda / tot) * 100 : 0;
+  return (
+    <div className="mt-1">
+      <div className="flex rounded overflow-hidden" style={{ height: 26, border: `1px solid ${C.line}` }}>
+        <div className="flex items-center justify-center overflow-hidden" style={{ width: pd + "%", background: C.ink }}>
+          {pd > 16 && <span className="text-[10.5px] font-semibold whitespace-nowrap" style={{ color: C.white }}>Banco</span>}
+        </div>
+        <div className="flex items-center justify-center overflow-hidden" style={{ width: (100 - pd) + "%", background: C.accent }}>
+          {/* "Capital propio" es largo: sólo cabe cuando la franja da el ancho */}
+          {100 - pd > 34 && <span className="text-[10.5px] font-semibold whitespace-nowrap" style={{ color: C.white }}>Capital propio</span>}
+        </div>
+      </div>
+      <div className="flex justify-between mt-1 text-[11.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+        <span style={{ color: C.ink }}>Banco <b>{money(deuda)}</b></span>
+        <span style={{ color: C.accent }}>Capital propio <b>{money(propio)}</b></span>
+      </div>
+    </div>
+  );
+}
+
+/* Tarjeta de apalancamiento, igual para maquinaria e inmueble: cuánto pone el
+   banco, hasta dónde te deja llegar y si la deuda te suma o te resta. */
+export function Apalancamiento({ ltv, monto, propio, dscr, dscrMin, ltvMax, ltvDscr, limita,
+  propioMin, apalancaSuma, rinde, cuesta, vpn, tirSin, tirCon, extra, activo }: any) {
+  const pasado = ok(ltvMax) && ltv > ltvMax;
+  const porGarantia = limita === "garantia";
+  return (
+    <>
+      <Reparto deuda={monto} propio={propio} />
+      <div className="mt-3">
+        <Stats items={[
+          { k: "Sale de tu bolsa", valor: propio, signo: false, clave: true },
+          { k: "DSCR año 1", valor: dscr, fmt: fX, signo: false, n: `El banco pide ${fX(dscrMin)}` },
+          { k: "TIR apalancada", valor: tirCon, fmt: fP, signo: false, n: `Sin deuda rinde ${fP(tirSin)}` },
+        ].concat(extra || [])} />
+      </div>
+      {pasado
+        ? <Veredicto tono="no" texto={`Estás pidiendo ${fP(ltv)} y te prestan hasta ${fP(ltvMax)}. ${porGarantia
+            ? `Ahí topa la garantía: nadie te presta más que eso contra ${activo}, por bien que pague.`
+            : `Ahí topa el DSCR: el flujo ya no alcanza a cubrir el servicio con el colchón que te piden.`} Tendrías que poner al menos ${fM(propioMin)} de tu bolsa.`} />
+        : !apalancaSuma
+          ? <Veredicto tono="mid" texto={`Aquí la deuda te resta: ${activo} rinde ${fP(rinde)} y el crédito te cuesta ${fP2(cuesta)}. Cada peso que pidas prestado se lleva la diferencia. Conviene apalancarte poco, o negociar la tasa.`} />
+          : <Veredicto tono="ok" texto={`La deuda te suma: ${activo} rinde ${fP(rinde)} y el crédito cuesta ${fP2(cuesta)}. Puedes llegar hasta ${fP(ltvMax)}${porGarantia ? ", donde topa la garantía" : `, donde el DSCR toca ${fX(dscrMin)}`}, y ahí pondrías ${fM(propioMin)} de tu bolsa en vez de ${fM(propio)}.`} />}
+      <Nota>
+        Apalancarte no hace bueno un mal negocio: el VPN sin deuda ({fM(vpn)}) no se mueve un peso cuando jalas el
+        deslizador. Lo que la deuda hace es amplificar — para arriba si el activo rinde más que el crédito, para
+        abajo si rinde menos — y decidir cuánto de tu capital queda amarrado aquí en vez de en otra cosa.
+        {ok(ltvDscr) && ok(ltvMax) && (
+          <> Aquí te limita <b>{porGarantia ? "la garantía" : "el flujo"}</b>: por DSCR aguantarías {fP(ltvDscr)}
+          {porGarantia ? ", pero el colateral no da para tanto." : " y ése es el que pega primero."}</>
+        )}
+      </Nota>
+    </>
+  );
+}
+
 /* Valor derivado: negro, alineado a la derecha, nunca editable */
 export const Derivado = ({ label, hint, valor }: any) => (
   <Row label={label} hint={hint}>
     <div className="text-[13px] font-semibold text-right pr-2" style={{ color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valor}</div>
   </Row>
 );
+
+/* La tasa de descuento, en caja naranja. Es el número que menos se entiende y el
+   que más mueve el resultado, así que va igual en todas las pestañas.
+   El color vive en la caja y en la etiqueta; la cifra se queda en negro para
+   que se lea como lo que es, un dato, y no como un semáforo. */
+export function TasaBox({ label = "Tasa de descuento", valor, nota, origen, chico }: any) {
+  return (
+    <div className={`rounded-md ${chico ? "px-2.5 py-1.5 my-1" : "px-3 py-2.5 my-2"}`}
+      style={{ background: C.tasaBg, border: `1px solid ${C.tasaLinea}` }}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className={`${chico ? "text-[9.5px]" : "text-[10px]"} uppercase tracking-wider font-semibold`}
+            style={{ color: C.tasaTexto }}>{label}</div>
+          {nota && <div className="text-[10.5px] leading-snug mt-0.5" style={{ color: C.muted }}>{nota}</div>}
+        </div>
+        <div className={`${chico ? "text-[15px]" : "text-[22px]"} font-semibold shrink-0 leading-none`}
+          style={{ color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valor}</div>
+      </div>
+      {origen && (
+        <div className="text-[10.5px] italic mt-1.5 pt-1.5" style={{ color: C.muted, borderTop: `1px dotted ${C.tasaLinea}` }}>
+          {origen}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ---------- mosaico de indicadores ---------- */
 export function Stats({ items }: any) {
@@ -97,6 +216,17 @@ export function Veredicto({ tono, texto }: any) {
 /* ---------- nota al pie de una tarjeta ---------- */
 export const Nota = ({ children }: any) => (
   <div className="text-[11.5px] leading-relaxed px-4 py-2.5" style={{ color: C.muted, background: C.soft, borderTop: `1px solid ${C.line}` }}>{children}</div>
+);
+
+/* La tasa de descuento no se captura en las pestañas de activo: se arma una sola
+   vez en "Tasa de descuento" y baja a las cuatro, para que todas se midan igual. */
+export const NotaTasa = ({ detalle }: any) => (
+  <Nota>
+    <b>La tasa de descuento no se edita aquí.</b> Se arma en la pestaña <b>Tasa de descuento</b> y baja sola a
+    las cuatro pestañas de activo, para que todas se midan con la misma vara. Si la quieres mover, muévela allá:
+    {detalle ? " " + detalle : ""} Lo que sí capturas aquí es el costo del crédito de <i>este</i> activo, que es
+    lo que te cobra el banco por él, no el costo de capital de la empresa.
+  </Nota>
 );
 
 /* ---------- tabla de flujo por año (0 a 10) ---------- */
@@ -157,22 +287,29 @@ export function GridTable({ head, rows }: any) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} style={{ background: r.hi ? C.accentSoft : undefined }}>
-              {r.cells.map((c, j) => {
-                const obj = c && typeof c === "object";
-                const txt = obj ? c.t : c;
-                const neg = obj && c.neg;
-                return j === 0 ? (
-                  <th key={j} className="text-[11.5px] px-2 py-1.5 text-left whitespace-nowrap"
-                    style={{ color: C.ink, fontWeight: r.sum || r.hi ? 600 : 400, borderBottom: `1px solid ${C.soft}`, borderRight: `1px solid ${C.line}` }}>{txt}</th>
-                ) : (
-                  <td key={j} className="px-2 py-1.5 text-[11.5px] text-right whitespace-nowrap"
-                    style={{ color: neg ? C.neg : C.ink, fontWeight: r.sum || r.hi ? 600 : 400, borderBottom: `1px solid ${C.soft}`, fontVariantNumeric: "tabular-nums" }}>{txt}</td>
-                );
-              })}
-            </tr>
-          ))}
+          {rows.map((r, i) => {
+            /* r.tasa pinta el renglón de la tasa de descuento del mismo naranja
+               que la caja, para que se reconozca en cualquier tabla */
+            const fondo = r.tasa ? C.tasaBg : r.hi ? C.accentSoft : undefined;
+            const linea = r.tasa ? C.tasaLinea : C.soft;
+            const fuerte = r.sum || r.hi || r.tasa;
+            return (
+              <tr key={i} style={{ background: fondo }}>
+                {r.cells.map((c, j) => {
+                  const obj = c && typeof c === "object";
+                  const txt = obj ? c.t : c;
+                  const neg = obj && c.neg;
+                  return j === 0 ? (
+                    <th key={j} className="text-[11.5px] px-2 py-1.5 text-left whitespace-nowrap"
+                      style={{ color: r.tasa ? C.tasaTexto : C.ink, fontWeight: fuerte ? 600 : 400, borderBottom: `1px solid ${linea}`, borderTop: r.tasa ? `1px solid ${C.tasaLinea}` : undefined, borderRight: `1px solid ${C.line}` }}>{txt}</th>
+                  ) : (
+                    <td key={j} className="px-2 py-1.5 text-[11.5px] text-right whitespace-nowrap"
+                      style={{ color: neg ? C.neg : C.ink, fontWeight: fuerte ? 600 : 400, borderBottom: `1px solid ${linea}`, borderTop: r.tasa ? `1px solid ${C.tasaLinea}` : undefined, fontVariantNumeric: "tabular-nums" }}>{txt}</td>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
