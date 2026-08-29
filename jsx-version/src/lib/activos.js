@@ -84,6 +84,9 @@ export const DEF_ACTIVOS = {
     precio: 1200000, fletes: 40000, instal: 90000, capac: 20000,
     venta: 0, libros: 0, ve: 8, vf: 10,
     ing1: 900000, gIng: 0.05, aho1: 120000, cos1: 480000, gCos: 0.045,
+    /* Referencia de la operación actual: sólo pone en escala los ingresos,
+       ahorros y costos incrementales. No entra en ningún cálculo. */
+    baseIng: 12000000, baseCos: 3000000,
     pctCT: 0.15, mto1: 35000, rv: 180000,
     /* Crédito refaccionario: el banco financia el equipo, no el capital de trabajo */
     ltvM: 0.60, tcM: 0.155, plazoM: 5, dscrMin: 1.25, ltvTope: 0.80,

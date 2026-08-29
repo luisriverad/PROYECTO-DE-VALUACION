@@ -1,6 +1,6 @@
 import React from "react";
 import { Card } from "../../components/ui";
-import { Head, Cols, SecHead, Campo, Derivado, Slider, Reparto, Apalancamiento, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, fAnios, NotaTasa, TasaBox } from "./piezas";
+import { Head, Cols, SecHead, Campo, CampoDual, CampoRef, Derivado, Slider, Reparto, Apalancamiento, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, fAnios, NotaTasa, TasaBox } from "./piezas";
 import { ok } from "../../lib/activos";
 
 /* ============================================================
@@ -49,10 +49,16 @@ export default function TabMaquinaria({ A, up, R }: any) {
             <Campo A={A} up={up} g="maq" k="ve" label="Vida económica (años)" hint="Cuántos lo vas a usar de verdad" tipo="int" />
             <Campo A={A} up={up} g="maq" k="vf" label="Vida fiscal (años)" hint="Confírmala con tu contador" tipo="int" />
             <Derivado label="Depreciación anual" valor={fM(r.depA)} />
-            <Campo A={A} up={up} g="maq" k="ing1" label="Ingresos incrementales año 1" />
+            {/* referencias: no entran al cálculo, sólo ponen en escala lo de abajo */}
+            <CampoRef A={A} up={up} g="maq" k="baseIng" label="Ventas actuales al año" hint="Sólo referencia, no entra al cálculo" />
+            <CampoRef A={A} up={up} g="maq" k="baseCos" label="Costo actual al año" hint="Sólo referencia, no entra al cálculo" />
+            <CampoDual A={A} up={up} g="maq" k="ing1" bk="baseIng"
+              label="Ingresos incrementales año 1" refTexto="tus ventas actuales" />
             <Campo A={A} up={up} g="maq" k="gIng" label="Crecimiento de ingresos" tipo="pct" />
-            <Campo A={A} up={up} g="maq" k="aho1" label="Ahorros en costos año 1" hint="Mano de obra, energía, merma" />
-            <Campo A={A} up={up} g="maq" k="cos1" label="Costos incrementales año 1" />
+            <CampoDual A={A} up={up} g="maq" k="aho1" bk="baseCos"
+              label="Ahorros en costos año 1" hint="Mano de obra, energía, merma" refTexto="tu costo actual" />
+            <CampoDual A={A} up={up} g="maq" k="cos1" bk="baseCos"
+              label="Costos incrementales año 1" refTexto="tu costo actual" />
             <Campo A={A} up={up} g="maq" k="gCos" label="Crecimiento de costos" tipo="pct" />
             <Campo A={A} up={up} g="maq" k="pctCT" label="Capital de trabajo (% de ingresos)" tipo="pct" />
             <Campo A={A} up={up} g="maq" k="mto1" label="CapEx de mantenimiento año 1" />

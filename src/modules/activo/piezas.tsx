@@ -52,6 +52,38 @@ export function Campo({ A, up, g, k, label, hint, tipo = "money", dec }: any) {
   );
 }
 
+/* Renglón en pesos que además dice qué tajada de la operación actual
+   representa. Se captura de una sola forma —los pesos son lo que corre el
+   modelo— y el porcentaje sólo se lee, para dimensionar si el supuesto es
+   razonable: «me sube las ventas 7.5%» se juzga solo; «$900,000», no. */
+export function CampoDual({ A, up, g, k, bk, label, hint, refTexto }: any) {
+  const base = A[g][bk] || 0;
+  const pesos = A[g][k] || 0;
+  const p = base > 0 ? pesos / base : null;
+  return (
+    <div className="py-1.5" style={{ borderBottom: `1px dotted ${C.line}` }}>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="text-[12.5px] leading-tight" style={{ color: C.ink }}>{label}</div>
+          {hint && <div className="text-[10.5px] italic mt-0.5" style={{ color: C.muted }}>{hint}</div>}
+        </div>
+        <div className="shrink-0" style={{ width: 130 }}>
+          <NumIn value={pesos} dec={0} onChange={(v) => up((n) => { n[g][k] = v; })} />
+        </div>
+      </div>
+      <div className="text-[10.5px] mt-0.5" style={{ color: C.muted }}>
+        {p != null ? `${pct(p, 2)} de ${refTexto}` : `Captura ${refTexto} para ver qué porcentaje representa`}
+      </div>
+    </div>
+  );
+}
+
+/* Referencia de la operación actual: no entra en ningún cálculo, sólo sirve
+   para poner los renglones de arriba en escala. */
+export function CampoRef({ A, up, g, k, label, hint }: any) {
+  return <Row label={label} hint={hint}><NumIn value={A[g][k]} dec={0} onChange={(v) => up((n) => { n[g][k] = v; })} /></Row>;
+}
+
 /* Deslizador: para las decisiones donde importa recorrer el rango entero,
    no atinarle a un número. `tope` pinta hasta dónde te dejan llegar. */
 export function Slider({ label, hint, value, onChange, min = 0, max = 1, step = 0.01,
