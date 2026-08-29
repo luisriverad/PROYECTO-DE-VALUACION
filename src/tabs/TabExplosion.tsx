@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { C } from "../lib/theme";
 import { uid, money, num, pct } from "../lib/format";
 import { Card, Btn, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
@@ -37,15 +37,40 @@ export default function TabExplosion({ s, up, m, L }: any) {
   const totalMP = m.prod.reduce((a, p) => a + p.mp * (p.mix || 0), 0);
   const totalMO = m.prod.reduce((a, p) => a + p.mod * (p.mix || 0), 0);
 
-  const addProd = () => up((n) => { n.productos.push({ id: uid(), nombre: "Nuevo " + L.prodS.toLowerCase(), mix: 0, margen: 0.2, precio: 0, bom: [], mo: [] }); });
+  /* Con varios modelos apilados no se encuentra nada. El renglón del resumen
+     lleva a su explosión de abajo; no esconde las demás, porque el chiste de
+     esta pestaña es poder comparar los componentes de todas. */
+  const [vaId, setVaId] = useState(null);
+  const irA = (id) => {
+    setVaId(id);
+    const el = typeof document !== "undefined" && document.getElementById("exp-" + id);
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const addProd = () => {
+    const id = uid();
+    up((n) => { n.productos.push({ id, nombre: "Nuevo " + L.prodS.toLowerCase(), mix: 0, margen: 0.2, precio: 0, bom: [], mo: [] }); });
+    /* el renglón nuevo aparece hasta abajo: llévalo a la vista solo */
+    setTimeout(() => irA(id), 60);
+  };
+
+  /* Borrar arrastra su lista de materiales y sus horas, y no hay deshacer:
+     se pregunta sólo cuando hay algo capturado que perder. */
+  const borrarProd = (pi) => {
+    const p = s.productos[pi];
+    const renglones = (p.bom || []).length + (p.mo || []).length;
+    if (renglones > 0 && typeof window !== "undefined" &&
+        !window.confirm(`Se elimina «${p.nombre}» con sus ${renglones} renglones de material y mano de obra. Esto no se puede deshacer. ¿Continuar?`)) return;
+    if (vaId === p.id) setVaId(null);
+    up((n) => { n.productos.splice(pi, 1); });
+  };
   const addMat = (pi) => up((n) => { if (s.insumos[0]) n.productos[pi].bom.push({ insumoId: s.insumos[0].id, cant: 0 }); });
   const addMano = (pi) => up((n) => { if (s.recursosMO[0]) n.productos[pi].mo.push({ moId: s.recursosMO[0].id, horas: 0 }); });
 
   return (
     <>
       <Card title="Explosionado de materiales"
-        sub="El costo estándar armado renglón por renglón: qué lleva cada pieza, cuánto consume y a qué precio. Es la misma captura de Materias primas, Mano de obra y Productos vista del derecho — lo que corrijas aquí se corrige allá, y al revés."
-        right={<Btn kind="primary" small onClick={addProd}>+ Agregar {L.prodS.toLowerCase()}</Btn>}>
+        sub="El costo estándar armado renglón por renglón: qué lleva cada pieza, cuánto consume y a qué precio. Es la misma captura de Materias primas, Mano de obra y Productos vista del derecho — lo que corrijas aquí se corrige allá, y al revés.">
         <div className="grid grid-cols-4 gap-3">
           <KPI label="Materiales por pieza" value={money(totalMP, 2)} sub="Promedio ponderado por mezcla" />
           <KPI label="Mano de obra por pieza" value={money(totalMO, 2)} sub="Promedio ponderado por mezcla" />
@@ -56,19 +81,32 @@ export default function TabExplosion({ s, up, m, L }: any) {
 
       {/* ---------- Resumen por producto: mezcla, costo y precio ---------- */}
       <Card title={`${L.prod} — resumen`}
-        sub="Cada línea con su mezcla, su costo armado abajo y el precio al que la vendes. La mezcla se captura en el Forecast y el margen objetivo y el precio de lista en Pricing: aquí se leen todos juntos.">
+        sub={`Haz clic en un renglón para saltar a su explosión, abajo. La mezcla se captura en el Forecast; el margen objetivo y el precio de lista, en Pricing.`}
+        right={<Btn kind="primary" small onClick={addProd}>+ Producto / Servicio</Btn>}>
         {s.productos.length === 0 ? <Empty texto={`Sin ${L.prod.toLowerCase()} capturados.`} /> : (
           <div style={{ overflowX: "auto" }}>
             <table className="w-full" style={{ minWidth: 980 }}>
               <thead><tr>
                 <Th align="left" w="20%">{L.prodS}</Th><Th>Mezcla</Th><Th>Materiales + MO</Th><Th>Costos de {L.cp}</Th>
                 <Th>Costo de {L.cp}</Th><Th>Absorción de gasto</Th><Th>Costo estándar</Th><Th>Margen objetivo</Th>
-                <Th>Precio sugerido</Th><Th>Precio de lista</Th><Th>Margen real</Th>
+                <Th>Precio sugerido</Th><Th>Precio de lista</Th><Th>Margen real</Th><Th w="34"></Th>
               </tr></thead>
               <tbody>
-                {m.prod.map((x, i) => (
-                  <tr key={x.id}>
-                    <Td align="left"><TxtIn value={x.nombre} onChange={(v) => up((n) => { n.productos[i].nombre = v; })} /></Td>
+                {m.prod.map((x, i) => {
+                  const on = vaId === x.id;
+                  return (
+                  <tr key={x.id} onClick={() => irA(x.id)}
+                    title={`Ir a la explosión de ${x.nombre}`}
+                    style={{ background: on ? C.accentSoft : undefined, cursor: "pointer" }}>
+                    <Td align="left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] shrink-0" style={{ color: on ? C.accent : C.line }}>▸</span>
+                        {/* el nombre se edita sin abrir ni cerrar el renglón */}
+                        <span className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                          <TxtIn value={x.nombre} onChange={(v) => up((n) => { n.productos[i].nombre = v; })} />
+                        </span>
+                      </div>
+                    </Td>
                     <Td><span title="Se captura en el Forecast">{pct(x.mix || 0, 1)}</span></Td>
                     <Td>{money(x.directo, 2)}</Td>
                     <Td>{money(x.cp, 2)}</Td>
@@ -79,12 +117,18 @@ export default function TabExplosion({ s, up, m, L }: any) {
                     <Td>{money(x.sugerido, 2)}</Td>
                     <Td><span title="Se captura en Pricing">{money(x.precio)}</span></Td>
                     <Td bold color={x.margenReal < 0 ? C.neg : C.pos}>{pct(x.margenReal)}</Td>
+                    <Td>
+                      <span onClick={(e) => e.stopPropagation()}>
+                        <Btn small kind="danger" title={`Eliminar ${x.nombre}`} onClick={() => borrarProd(i)}>×</Btn>
+                      </span>
+                    </Td>
                   </tr>
-                ))}
+                  );
+                })}
                 <tr>
                   <Td align="left" bold>Total</Td>
                   <Td bold color={mixOk ? C.pos : C.neg}>{pct(mixTotal)}</Td>
-                  <Td colSpan={9}></Td>
+                  <Td colSpan={10}></Td>
                 </tr>
               </tbody>
             </table>
@@ -100,15 +144,26 @@ export default function TabExplosion({ s, up, m, L }: any) {
       {/* ---------- Lista de materiales por producto ---------- */}
       {s.productos.length === 0 ? (
         <Card title="Lista de materiales"><Empty texto={`Sin ${L.prod.toLowerCase()} capturados. Agrega el primero para explosionar su costo.`} /></Card>
-      ) : s.productos.map((p, pi) => {
+      ) : null}
+
+      {s.productos.map((p, pi) => {
         const pc = m.prod[pi];
+        if (!pc) return null;
         return (
-          <Card key={p.id} title={p.nombre} sub={`Mezcla ${pct(p.mix || 0)} · consumo por pieza producida`}
+          <div key={p.id} id={"exp-" + p.id}
+            /* la tarjeta a la que acabas de saltar queda marcada con el acento */
+            style={{ scrollMarginTop: 12, borderRadius: 8,
+              boxShadow: vaId === p.id ? `0 0 0 2px ${C.accent}` : undefined }}>
+          <Card title={p.nombre} sub={`Mezcla ${pct(p.mix || 0)} · consumo por pieza producida`}
             right={
               <div className="flex gap-2">
-                <Btn small onClick={() => addMat(pi)} disabled={!s.insumos.length}>+ Material</Btn>
-                <Btn small onClick={() => addMano(pi)} disabled={!s.recursosMO.length}>+ Mano de obra</Btn>
-                <Btn small kind="danger" title={"Eliminar " + p.nombre} onClick={() => up((n) => { n.productos.splice(pi, 1); })}>×</Btn>
+                <Btn small onClick={() => addMat(pi)} disabled={!s.insumos.length}
+                  title={s.insumos.length ? `Agregar un renglón de ${L.insumo.toLowerCase()}`
+                    : `No hay ${L.insumos.toLowerCase()} capturados: captúralos primero en la pestaña «${L.insumos}»`}>+ Material</Btn>
+                <Btn small onClick={() => addMano(pi)} disabled={!s.recursosMO.length}
+                  title={s.recursosMO.length ? "Agregar un renglón de mano de obra"
+                    : `No hay ${L.mo.toLowerCase()} capturada: captúrala primero en la pestaña «${L.mo}»`}>+ Mano de obra</Btn>
+                <Btn small kind="danger" title={"Eliminar " + p.nombre} onClick={() => borrarProd(pi)}>×</Btn>
               </div>
             }>
             <table className="w-full">
@@ -135,6 +190,26 @@ export default function TabExplosion({ s, up, m, L }: any) {
                     </tr>
                   );
                 })}
+                {!s.insumos.length && (
+                  <tr>
+                    <Td align="left" colSpan={6}>
+                      <div className="text-[11.5px] leading-relaxed px-1 py-1.5" style={{ color: C.neg }}>
+                        No hay {L.insumos.toLowerCase()} capturados todavía, así que no hay de dónde escoger:
+                        el botón «+ Material» está apagado por eso. Captúralos primero en la pestaña
+                        <b style={{ color: C.ink }}> {L.insumos}</b> y aquí los vas a poder elegir.
+                      </div>
+                    </Td>
+                  </tr>
+                )}
+                {!!s.insumos.length && !(p.bom || []).length && (
+                  <tr>
+                    <Td align="left" colSpan={6}>
+                      <div className="text-[11.5px] px-1 py-1.5" style={{ color: C.muted }}>
+                        Sin materiales en este {L.prodS.toLowerCase()}. Usa «+ Material» para agregar el primero.
+                      </div>
+                    </Td>
+                  </tr>
+                )}
                 <tr><Td align="left" colSpan={4} color={C.muted}>Materiales</Td><Td bold>{money(pc.mp, 2)}</Td><Td></Td></tr>
 
                 {(p.mo || []).map((b, i) => (
@@ -152,6 +227,25 @@ export default function TabExplosion({ s, up, m, L }: any) {
                     <Td><Btn small kind="danger" onClick={() => up((n) => { n.productos[pi].mo.splice(i, 1); })}>×</Btn></Td>
                   </tr>
                 ))}
+                {!s.recursosMO.length && (
+                  <tr>
+                    <Td align="left" colSpan={6}>
+                      <div className="text-[11.5px] leading-relaxed px-1 py-1.5" style={{ color: C.neg }}>
+                        No hay {L.mo.toLowerCase()} capturada todavía, así que no hay de dónde escoger.
+                        Captúrala primero en la pestaña <b style={{ color: C.ink }}>{L.mo}</b>.
+                      </div>
+                    </Td>
+                  </tr>
+                )}
+                {!!s.recursosMO.length && !(p.mo || []).length && (
+                  <tr>
+                    <Td align="left" colSpan={6}>
+                      <div className="text-[11.5px] px-1 py-1.5" style={{ color: C.muted }}>
+                        Sin mano de obra en este {L.prodS.toLowerCase()}. Usa «+ Mano de obra» para agregar el primero.
+                      </div>
+                    </Td>
+                  </tr>
+                )}
                 <tr><Td align="left" colSpan={4} color={C.muted}>Mano de obra</Td><Td bold>{money(pc.mod, 2)}</Td><Td></Td></tr>
 
                 <tr>
@@ -165,6 +259,7 @@ export default function TabExplosion({ s, up, m, L }: any) {
               </tbody>
             </table>
           </Card>
+          </div>
         );
       })}
 

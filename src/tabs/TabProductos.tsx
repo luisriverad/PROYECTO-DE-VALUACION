@@ -26,7 +26,7 @@ export default function TabProductos({ s, up, m, L }: any) {
     <>
       <Card title="Pricing"
         sub="Del costo unitario al precio de lista: cuánto gasto absorbe cada pieza, qué margen le pides y en cuánto la vendes. Haz clic en un renglón para ver su costeo abajo."
-        right={<Btn kind="primary" small onClick={addProd}>+ Agregar {L.prodS.toLowerCase()}</Btn>}>
+        right={<Btn kind="primary" small onClick={addProd}>+ Producto / Servicio</Btn>}>
         {s.productos.length === 0 ? <Empty texto="Sin productos capturados." /> : (
           <div style={{ overflowX: "auto" }}>
             <table className="w-full" style={{ minWidth: 1040 }}>
