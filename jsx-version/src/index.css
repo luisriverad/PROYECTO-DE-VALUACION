@@ -22,3 +22,14 @@ input, select, button { font-family: inherit; }
   width: 14px; height: 14px; border-radius: 9999px; background: #fff;
   border: 3px solid currentColor; box-shadow: 0 1px 3px rgba(0,0,0,.25);
 }
+
+/* Título de tarjeta que se puede renombrar en el lugar: se ve como texto
+   hasta que lo tocas, para no ensuciar el encabezado con una caja más. */
+.p120-titulo-edit {
+  font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;
+  background: transparent; border: 1px solid transparent; border-radius: 4px;
+  padding: 1px 5px; margin-left: -6px; outline: none; width: 100%;
+}
+.p120-titulo-edit:hover { border-color: #DDE0DC; }
+.p120-titulo-edit:focus { border-color: #71B248; background: #FFFFFF; }
+.p120-titulo-edit::placeholder { color: #6B7075; font-weight: 400; }

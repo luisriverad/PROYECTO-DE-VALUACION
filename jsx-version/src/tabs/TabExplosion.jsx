@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { C } from "../lib/theme";
 import { uid, money, num, pct } from "../lib/format";
-import { Card, Btn, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
+import { Card, Btn, NumIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
 
 /* ============================================================
    1. EXPLOSIONADO DE MATERIALES  (hoja "Costeo" del libro)
@@ -32,14 +32,11 @@ export default function TabExplosion({ s, up, m, L }) {
   const ventaProy = m.unidadesAnio[0] || 0;
   const dif = capInstalada - ventaProy;
 
-  const mixTotal = s.productos.reduce((a, p) => a + (p.mix || 0), 0);
-  const mixOk = Math.abs(mixTotal - 1) <= 0.001;
   const totalMP = m.prod.reduce((a, p) => a + p.mp * (p.mix || 0), 0);
   const totalMO = m.prod.reduce((a, p) => a + p.mod * (p.mix || 0), 0);
 
-  /* Con varios modelos apilados no se encuentra nada. El renglón del resumen
-     lleva a su explosión de abajo; no esconde las demás, porque el chiste de
-     esta pestaña es poder comparar los componentes de todas. */
+  /* Con varios modelos apilados no se encuentra nada: al dar de alta uno,
+     su tarjeta se trae a la vista y queda marcada con el acento. */
   const [vaId, setVaId] = useState(null);
   const irA = (id) => {
     setVaId(id);
@@ -79,67 +76,10 @@ export default function TabExplosion({ s, up, m, L }) {
         </div>
       </Card>
 
-      {/* ---------- Resumen por producto: mezcla, costo y precio ---------- */}
-      <Card title={`${L.prod} — resumen`}
-        sub={`Haz clic en un renglón para saltar a su explosión, abajo. La mezcla se captura en el Forecast; el margen objetivo y el precio de lista, en Pricing.`}
-        right={<Btn kind="primary" small onClick={addProd}>+ Producto / Servicio</Btn>}>
-        {s.productos.length === 0 ? <Empty texto={`Sin ${L.prod.toLowerCase()} capturados.`} /> : (
-          <div style={{ overflowX: "auto" }}>
-            <table className="w-full" style={{ minWidth: 980 }}>
-              <thead><tr>
-                <Th align="left" w="20%">{L.prodS}</Th><Th>Mezcla</Th><Th>Materiales + MO</Th><Th>Costos de {L.cp}</Th>
-                <Th>Costo de {L.cp}</Th><Th>Absorción de gasto</Th><Th>Costo estándar</Th><Th>Margen objetivo</Th>
-                <Th>Precio sugerido</Th><Th>Precio de lista</Th><Th>Margen real</Th><Th w="34"></Th>
-              </tr></thead>
-              <tbody>
-                {m.prod.map((x, i) => {
-                  const on = vaId === x.id;
-                  return (
-                  <tr key={x.id} onClick={() => irA(x.id)}
-                    title={`Ir a la explosión de ${x.nombre}`}
-                    style={{ background: on ? C.accentSoft : undefined, cursor: "pointer" }}>
-                    <Td align="left">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] shrink-0" style={{ color: on ? C.accent : C.line }}>▸</span>
-                        {/* el nombre se edita sin abrir ni cerrar el renglón */}
-                        <span className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-                          <TxtIn value={x.nombre} onChange={(v) => up((n) => { n.productos[i].nombre = v; })} />
-                        </span>
-                      </div>
-                    </Td>
-                    <Td><span title="Se captura en el Forecast">{pct(x.mix || 0, 1)}</span></Td>
-                    <Td>{money(x.directo, 2)}</Td>
-                    <Td>{money(x.cp, 2)}</Td>
-                    <Td>{money(x.produccion, 2)}</Td>
-                    <Td>{money(x.absorcion, 2)}</Td>
-                    <Td bold>{money(x.estandar, 2)}</Td>
-                    <Td><span title="Se captura en Pricing">{pct(x.margen || 0, 1)}</span></Td>
-                    <Td>{money(x.sugerido, 2)}</Td>
-                    <Td><span title="Se captura en Pricing">{money(x.precio)}</span></Td>
-                    <Td bold color={x.margenReal < 0 ? C.neg : C.pos}>{pct(x.margenReal)}</Td>
-                    <Td>
-                      <span onClick={(e) => e.stopPropagation()}>
-                        <Btn small kind="danger" title={`Eliminar ${x.nombre}`} onClick={() => borrarProd(i)}>×</Btn>
-                      </span>
-                    </Td>
-                  </tr>
-                  );
-                })}
-                <tr>
-                  <Td align="left" bold>Total</Td>
-                  <Td bold color={mixOk ? C.pos : C.neg}>{pct(mixTotal)}</Td>
-                  <Td colSpan={10}></Td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-        {!mixOk && s.productos.length > 0 && (
-          <div className="mt-2 text-[11px]" style={{ color: C.neg }}>
-            La mezcla no suma 100%: el volumen proyectado no se está repartiendo completo. Corrígela en el Forecast.
-          </div>
-        )}
-      </Card>
+      {/* ---------- Alta de productos ---------- */}
+      <div className="flex justify-end">
+        <Btn kind="primary" small onClick={addProd}>+ Producto / Servicio</Btn>
+      </div>
 
       {/* ---------- Lista de materiales por producto ---------- */}
       {s.productos.length === 0 ? (
@@ -154,7 +94,16 @@ export default function TabExplosion({ s, up, m, L }) {
             /* la tarjeta a la que acabas de saltar queda marcada con el acento */
             style={{ scrollMarginTop: 12, borderRadius: 8,
               boxShadow: vaId === p.id ? `0 0 0 2px ${C.accent}` : undefined }}>
-          <Card title={p.nombre} sub={`Mezcla ${pct(p.mix || 0)} · consumo por pieza producida`}
+          <Card
+            /* el nombre se escribe aquí mismo: es el único lugar de esta
+               pestaña donde se bautiza al modelo */
+            title={
+              <input className="p120-titulo-edit" style={{ maxWidth: 360 }}
+                value={p.nombre || ""} placeholder={`Sin nombre`}
+                title={`Escribe para renombrar este ${L.prodS.toLowerCase()}`}
+                onChange={(e) => up((n) => { n.productos[pi].nombre = e.target.value; })} />
+            }
+            sub={`Mezcla ${pct(p.mix || 0)} · consumo por pieza producida`}
             right={
               <div className="flex gap-2">
                 <Btn small onClick={() => addMat(pi)} disabled={!s.insumos.length}

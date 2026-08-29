@@ -160,6 +160,7 @@ export default function App() {
       {esEmpresa ? (
         <div className="px-5 py-3 flex gap-6 flex-wrap" style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
           {[
+            ["Valor de la empresa", money(m.ev), m.ev >= 0 ? "pos" : "neg"],
             ["Inversión requerida", money(m.inversion)],
             ["VPN", money(m.vpn), m.vpn >= 0 ? "pos" : "neg"],
             ["TIR", pct(m.tir), m.tir >= m.waccNom ? "pos" : "neg"],
@@ -245,6 +246,18 @@ export default function App() {
       ) : (
         <ModuloActivo A={a} up={upA} setA={setA} R={RA} flash={flash} topH={topH} />
       )}
+
+      {/* Footer: cierra los dos módulos, no sólo el de empresa */}
+      <div className="px-5 py-4 flex items-center justify-center gap-x-20 gap-y-2 flex-wrap"
+        style={{ background: C.white, borderTop: `1px solid ${C.line}` }}>
+        <span className="text-[10px] uppercase tracking-[0.18em] font-semibold" style={{ color: C.muted }}>Powered by Axon B2B</span>
+        <a href="https://www.axonb2b.ai" target="_blank" rel="noreferrer noopener"
+          className="text-[12px] font-medium hover:opacity-70 transition-opacity"
+          style={{ color: C.ink, textDecoration: "none" }}>www.axonb2b.ai</a>
+        <a href="mailto:contacto@axonb2b.ai"
+          className="text-[12px] font-medium hover:opacity-70 transition-opacity"
+          style={{ color: C.ink, textDecoration: "none" }}>contacto@axonb2b.ai</a>
+      </div>
 
       {/* Glosario y reglas: panel sobre el contenido */}
       {glosario && (

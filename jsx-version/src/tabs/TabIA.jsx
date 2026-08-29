@@ -24,7 +24,7 @@ export default function TabIA({ s, m }) {
       ventasPorAnio: m.anios.map((a) => Math.round(a.ventas)),
       usoCapacidad: m.capacidad.uso, puntoEquilibrioUnidades: Math.round(m.peUnidades),
       unidadesAnio1: Math.round(m.unidadesAnio[0]), absorcionPorUnidad: Math.round(m.absorcion),
-      equity: Math.round(m.equity), participacionPostMoney: m.pctPost,
+      enterpriseValue: Math.round(m.ev), equity: Math.round(m.equity), participacionPostMoney: m.pctPost,
       capitalTrabajoAnio1: Math.round(m.ct[1]?.ctn || 0),
       creditoMonto: s.credito.activo ? s.credito.monto : 0, tasaCredito: s.credito.tasaAnual,
       productos: m.prod.map((p) => ({ nombre: p.nombre, mix: p.mix, precio: p.precio, costoEstandar: Math.round(p.estandar), margenReal: p.margenReal })),
@@ -67,15 +67,19 @@ ELIMINACIÓN: qué hay que quitar o dejar de hacer para que el número mejore.`,
       </Card>
 
       <Card title="Tablero de defensa" sub="Los números que te van a preguntar en la presentación.">
-        <div className="grid grid-cols-4 gap-3">
+        {/* la valuación primero: es la pregunta que abre cualquier comité */}
+        <div className="grid grid-cols-3 gap-3">
+          <KPI label="Valor de la empresa" value={money(m.ev)} tone={m.ev >= 0 ? "pos" : "neg"}
+            sub="Enterprise Value: flujos descontados + valor terminal" />
+          <KPI label="Valor del capital" value={money(m.equity)} tone={m.equity >= 0 ? "pos" : "neg"}
+            sub="Equity Value: + caja − pasivos" />
+          <KPI label="Participación post-money" value={pct(m.pctPost)} sub="Inversión / Equity Value" />
           <KPI label="Inversión requerida" value={money(m.inversion)} />
           <KPI label="VPN" value={money(m.vpn)} tone={m.vpn >= 0 ? "pos" : "neg"} />
           <KPI label="TIR vs WACC" value={pct(m.tir) + " / " + pct(m.waccNom)} tone={m.tir >= m.waccNom ? "pos" : "neg"} />
           <KPI label="Payback descontado" value={m.dpbp ? num(m.dpbp, 2) + " años" : "No recupera"} />
           <KPI label="Uso de capacidad" value={pct(m.capacidad.uso)} tone={m.capacidad.uso > 1 ? "neg" : "pos"} />
           <KPI label="Equilibrio Año 1" value={num(m.peUnidades, 0) + " u"} sub={`Plan: ${num(m.unidadesAnio[0], 0)} u`} />
-          <KPI label="Valor del capital" value={money(m.equity)} />
-          <KPI label="Participación post-money" value={pct(m.pctPost)} />
         </div>
       </Card>
 
@@ -83,6 +87,13 @@ ELIMINACIÓN: qué hay que quitar o dejar de hacer para que el número mejore.`,
         <table className="w-full">
           <thead><tr><Th align="left" w="20%">Indicador</Th><Th align="left" w="34%">Regla</Th><Th align="left">Lectura de tu proyecto</Th></tr></thead>
           <tbody>
+            <tr>
+              <Td align="left" bold>Valor de la empresa</Td>
+              <Td align="left" color={C.muted}>Los flujos descontados al WACC más el valor terminal; el capital sale de ahí, sumando caja y restando pasivos.</Td>
+              <Td align="left" color={m.ev >= 0 ? C.pos : C.neg}>
+                {`${money(m.ev)} de Enterprise Value; ${money(m.equity)} de capital, y la inversión de ${money(m.inversion)} compra el ${pct(m.pctPost)}.`}
+              </Td>
+            </tr>
             <tr>
               <Td align="left" bold>VPN</Td>
               <Td align="left" color={C.muted}>Positivo: el proyecto crea valor por encima del costo del dinero.</Td>

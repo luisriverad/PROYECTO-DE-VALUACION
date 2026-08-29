@@ -11,7 +11,7 @@ export const Card = ({ title, sub, right, children, pad = true }: any) => (
   <div style={{ background: C.white, border: `1px solid ${C.line}` }} className="rounded-lg mb-4">
     {(title || right) && (
       <div className="flex items-start justify-between gap-3 px-4 py-3" style={{ borderBottom: `1px solid ${C.line}` }}>
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="text-[13px] font-semibold tracking-wide uppercase" style={{ color: C.ink }}>{title}</div>
           {sub && <div className="text-[12px] mt-0.5" style={{ color: C.muted }}>{sub}</div>}
         </div>
