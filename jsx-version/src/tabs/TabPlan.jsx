@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../lib/theme";
 import { uid, money, num, pct, nfmt, MESES } from "../lib/format";
-import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
+import { Card, Btn, Field, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ComposedChart, Cell
@@ -14,13 +14,22 @@ export default function TabPlan({ s, up, m, L }) {
   const data = m.meses.map((x) => ({ mes: x.mes, Ventas: Math.round(x.ventas), Unidades: x.unidades }));
   return (
     <>
+      {/* Las piezas del mes se capturan en el Forecast, en el renglón «Piezas
+          totales». Aquí sólo se leen: por eso van en negro y sin caja de captura. */}
       <Card title="Plan de unidades — Año 1" sub="Mes a mes. Aquí se decide si el proyecto arranca o se ahoga.">
         <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(12, minmax(0,1fr))" }}>
           {MESES.map((mes, i) => (
             <Field key={mes} label={mes}>
-              <NumIn value={s.plan.unidadesMes[i]} dec={0} onChange={(v) => up((n) => { n.plan.unidadesMes[i] = v; })} />
+              <div className="w-full px-2 py-1.5 rounded text-[13px] text-right"
+                style={{ background: C.soft, border: `1px solid ${C.line}`, color: C.ink, fontVariantNumeric: "tabular-nums" }}>
+                {num(m.meses[i]?.unidades || 0, 0)}
+              </div>
             </Field>
           ))}
+        </div>
+        <div className="mt-2 text-[11px]" style={{ color: C.muted }}>
+          Estas piezas ya no se capturan aquí: vienen del <b style={{ color: C.ink }}>Forecast</b>, del renglón «Piezas totales».
+          Cámbialas ahí y este plan y todo lo que cuelga de él se recalculan solos.
         </div>
         <div className="mt-3 grid grid-cols-4 gap-3">
           <KPI label="Unidades Año 1" value={num(m.unidadesAnio[0], 0)} />

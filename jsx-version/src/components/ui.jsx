@@ -220,11 +220,16 @@ export const Td = ({ children, align = "right", bold, color, bg, colSpan }) => (
     className={`px-2 py-1.5 text-[12px] text-${align} ${bold ? "font-semibold" : ""} whitespace-nowrap`}>{children}</td>
 );
 
-export const KPI = ({ label, value, sub, tone }) => (
-  <div className="rounded-lg px-3 py-3" style={{ background: C.white, border: `1px solid ${C.line}` }}>
-    <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: C.muted }}>{label}</div>
-    <div className="text-[20px] font-semibold mt-1" style={{ color: tone === "pos" ? C.pos : tone === "neg" ? C.neg : C.ink, fontVariantNumeric: "tabular-nums" }}>{value}</div>
-    {sub && <div className="text-[11px] mt-0.5" style={{ color: C.muted }}>{sub}</div>}
+/* `destaca` pinta el KPI en el naranja de la paleta: es para el dato que hay
+   que ver primero en la tarjeta, sin recurrir al verde ni al rojo, que ya
+   significan otra cosa (bueno / malo). */
+export const KPI = ({ label, value, sub, tone, destaca }) => (
+  <div className="rounded-lg px-3 py-3"
+    style={{ background: destaca ? C.tasaBg : C.white, border: `1px solid ${destaca ? C.tasaLinea : C.line}` }}>
+    <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: destaca ? C.tasaTexto : C.muted }}>{label}</div>
+    <div className="text-[20px] font-semibold mt-1"
+      style={{ color: tone === "pos" ? C.pos : tone === "neg" ? C.neg : destaca ? C.tasaTexto : C.ink, fontVariantNumeric: "tabular-nums" }}>{value}</div>
+    {sub && <div className="text-[11px] mt-0.5" style={{ color: destaca ? C.tasaTexto : C.muted, opacity: destaca ? 0.85 : 1 }}>{sub}</div>}
   </div>
 );
 

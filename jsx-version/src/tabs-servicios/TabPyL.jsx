@@ -28,12 +28,12 @@ const EtiquetaMin = ({ viewBox, valor, ancla }) => {
   );
 };
 
-export default function TabPyL({ s, up, m }) {
+export default function TabPyL({ s, up, m }: any) {
   const [vista, setVista] = useState("mensual");
   const cols = vista === "mensual" ? m.meses : m.anios;
   const head = vista === "mensual" ? m.meses.map((x) => x.mes) : m.anios.map((a) => a.label);
 
-  const R = ({ label, f, bold, pctSobre, tone, indent, unidades, total = "sum" }) => {
+  const R = ({ label, f, bold, pctSobre, tone, indent, unidades, total = "sum" }: any) => {
     const fmt = (v) => (pctSobre ? pct(v) : unidades ? num(v, 0) : money(v));
     return (
       <tr>

@@ -56,18 +56,28 @@ export default function TabEmpresa({ s, up, m }) {
           </div>
         </Card>
 
-        <Card title="Capital de trabajo" sub="Define cuánta caja consume la operación al crecer. Se captura en Rentabilidad y valuación, junto a la tabla que mueve.">
-          <table className="w-full">
-            <tbody>
-              <tr><Td align="left">Días de cartera (DSO)</Td><Td>{num(sp.dso, 0)}</Td></tr>
-              <tr><Td align="left">Clientes con crédito</Td><Td>{pct(sp.pctCredito, 1)}</Td></tr>
-              <tr><Td align="left">Días de inventario (DIO)</Td><Td>{num(sp.dio, 0)}</Td></tr>
-              <tr><Td align="left">Días de proveedores (DPO)</Td><Td>{num(sp.dpo, 0)}</Td></tr>
-              <tr><Td align="left">Días base del año</Td><Td>{num(sp.diasBase, 0)}</Td></tr>
-            </tbody>
-          </table>
+        <Card title="Capital de trabajo" sub="Define cuánta caja consume la operación al crecer. La tabla año por año que mueven estos días vive en Rentabilidad y valuación.">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Días de cartera (DSO)">
+              <NumIn value={sp.dso} dec={0} plain onChange={(v) => up((n) => { n.supuestos.dso = v; })} />
+            </Field>
+            <Field label="Clientes con crédito">
+              <PctIn value={sp.pctCredito} dec={1} onChange={(v) => up((n) => { n.supuestos.pctCredito = v; })} />
+            </Field>
+            <Field label="Días de inventario (DIO)">
+              <NumIn value={sp.dio} dec={0} plain onChange={(v) => up((n) => { n.supuestos.dio = v; })} />
+            </Field>
+            <Field label="Días de proveedores (DPO)">
+              <NumIn value={sp.dpo} dec={0} plain onChange={(v) => up((n) => { n.supuestos.dpo = v; })} />
+            </Field>
+            <Field label="Días base del año">
+              <NumIn value={sp.diasBase} dec={0} plain onChange={(v) => up((n) => { n.supuestos.diasBase = v; })} />
+            </Field>
+          </div>
           <div className="text-[11px] mt-2 px-2 py-2 rounded" style={{ background: C.soft, color: C.muted }}>
-            Ciclo de conversión de efectivo: <b style={{ color: C.ink }}>{num(sp.dso + sp.dio - sp.dpo, 0)} días</b>
+            Ciclo de conversión de efectivo: <b style={{ color: C.ink }}>{num((sp.dso || 0) + (sp.dio || 0) - (sp.dpo || 0), 0)} días</b>
+            {" "}— lo que tardas en volver a tener el dinero: cobras a {num(sp.dso, 0)} días, cargas {num(sp.dio, 0)} de inventario
+            y pagas a {num(sp.dpo, 0)}.
           </div>
         </Card>
       </div>

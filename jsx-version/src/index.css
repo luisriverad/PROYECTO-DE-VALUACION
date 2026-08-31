@@ -23,13 +23,14 @@ input, select, button { font-family: inherit; }
   border: 3px solid currentColor; box-shadow: 0 1px 3px rgba(0,0,0,.25);
 }
 
-/* Título de tarjeta que se puede renombrar en el lugar: se ve como texto
-   hasta que lo tocas, para no ensuciar el encabezado con una caja más. */
+/* Título de tarjeta que se puede renombrar en el lugar. Lleva caja fija y va
+   en azul: es captura manual, y la convención del modelo es que lo que
+   escribes tú se ve azul y dentro de un recuadro. */
 .p120-titulo-edit {
-  font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;
-  background: transparent; border: 1px solid transparent; border-radius: 4px;
-  padding: 1px 5px; margin-left: -6px; outline: none; width: 100%;
+  font: inherit; text-transform: inherit; letter-spacing: inherit;
+  color: #1D4ED8; background: #FFFFFF; border: 1px solid #DDE0DC; border-radius: 4px;
+  padding: 2px 8px; margin-left: -8px; outline: none; width: 100%;
 }
-.p120-titulo-edit:hover { border-color: #DDE0DC; }
-.p120-titulo-edit:focus { border-color: #71B248; background: #FFFFFF; }
+.p120-titulo-edit:hover { border-color: #C3C8C2; }
+.p120-titulo-edit:focus { border-color: #1D4ED8; box-shadow: 0 0 0 2px rgba(29,78,216,.14); }
 .p120-titulo-edit::placeholder { color: #6B7075; font-weight: 400; }

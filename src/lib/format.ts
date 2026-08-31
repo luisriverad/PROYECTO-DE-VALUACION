@@ -5,7 +5,9 @@ export const nfmt = (d) => new Intl.NumberFormat("en-US", { minimumFractionDigit
 export const money = (v, d = 0) => (v === null || v === undefined || !isFinite(v) ? "—" : (v < 0 ? "-" : "") + "$" + nfmt(d).format(Math.abs(v)));
 export const num = (v, d = 2) => (v === null || v === undefined || !isFinite(v) ? "—" : nfmt(d).format(v));
 export const pct = (v, d = 1) => (v === null || v === undefined || !isFinite(v) ? "—" : nfmt(d).format(v * 100) + "%");
-export const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+/* El modelo no arranca en enero: arranca cuando arranca el proyecto, así que
+   los meses se numeran desde el 1 en vez de nombrarse. */
+export const MESES = ["Mes 1", "Mes 2", "Mes 3", "Mes 4", "Mes 5", "Mes 6", "Mes 7", "Mes 8", "Mes 9", "Mes 10", "Mes 11", "Mes 12"];
 
 export const npv = (rate, flows) => flows.reduce((a, f, i) => a + f / Math.pow(1 + rate, i), 0);
 export function irr(flows) {

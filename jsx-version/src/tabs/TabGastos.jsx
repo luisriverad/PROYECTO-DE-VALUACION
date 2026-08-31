@@ -48,36 +48,24 @@ export default function TabGastos({ s, up, m }) {
         );
       })}
 
-      <div className="grid grid-cols-2 gap-4">
-        <Card title="Gastos variables por unidad vendida" sub="Empaque, comisiones, envío: todo lo que solo existe si vendes."
-          right={<Btn small kind="primary" onClick={() => up((n) => { n.gastos.porPieza.push({ id: uid(), nombre: "Nuevo concepto", costo: 0 }); })}>+ Agregar</Btn>}>
-          {s.gastos.porPieza.length === 0 ? <Empty texto="Sin conceptos." /> : (
-            <table className="w-full">
-              <thead><tr><Th align="left" w="55%">Concepto</Th><Th>Costo por unidad</Th><Th w="40"></Th></tr></thead>
-              <tbody>
-                {s.gastos.porPieza.map((g, i) => (
-                  <tr key={g.id}>
-                    <Td align="left"><TxtIn value={g.nombre} onChange={(v) => up((n) => { n.gastos.porPieza[i].nombre = v; })} /></Td>
-                    <Td><NumIn value={g.costo} onChange={(v) => up((n) => { n.gastos.porPieza[i].costo = v; })} /></Td>
-                    <Td><Btn small kind="danger" onClick={() => up((n) => { n.gastos.porPieza.splice(i, 1); })}>×</Btn></Td>
-                  </tr>
-                ))}
-                <tr><Td align="left" bold>Total por unidad</Td><Td bold>{money(m.costoPorPieza, 2)}</Td><Td></Td></tr>
-              </tbody>
-            </table>
-          )}
-        </Card>
-
-        <Card title="Costos de producción" sub="Luz, agua, gas, químicos y mantenimiento viven en su propia pestaña, dentro de Costeo.">
-          <div className="grid grid-cols-2 gap-3">
-            <KPI label="Base fija mensual" value={money(m.cpFijoMes)} />
-            <KPI label="Costo variable por unidad" value={money(m.cpVarU, 2)} />
-          </div>
-          <div className="text-[11.5px] mt-3 px-3 py-2 rounded" style={{ background: C.soft, color: C.muted }}>
-            Estos costos entran al costo de ventas, no al gasto de estructura: por eso no se absorben aquí.
-          </div>
-        </Card>
-      </div>
+      <Card title="Gastos variables por unidad vendida" sub="Empaque, comisiones, envío: todo lo que solo existe si vendes."
+        right={<Btn small kind="primary" onClick={() => up((n) => { n.gastos.porPieza.push({ id: uid(), nombre: "Nuevo concepto", costo: 0 }); })}>+ Agregar</Btn>}>
+        {s.gastos.porPieza.length === 0 ? <Empty texto="Sin conceptos." /> : (
+          <table className="w-full">
+            <thead><tr><Th align="left" w="55%">Concepto</Th><Th>Costo por unidad</Th><Th w="40"></Th></tr></thead>
+            <tbody>
+              {s.gastos.porPieza.map((g, i) => (
+                <tr key={g.id}>
+                  <Td align="left"><TxtIn value={g.nombre} onChange={(v) => up((n) => { n.gastos.porPieza[i].nombre = v; })} /></Td>
+                  <Td><NumIn value={g.costo} onChange={(v) => up((n) => { n.gastos.porPieza[i].costo = v; })} /></Td>
+                  <Td><Btn small kind="danger" onClick={() => up((n) => { n.gastos.porPieza.splice(i, 1); })}>×</Btn></Td>
+                </tr>
+              ))}
+              <tr><Td align="left" bold>Total por unidad</Td><Td bold>{money(m.costoPorPieza, 2)}</Td><Td></Td></tr>
+            </tbody>
+          </table>
+        )}
+      </Card>
 
       <Card title="Absorción de gasto en el costo" sub="Cada unidad tiene que cargar su parte del gasto de estructura.">
         <div className="grid grid-cols-4 gap-3">

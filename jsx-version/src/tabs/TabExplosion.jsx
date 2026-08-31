@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { C } from "../lib/theme";
-import { uid, money, num, pct } from "../lib/format";
+import { uid, money, pct } from "../lib/format";
 import { Card, Btn, NumIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
 
 /* ============================================================
@@ -11,27 +11,6 @@ import { Card, Btn, NumIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../comp
    Productos, así que la captura va y viene entre las cuatro pestañas.
    ============================================================ */
 export default function TabExplosion({ s, up, m, L }) {
-  /* --- horas por pieza de cada puesto, leídas de las listas de los modelos --- */
-  const horasPza = useMemo(() => {
-    const r = {};
-    s.recursosMO.forEach((x) => {
-      const usos = [];
-      s.productos.forEach((p) => (p.mo || []).forEach((b) => { if (b.moId === x.id) usos.push({ mix: p.mix || 0, horas: b.horas || 0 }); }));
-      if (!usos.length) { r[x.id] = 0; return; }
-      const mixT = usos.reduce((a, u) => a + u.mix, 0);
-      r[x.id] = mixT > 0 ? usos.reduce((a, u) => a + u.horas * u.mix, 0) / mixT
-        : usos.reduce((a, u) => a + u.horas, 0) / usos.length;
-    });
-    return r;
-  }, [s.recursosMO, s.productos]);
-
-  /* --- capacidad, como en la hoja: piezas que rinde cada puesto contra el plan --- */
-  const horasAnio = (r) => (m.moHorasEfect[r.id] || 0) * (r.personas || 1) * 12;
-  const pzasTec = (r) => { const h = horasPza[r.id] || 0; return h > 0 ? horasAnio(r) / h : 0; };
-  const capInstalada = s.recursosMO.reduce((a, r) => a + pzasTec(r), 0);
-  const ventaProy = m.unidadesAnio[0] || 0;
-  const dif = capInstalada - ventaProy;
-
   const totalMP = m.prod.reduce((a, p) => a + p.mp * (p.mix || 0), 0);
   const totalMO = m.prod.reduce((a, p) => a + p.mod * (p.mix || 0), 0);
 
@@ -211,20 +190,6 @@ export default function TabExplosion({ s, up, m, L }) {
           </div>
         );
       })}
-
-      {/* ---------- Capacidad en piezas (filas 66-68 de la hoja) ---------- */}
-      <Card title="Capacidad instalada" sub="Las horas por pieza de arriba, traducidas a piezas al año: lo que la plantilla alcanza a producir contra lo que el plan promete vender.">
-        <div className="grid grid-cols-3 gap-3">
-          <KPI label="Capacidad instalada" value={num(capInstalada, 0) + " pzas"} sub="Horas productivas ÷ horas por pieza" />
-          <KPI label="Venta proyectada Año 1" value={num(ventaProy, 0) + " pzas"} sub="Plan de ventas" />
-          <KPI label="Diferencia" value={num(dif, 0) + " pzas"} sub={capInstalada > 0 ? pct(dif / capInstalada) + " de la capacidad" : "—"} tone={dif < 0 ? "neg" : "pos"} />
-        </div>
-        {dif < 0 && (
-          <div className="mt-3 px-3 py-2 rounded text-[12px]" style={{ background: "#FDECEA", color: C.neg }}>
-            El plan pide más piezas de las que la plantilla alcanza a producir. O contratas, o subes horas, o el plan no se cumple.
-          </div>
-        )}
-      </Card>
     </>
   );
 }

@@ -10,6 +10,7 @@ import TabExplosion from "./tabs/TabExplosion";
 import TabInsumos from "./tabs/TabInsumos";
 import TabMO from "./tabs/TabMO";
 import TabCostosProduccion from "./tabs/TabCostosProduccion";
+import TabResumenImpacto from "./tabs/TabResumenImpacto";
 import TabProductos from "./tabs/TabProductos";
 import TabGastos from "./tabs/TabGastos";
 import TabInversion from "./tabs/TabInversion";
@@ -23,6 +24,9 @@ import TabIA from "./tabs/TabIA";
 import ModuloActivo from "./modules/ModuloActivo";
 import { cargarActivos, guardarActivos, seedActivos, computeActivos } from "./lib/activos";
 import TabGlosario from "./modules/activo/TabGlosario";
+import ModuloServicios from "./modules/ModuloServicios";
+import { seed as seedSv, LEX as LEXSv, computeModel as computeModelSv } from "./lib/model-servicios";
+import { exportarExcel as exportarExcelSv } from "./lib/excel-servicios";
 
 /* ============================================================
    MÓDULOS (macro pestañas)
@@ -32,15 +36,55 @@ import TabGlosario from "./modules/activo/TabGlosario";
    ============================================================ */
 const MODULOS = [
   { k: "empresa", label: "Inversión empresa", sub: "Evaluación de un negocio completo" },
+  { k: "servicios", label: "Inversión servicios", sub: "Evaluación de un negocio de servicios" },
   { k: "activo", label: "Inversión activo", sub: "Evaluación de la compra de un activo" },
 ];
 
 /* ============================================================
    APP
    ============================================================ */
+/* ------------------------------------------------------------
+   BARRA SUPERIOR DE KPIs
+   ------------------------------------------------------------ */
+
+/* Un dato suelto de la barra */
+function KpiBarra({ k, v, tone }: any) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: C.muted }}>{k}</div>
+      <div className="text-[15px] font-semibold" style={{ color: tone === "pos" ? C.pos : tone === "neg" ? C.neg : C.ink, fontVariantNumeric: "tabular-nums" }}>{v}</div>
+    </div>
+  );
+}
+
+/* Valor de la empresa e inversión requerida son las dos cifras con las que
+   se toma la decisión: van juntas en su propia caja, no revueltas con el
+   resto de los indicadores de la barra. */
+function CajaResultado({ ev, inversion }: any) {
+  return (
+    <div className="flex items-stretch rounded-lg overflow-hidden shrink-0"
+      style={{
+        border: `1px solid ${C.line}`,
+        background: "linear-gradient(180deg, #FAFCF6 0%, #FFFFFF 70%)",
+        boxShadow: "0 1px 2px rgba(31,34,37,.06)",
+      }}>
+      <div className="pl-4 pr-5 py-2">
+        <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: C.muted }}>Valor de la empresa</div>
+        <div className="text-[17px] font-semibold leading-tight" style={{ color: ev >= 0 ? C.pos : C.neg, fontVariantNumeric: "tabular-nums" }}>{money(ev)}</div>
+      </div>
+      <div className="self-center" style={{ width: 1, height: 30, background: C.line }} />
+      <div className="pl-5 pr-4 py-2">
+        <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: C.muted }}>Inversión requerida</div>
+        <div className="text-[17px] font-semibold leading-tight" style={{ color: C.ink, fontVariantNumeric: "tabular-nums" }}>{money(inversion)}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [modulo, setModulo] = useState("empresa");
   const [s, setS] = useState(seed);
+  const [sv, setSv] = useState(seedSv);   // estado del módulo INVERSIÓN SERVICIOS
   const [a, setA] = useState(cargarActivos);   // estado del módulo INVERSIÓN ACTIVO
   const [tab, setTab] = useState("empresa");
   const [toast, setToast] = useState(null);
@@ -71,11 +115,15 @@ export default function App() {
   }, []);
 
   const m = useMemo(() => computeModel(s), [s]);
+  const mSv = useMemo(() => computeModelSv(sv), [sv]);
   const RA = useMemo(() => computeActivos(a), [a]);
   const L = LEX[s.empresa.tipo] || LEX.manufactura;
+  const LSv = LEXSv[sv.empresa.tipo] || LEXSv.manufactura;
   const esEmpresa = modulo === "empresa";
+  const esServicios = modulo === "servicios";
 
   const up = (fn) => setS((prev) => { const n = JSON.parse(JSON.stringify(prev)); fn(n); return n; });
+  const upSv = (fn) => setSv((prev) => { const n = JSON.parse(JSON.stringify(prev)); fn(n); return n; });
   const upA = (fn) => setA((prev) => { const n = JSON.parse(JSON.stringify(prev)); fn(n); return n; });
   const flash = (t) => { setToast(t); setTimeout(() => setToast(null), 2600); };
 
@@ -83,7 +131,12 @@ export default function App() {
     try { exportarExcel(XLSX, s, m); flash("Libro de Excel generado."); }
     catch (e) { flash("No se pudo generar el archivo: " + e.message); }
   };
+  const descargarExcelSv = () => {
+    try { exportarExcelSv(XLSX, sv, mSv); flash("Libro de Excel generado."); }
+    catch (e) { flash("No se pudo generar el archivo: " + e.message); }
+  };
   const [confirmando, setConfirmando] = useState(false);
+  const [confirmandoSv, setConfirmandoSv] = useState(false);
   const limpiar = () => {
     if (!confirmando) { setConfirmando(true); flash("Toca otra vez para borrar el ejemplo y empezar de cero."); setTimeout(() => setConfirmando(false), 5000); return; }
     setConfirmando(false);
@@ -97,10 +150,23 @@ export default function App() {
     });
     flash("Plataforma en blanco. Empieza por Empresa y supuestos.");
   };
+  const limpiarSv = () => {
+    if (!confirmandoSv) { setConfirmandoSv(true); flash("Toca otra vez para borrar el ejemplo y empezar de cero."); setTimeout(() => setConfirmandoSv(false), 5000); return; }
+    setConfirmandoSv(false);
+    setSv({
+      ...seedSv(),
+      empresa: { nombre: "", tipo: sv.empresa.tipo, anio: new Date().getFullYear() + 1 },
+      insumos: [], recursosMO: [], productos: [], prodCostos: { directos: [], indirectos: [] },
+      gastos: { admin: [], oper: [], venta: [], porPieza: [] }, activos: [],
+      plan: { unidadesMes: Array(12).fill(0), crec: [0.2, 0.15, 0.12, 0.1] },
+      credito: { activo: false, monto: 0, tasaAnual: 0.15, plazoAnios: 3, tipo: "insoluto", mesInicio: 1, prepagos: [] },
+    });
+    flash("Plataforma en blanco. Empieza por Empresa y supuestos.");
+  };
 
   const NAV = [
     { g: "Configuración", items: [["empresa", "Empresa y supuestos"]] },
-    { g: "Costeo", items: [["explosion", "Explosionado de materiales", true], ["insumos", L.insumos], ["mo", L.mo], ["prodcostos", L.cpTab], ["productos", "Pricing"]] },
+    { g: "Costeo", items: [["explosion", "Explosionado de materiales", true], ["insumos", L.insumos], ["mo", L.mo], ["prodcostos", L.cpTab], ["resumen", "Resumen de impacto"], ["productos", "Pricing"]] },
     { g: "Presupuesto", items: [["pyl", "Forecast"], ["plan", "Plan de ventas y precios"], ["gastos", "Gastos"], ["inversion", "Inversiones y activos"], ["credito", "Crédito"]] },
     { g: "Evaluación", items: [["wacc", "Costo de capital"], ["rentab", "Rentabilidad y valuación"], ["sens", "Escenarios"], ["ia", "Diagnóstico y datos"]] },
   ];
@@ -118,6 +184,8 @@ export default function App() {
             <div className="text-[11px]" style={{ color: "#9BA0A5" }}>
               {esEmpresa
                 ? `${s.empresa.nombre || "Proyecto sin nombre"} · Ejercicio ${s.empresa.anio} · Horizonte ${s.supuestos.horizonte} años`
+                : esServicios
+                ? `${sv.empresa.nombre || "Proyecto sin nombre"} · Ejercicio ${sv.empresa.anio} · Horizonte ${sv.supuestos.horizonte} años`
                 : `Presupuesto de capital · WACC ${pct(RA.sup.wacc, 2)} · ISR ${pct(RA.sup.isr, 0)}`}
             </div>
           </div>
@@ -127,6 +195,11 @@ export default function App() {
             <>
               <Btn small onClick={descargarExcel}>Exportar a Excel</Btn>
               <Btn small kind={confirmando ? "dark" : "primary"} onClick={limpiar}>{confirmando ? "Confirmar borrado" : "Empezar en blanco"}</Btn>
+            </>
+          ) : esServicios ? (
+            <>
+              <Btn small onClick={descargarExcelSv}>Exportar a Excel</Btn>
+              <Btn small kind={confirmandoSv ? "dark" : "primary"} onClick={limpiarSv}>{confirmandoSv ? "Confirmar borrado" : "Empezar en blanco"}</Btn>
             </>
           ) : (
             <>
@@ -158,21 +231,26 @@ export default function App() {
 
       {/* Barra de KPIs (sólo aplica al módulo de empresa) */}
       {esEmpresa ? (
-        <div className="px-5 py-3 flex gap-6 flex-wrap" style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
+        <div className="px-5 py-3 flex items-center gap-6 flex-wrap" style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
+          <CajaResultado ev={m.ev} inversion={m.inversion} />
           {[
-            ["Valor de la empresa", money(m.ev), m.ev >= 0 ? "pos" : "neg"],
-            ["Inversión requerida", money(m.inversion)],
             ["VPN", money(m.vpn), m.vpn >= 0 ? "pos" : "neg"],
             ["TIR", pct(m.tir), m.tir >= m.waccNom ? "pos" : "neg"],
             ["WACC", pct(m.waccNom)],
             ["Payback desc.", m.dpbp ? num(m.dpbp, 1) + " años" : "No recupera"],
             ["Ventas Año 1", money(m.anios[0]?.ventas)],
-          ].map(([k, v, tone]) => (
-            <div key={k}>
-              <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: C.muted }}>{k}</div>
-              <div className="text-[15px] font-semibold" style={{ color: tone === "pos" ? C.pos : tone === "neg" ? C.neg : C.ink, fontVariantNumeric: "tabular-nums" }}>{v}</div>
-            </div>
-          ))}
+          ].map(([k, v, tone]) => <KpiBarra key={k} k={k} v={v} tone={tone} />)}
+        </div>
+      ) : esServicios ? (
+        <div className="px-5 py-3 flex items-center gap-6 flex-wrap" style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
+          <CajaResultado ev={mSv.ev} inversion={mSv.inversion} />
+          {[
+            ["VPN", money(mSv.vpn), mSv.vpn >= 0 ? "pos" : "neg"],
+            ["TIR", pct(mSv.tir), mSv.tir >= mSv.waccNom ? "pos" : "neg"],
+            ["WACC", pct(mSv.waccNom)],
+            ["Payback desc.", mSv.dpbp ? num(mSv.dpbp, 1) + " años" : "No recupera"],
+            ["Ventas Año 1", money(mSv.anios[0]?.ventas)],
+          ].map(([k, v, tone]) => <KpiBarra key={k} k={k} v={v} tone={tone} />)}
         </div>
       ) : (
         <div className="px-5 py-3 flex gap-6 flex-wrap" style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
@@ -184,12 +262,7 @@ export default function App() {
             ["VPN inmueble", money(RA.inm.vpn), RA.inm.vpn >= 0 ? "pos" : "neg"],
             ["VPN terreno", money(RA.ter.vpn), RA.ter.vpn >= 0 ? "pos" : "neg"],
             ["Vehículo: gana", RA.auto.ganador],
-          ].map(([k, v, tone]) => (
-            <div key={k}>
-              <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: C.muted }}>{k}</div>
-              <div className="text-[15px] font-semibold" style={{ color: tone === "pos" ? C.pos : tone === "neg" ? C.neg : C.ink, fontVariantNumeric: "tabular-nums" }}>{v}</div>
-            </div>
-          ))}
+          ].map(([k, v, tone]) => <KpiBarra key={k} k={k} v={v} tone={tone} />)}
         </div>
       )}
       </div>
@@ -231,6 +304,7 @@ export default function App() {
             {tab === "insumos" && <TabInsumos s={s} up={up} m={m} L={L} />}
             {tab === "mo" && <TabMO s={s} up={up} m={m} L={L} />}
             {tab === "prodcostos" && <TabCostosProduccion s={s} up={up} m={m} L={L} />}
+            {tab === "resumen" && <TabResumenImpacto s={s} m={m} L={L} />}
             {tab === "productos" && <TabProductos s={s} up={up} m={m} L={L} />}
             {tab === "gastos" && <TabGastos s={s} up={up} m={m} />}
             {tab === "inversion" && <TabInversion s={s} up={up} m={m} />}
@@ -243,6 +317,8 @@ export default function App() {
             {tab === "ia" && <TabIA s={s} m={m} />}
           </div>
         </div>
+      ) : esServicios ? (
+        <ModuloServicios s={sv} up={upSv} m={mSv} L={LSv} flash={flash} topH={topH} />
       ) : (
         <ModuloActivo A={a} up={upA} setA={setA} R={RA} flash={flash} topH={topH} />
       )}

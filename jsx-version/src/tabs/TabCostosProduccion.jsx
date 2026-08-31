@@ -67,35 +67,10 @@ export default function TabCostosProduccion({ s, up, m, L }) {
       <Bloque k="indirectos" titulo={"Costos indirectos de " + L.cp}
         sub="Sostienen la operación sin incorporarse al producto: químicos, mantenimiento, herramienta, equipo de protección." />
 
-      <Card title="Impacto en el costo unitario" sub="Así se reparte entre los productos.">
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          <KPI label="Base fija mensual" value={money(m.cpFijoMes)} sub={money(m.cpFijoMes * 12) + " al año"} />
-          <KPI label="Costo variable por unidad" value={money(m.cpVarU, 2)} sub={`${num(m.horasProm, 2)} hrs de MO por unidad`} />
-          <KPI label="Costo total Año 1" value={money(totalAnual)} />
-          <KPI label="% sobre ventas" value={pct(pctVentas)} />
-        </div>
-        <table className="w-full">
-          <thead><tr>
-            <Th align="left" w="26%">{L.prodS}</Th><Th>Horas de MO</Th><Th>Variable trazable</Th>
-            <Th>Prorrateo de la base fija</Th><Th>Costo de {L.cp} por unidad</Th><Th>% del costo estándar</Th>
-          </tr></thead>
-          <tbody>
-            {m.prod.map((p) => (
-              <tr key={p.id}>
-                <Td align="left">{p.nombre}</Td>
-                <Td color={C.muted}>{num(p.horas, 2)}</Td>
-                <Td>{money(p.cpVar, 2)}</Td>
-                <Td>{money(m.cpFijoUnit, 2)}</Td>
-                <Td bold>{money(p.cp, 2)}</Td>
-                <Td color={C.muted}>{pct(p.estandar > 0 ? p.cp / p.estandar : NaN)}</Td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="text-[11.5px] mt-3 px-3 py-2 rounded" style={{ background: C.soft, color: C.muted }}>
-          La parte variable se traza a cada {L.prodS.toLowerCase()} por sus propias horas y unidades. La base fija se prorratea entre el volumen del Año 1: si vendes menos de lo planeado, ese prorrateo se encarece y el margen real cae, aunque el precio no se mueva.
-        </div>
-      </Card>
+      {/* El reparto de estos costos entre los productos se lee en «Resumen de impacto». */}
+      <div className="text-[12px] px-3 py-2 rounded" style={{ background: C.soft, color: C.muted }}>
+        Estos costos suman <b style={{ color: C.ink }}>{money(totalAnual)}</b> en el Año 1, el <b style={{ color: C.ink }}>{pct(pctVentas)}</b> de las ventas. Cómo se reparten entre los {L.prod.toLowerCase()} y qué le cargan a cada unidad se ve en «Resumen de impacto».
+      </div>
     </>
   );
 }

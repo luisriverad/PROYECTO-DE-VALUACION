@@ -1,14 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../lib/theme";
-import { uid, money, num, pct, nfmt, MESES } from "../lib/format";
-import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
+import { uid, money, num, nfmt, MESES } from "../lib/format";
+import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, Empty, inputCls, inputSt } from "../components/ui";
 
 /* ============================================================
    3. MANO DE OBRA
    ============================================================ */
 export default function TabMO({ s, up, m, L }) {
   const add = () => up((n) => { n.recursosMO.push({ id: uid(), nombre: "Nuevo puesto", sueldoMensual: 0, personas: 1, horasMes: 160, ineficiencia: 0 }); });
-  const cap = m.capacidad;
   // la nómina no baja por ser ineficiente: lo que cambia es cuánta de ella compra producción
   const inefDe = (r) => (r.sueldoMensual || 0) * (r.personas || 1) * 12 * (r.ineficiencia || 0);
   const costoInef = s.recursosMO.reduce((a, r) => a + inefDe(r), 0);
@@ -51,25 +50,13 @@ export default function TabMO({ s, up, m, L }) {
         )}
       </Card>
 
-      <Card title="Capacidad instalada" sub="El plan de ventas no sirve si la operación no lo aguanta.">
-        <div className="grid grid-cols-4 gap-3">
-          <KPI label="Horas productivas / año" value={num(cap.horasDisp, 0)} sub="Ya netas de ineficiencia" />
-          <KPI label="Horas requeridas / año" value={num(cap.horasReq, 0)} sub="Según plan de ventas Año 1" />
-          <KPI label="Uso de capacidad" value={pct(cap.uso)} tone={cap.uso > 1 ? "neg" : cap.uso > 0.85 ? undefined : "pos"} />
-          <KPI label="Holgura" value={num(cap.horasDisp - cap.horasReq, 0) + " hrs"} tone={cap.horasDisp - cap.horasReq < 0 ? "neg" : "pos"} />
+      {/* La capacidad que sale de esta plantilla se lee en «Resumen de impacto». */}
+      {costoInef > 0 && (
+        <div className="px-3 py-2 rounded text-[12px]" style={{ background: C.soft, color: C.ink }}>
+          La nómina anual sigue siendo <b>{money(m.nominaMes * 12)}</b> — la ineficiencia no baja lo que pagas. Lo que cambia es que
+          <b> {money(costoInef)}</b> de esa nómina no compra producción, y por eso la tarifa por hora sube y cada pieza carga más mano de obra.
         </div>
-        {costoInef > 0 && (
-          <div className="mt-3 px-3 py-2 rounded text-[12px]" style={{ background: C.soft, color: C.ink }}>
-            La nómina anual sigue siendo <b>{money(m.nominaMes * 12)}</b> — la ineficiencia no baja lo que pagas. Lo que cambia es que
-            <b> {money(costoInef)}</b> de esa nómina no compra producción, y por eso la tarifa por hora sube y cada pieza carga más mano de obra.
-          </div>
-        )}
-        {cap.uso > 1 && (
-          <div className="mt-3 px-3 py-2 rounded text-[12px]" style={{ background: "#FDECEA", color: C.neg }}>
-            El plan exige más horas de las que existen. O contratas, o inviertes en capacidad, o el presupuesto es ficción.
-          </div>
-        )}
-      </Card>
+      )}
     </>
   );
 }
