@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Card } from "../../components/ui";
-import { Head, Cols, SecHead, Campo, Derivado, Slider, Reparto, Apalancamiento, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, NotaTasa, TasaBox } from "./piezas";
-import { ok } from "../../lib/activos";
+import { Head, Cols, SecHead, Campo, Derivado, Slider, Reparto, Apalancamiento, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, fBrecha, NotaTasa, TasaBox } from "./piezas";
+import { ok, solve, calcInm } from "../../lib/activos";
 
 /* ============================================================
    ACTIVO · 3. INMUEBLE
@@ -11,6 +11,18 @@ export default function TabInmueble({ A, up, R }: any) {
   const noi1 = r.Y[1] ? r.Y[1].noi : 0;
   const noiSal = r.Y[r.i.hor] ? r.Y[r.i.hor].noi * (1 + r.i.gRenta) : 0;
   const vSal = r.Y[r.i.hor] ? r.Y[r.i.hor].vs : 0;
+  /* Los dos números que contestan "¿entonces a qué precio sí?": la renta y el
+     precio de compra que dejan el VPN en cero. Sólo se despejan cuando el
+     inmueble no pasa, que es cuando hacen falta. */
+  const eq = useMemo(() => {
+    if (!ok(r.vpn) || r.vpn > 0) return null;
+    const i = A.inm;
+    return {
+      renta: i.rentaMes > 0 ? solve((x) => calcInm(A, R.sup, { rentaMes: x }).vpn, 0, i.rentaMes * 8) : null,
+      precio: i.precio > 0 ? solve((x) => calcInm(A, R.sup, { precio: x }).vpn, 0, i.precio) : null,
+    };
+  }, [A, R.sup, r.vpn]);
+
   return (
     <>
       <Head titulo="Inmueble"
@@ -105,7 +117,27 @@ export default function TabInmueble({ A, up, R }: any) {
               if (r.vpn > 0 && ok(r.dscr) && r.dscr < A.inm.dscrMin)
                 return <Veredicto tono="mid" texto={`El inmueble crea valor, pero el DSCR de ${fX(r.dscr)} deja poco colchón: un par de meses vacío y el crédito aprieta.`} />;
               if (r.vpn > 0) return <Veredicto tono="ok" texto="Crea valor. Sensibiliza el cap rate de salida antes de firmar." />;
-              return <Veredicto tono="no" texto="Destruye valor a la tasa que le estás exigiendo." />;
+              /* Las dos palancas del inmueble: lo que cobras y lo que pagas */
+              const renta = ok(eq && eq.renta)
+                ? `Saldría tablas rentándolo en ${fM(eq.renta)} al mes en vez de ${fM(A.inm.rentaMes)}, ${fP(eq.renta / A.inm.rentaMes - 1)} más.`
+                : null;
+              const compra = ok(eq && eq.precio)
+                ? `${renta ? "O c" : "C"}omprándolo en ${fM(eq.precio)} en vez de ${fM(A.inm.precio)} —${fP(1 - eq.precio / A.inm.precio)} menos— también sale tablas. Ése es el precio máximo que aguanta con esta renta.`
+                : "Ni regalado sale tablas: la renta no alcanza ni para predial, seguro, mantenimiento y administración.";
+              return <Veredicto tono="no"
+                texto={`Destruye valor: a la tasa de ${fP2(r.td)} que le estás exigiendo, el inmueble vale ${fM(-r.vpn)} menos de lo que cuesta ponerlo a trabajar.`}
+                detalle={[
+                  ok(r.tir)
+                    ? `Sin deuda rinde ${fP(r.tir)} y le exiges ${fP(r.td)}: le faltan ${fBrecha(r.td - r.tir)}. No es que el inmueble sea malo, es que a ese precio no paga el riesgo que le estás asignando.`
+                    : "Los flujos no alcanzan a devolver la inversión en el horizonte que le pusiste, así que no hay TIR que comparar contra la tasa exigida.",
+                  ok(r.capEnt) ? `Entra a un cap rate de ${fP2(r.capEnt)}: eso es lo que la renta de hoy paga sobre lo que cuesta, y queda abajo de la tasa que le pides.` : null,
+                  renta,
+                  compra,
+                  ok(r.pctSalida)
+                    ? `Y cuidado con la salida: ${fP(r.pctSalida)} del valor viene de vender al final, no de rentar. Si el cap rate de salida se abre, el número empeora todavía más.`
+                    : null,
+                  "Las dos preguntas son de mercado, no de Excel: ¿la zona paga esa renta? ¿te lo venden en ese precio? Si la respuesta a las dos es no, el problema no es la hipoteca.",
+                ]} />;
             })()}
             <div className="mt-4">
               <AreaChart vals={r.Y.map((y) => y.acum)} label="Flujo sin deuda, descontado y acumulado." />

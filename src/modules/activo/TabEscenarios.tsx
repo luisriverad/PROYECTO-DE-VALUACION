@@ -119,7 +119,16 @@ export default function TabEscenarios({ A, up, R }: any) {
         {(() => {
           if (Math.abs(suma - 1) > 0.005)
             return <Veredicto tono="mid" texto={`Las probabilidades suman ${fP(suma)}. Ajústalas a 100% para que el promedio signifique algo.`} />;
-          if (esperado <= 0) return <Veredicto tono="no" texto="No pasa: el VPN esperado es negativo." />;
+          if (esperado <= 0) return <Veredicto tono="no"
+            texto={`No pasa: ponderando los tres escenarios, lo más probable es que el proyecto te quite ${fM(-esperado)} de valor, no que te lo agregue.`}
+            detalle={[
+              `Hay ${fP(pPerdida)} de probabilidad de perder y el peor caso te cuesta ${fM(peor)}. Ésa es la pregunta de fondo: no si el promedio sale, sino si la empresa aguanta ese peor caso completo.`,
+              `Entre el mejor y el peor escenario hay ${fM(rango)} de diferencia. Con un rango así, lo que decide no es el proyecto sino cuál de los tres ocurra, y eso no lo controlas tú.`,
+              vpns[2] > 0
+                ? `Ni el optimista alcanza a compensar: pesa ${fP(probs[2])} y aporta ${fM(vpns[2] * probs[2])} al promedio, contra ${fM(vpns[0] * probs[0])} que resta el pesimista.`
+                : "Ni el escenario optimista sale positivo. Ahí ya no hay decisión que tomar: el proyecto no pasa ni saliendo todo bien.",
+              "Antes de descartarlo, revisa que el pesimista esté bien armado: se vale que sea duro, no que sea un castigo arbitrario. Y revisa las probabilidades: son un juicio tuyo, y mueven el resultado tanto como los supuestos.",
+            ]} />;
           if (pPerdida > 0.30)
             return <Veredicto tono="mid" texto={`Pasa, pero hay ${fP(pPerdida)} de probabilidad de perder. Define desde ahora cómo te sales si el escenario malo se cumple.`} />;
           return <Veredicto tono="ok" texto="Pasa con margen razonable." />;

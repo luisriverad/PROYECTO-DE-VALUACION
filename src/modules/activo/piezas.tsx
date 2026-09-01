@@ -14,6 +14,15 @@ export const fM = (v) => money(v);
 export const fP = (v) => pct(v, 1);
 export const fP2 = (v) => pct(v, 2);
 export const fX = (v) => (ok(v) ? num(v, 2) + "x" : "—");
+/* diferencia entre dos tasas, en puntos porcentuales, con signo */
+export const fPts = (v) => (ok(v) ? (v >= 0 ? "+" : "") + num(v * 100, 1) + " pts" : "—");
+/* la misma distancia pero sin signo, para cuando la frase ya dice el sentido:
+   "le faltan 1.7 puntos" se lee solo; "le faltan -1.7 pts", no. */
+export const fBrecha = (v) => {
+  if (!ok(v)) return "—";
+  const n = Math.abs(v) * 100;
+  return num(n, 1) + (num(n, 1) === "1.0" ? " punto" : " puntos");
+};
 export const fAnios = (v) => (ok(v) ? v + (v === 1 ? " año" : " años") : "No recupera");
 /* compacto para ejes: $1.25M, $840k */
 export const fComp = (v) => {
@@ -232,15 +241,33 @@ export function Stats({ items }: any) {
   );
 }
 
-/* ---------- veredicto ---------- */
-export function Veredicto({ tono, texto }: any) {
+/* ---------- veredicto ----------
+   Un "no" merece más explicación que un "sí": cuando el proyecto pasa basta
+   con decirlo, pero cuando destruye valor hay que decir cuánto, por qué y
+   qué tendría que cambiar para que pasara. Eso va en `detalle`, una lista
+   de renglones cortos debajo del veredicto; los nulos se ignoran, para que
+   cada pestaña arme sólo los que puede calcular. */
+export function Veredicto({ tono, texto, detalle }: any) {
   const col = tono === "ok" ? C.pos : tono === "no" ? C.neg : "#8A5D0C";
   const bg = tono === "ok" ? "#E9F3ED" : tono === "no" ? "#FBEAE8" : "#FAF2DF";
   const marca = tono === "ok" ? "✓" : tono === "no" ? "✕" : "!";
+  const lineas = (detalle || []).filter(Boolean);
   return (
     <div className="rounded-md px-3.5 py-2.5 mt-3 flex items-start gap-2.5" style={{ background: bg, border: `1px solid ${col}` }}>
       <div className="text-[13px] font-bold leading-5" style={{ color: col }}>{marca}</div>
-      <div className="text-[12.5px] leading-relaxed" style={{ color: C.ink }}>{texto}</div>
+      <div className="min-w-0">
+        <div className={`text-[12.5px] leading-relaxed${lineas.length ? " font-semibold" : ""}`} style={{ color: C.ink }}>{texto}</div>
+        {lineas.length > 0 && (
+          <div className="mt-2 pt-2 flex flex-col gap-1.5" style={{ borderTop: `1px dotted ${col}` }}>
+            {lineas.map((l, k) => (
+              <div key={k} className="flex items-start gap-2">
+                <div className="text-[12px] leading-relaxed shrink-0" style={{ color: col }}>—</div>
+                <div className="text-[12px] leading-relaxed" style={{ color: C.ink }}>{l}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

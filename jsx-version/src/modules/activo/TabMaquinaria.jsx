@@ -1,13 +1,26 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Card } from "../../components/ui";
-import { Head, Cols, SecHead, Campo, CampoDual, CampoRef, Derivado, Slider, Reparto, Apalancamiento, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, fAnios, NotaTasa, TasaBox } from "./piezas";
-import { ok } from "../../lib/activos";
+import { Head, Cols, SecHead, Campo, CampoDual, CampoRef, Derivado, Slider, Reparto, Apalancamiento, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, fPts, fBrecha, fAnios, NotaTasa, TasaBox } from "./piezas";
+import { ok, solve, calcMaq } from "../../lib/activos";
 
 /* ============================================================
    ACTIVO · 2. MAQUINARIA Y EQUIPO PRODUCTIVO
    ============================================================ */
 export default function TabMaquinaria({ A, up, R }) {
   const r = R.maq;
+  /* Cuando el equipo no se paga, decir "no se paga" no ayuda a nadie: lo que
+     sirve es el número que tendría que cambiar. Se despeja sólo en ese caso,
+     porque cada despeje vuelve a correr el modelo doscientas veces. */
+  const eq = useMemo(() => {
+    if (!ok(r.vpn) || r.vpn > 0) return null;
+    const m = A.maq;
+    return {
+      ing: m.ing1 > 0 ? solve((x) => calcMaq(A, R.sup, { ing1: x }).vpn, 0, m.ing1 * 8) : null,
+      aho: m.aho1 > 0 ? solve((x) => calcMaq(A, R.sup, { aho1: x }).vpn, 0, m.aho1 * 8) : null,
+      precio: m.precio > 0 ? solve((x) => calcMaq(A, R.sup, { precio: x }).vpn, 0, m.precio) : null,
+    };
+  }, [A, R.sup, r.vpn]);
+
   return (
     <>
       <Head titulo="Maquinaria y equipo productivo"
@@ -91,7 +104,26 @@ export default function TabMaquinaria({ A, up, R }) {
             {(() => {
               if (!ok(r.vpn)) return <Veredicto tono="mid" texto="Faltan datos para concluir." />;
               if (r.vpn > 0) return <Veredicto tono="ok" texto={`Crea valor. La TIR de ${fP(r.tir)} supera la tasa exigida de ${fP(r.td)}.`} />;
-              return <Veredicto tono="no" texto="Destruye valor. En estos términos el equipo no se paga." />;
+              /* Las palancas: qué número tendría que cambiar, y cuánto */
+              const flujo = ok(eq && eq.ing) && A.maq.ing1 > 0
+                ? `Saldría tablas con ${fM(eq.ing)} de ingresos incrementales el año 1, ${fP(eq.ing / A.maq.ing1 - 1)} más de lo que estás suponiendo.`
+                : ok(eq && eq.aho) && A.maq.aho1 > 0
+                  ? `Saldría tablas con ${fM(eq.aho)} de ahorros el año 1, ${fP(eq.aho / A.maq.aho1 - 1)} más de lo que estás suponiendo.`
+                  : null;
+              const compra = ok(eq && eq.precio)
+                ? `${flujo ? "O c" : "C"}omprándolo en ${fM(eq.precio)} en vez de ${fM(A.maq.precio)} —${fP(1 - eq.precio / A.maq.precio)} menos— también sale tablas. Ése es el precio máximo que este equipo aguanta.`
+                : "Ni regalado sale tablas: la operación que le estás colgando pierde dinero sola, sin contar la inversión.";
+              return <Veredicto tono="no"
+                texto={`Destruye valor: en estos términos el equipo se lleva ${fM(-r.vpn)} de valor presente en vez de agregarlo.`}
+                detalle={[
+                  ok(r.tir)
+                    ? `Rinde ${fP(r.tir)} y le estás exigiendo ${fP(r.td)}: le faltan ${fBrecha(r.td - r.tir)} para salir tablas.`
+                    : "Los flujos ni siquiera alcanzan a devolver lo invertido, así que no hay TIR que comparar contra la tasa exigida.",
+                  ok(r.vaeV) ? `Repartido en el tiempo, es como pagar ${fM(-r.vaeV)} cada año durante los ${A.maq.ve} años de vida útil.` : null,
+                  flujo,
+                  compra,
+                  "El crédito no cambia esto. La deuda amplifica el resultado, no le cambia el signo. Si lo quieres salvar, tiene que ser por el lado del flujo: más ingresos o ahorros, menos costos, o un precio de compra más bajo.",
+                ]} />;
             })()}
             <div className="mt-4">
               <AreaChart vals={r.Y.map((y) => y.acum)} label="Flujo descontado acumulado, año 0 al 10. Cruza el cero en el payback descontado." />

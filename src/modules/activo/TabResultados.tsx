@@ -1,7 +1,7 @@
 import React from "react";
 import { C } from "../../lib/theme";
 import { Card } from "../../components/ui";
-import { Head, Stats, Nota, GridTable, BarsChart, fM, fP, fP2, fX } from "./piezas";
+import { Head, Stats, Nota, GridTable, BarsChart, fM, fP, fP2, fX, fPts } from "./piezas";
 import { ok } from "../../lib/activos";
 import { money, pct } from "../../lib/format";
 
@@ -18,7 +18,6 @@ import { money, pct } from "../../lib/format";
 /* Puntos porcentuales de colchón entre lo que rinde y lo que le exiges */
 const colchon = (tir, td) => (ok(tir) && ok(td) ? tir - td : null);
 
-const fPts = (v) => (ok(v) ? (v >= 0 ? "+" : "") + (v * 100).toFixed(1) + " pts" : "—");
 
 /* Tarjeta por activo: hasta dónde aguanta, y qué tan holgado va */
 function Aguante({ nombre, tir, td, nota }: any) {

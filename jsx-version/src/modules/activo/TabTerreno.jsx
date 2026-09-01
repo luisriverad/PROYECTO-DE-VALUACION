@@ -1,6 +1,6 @@
 import React from "react";
 import { Card } from "../../components/ui";
-import { Head, Cols, SecHead, Campo, Derivado, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, NotaTasa, TasaBox } from "./piezas";
+import { Head, Cols, SecHead, Campo, Derivado, Stats, Veredicto, Nota, FlowTable, AreaChart, fM, fP, fP2, fX, fBrecha, NotaTasa, TasaBox } from "./piezas";
 import { ok } from "../../lib/activos";
 
 /* ============================================================
@@ -48,9 +48,23 @@ export default function TabTerreno({ A, up, R }) {
               const eq = r.plusEq, p = A.ter.plus;
               if (!ok(eq)) return r.vpn > 0
                 ? <Veredicto tono="ok" texto="Crea valor." />
-                : <Veredicto tono="no" texto="Destruye valor." />;
+                : <Veredicto tono="no"
+                    texto={`Destruye valor: te quita ${fM(-r.vpn)} de valor presente.`}
+                    detalle={[
+                      `No hay plusvalía que lo arregle: por más que suba el terreno, el resultado no llega a cero en el horizonte de ${A.ter.hor} ${A.ter.hor === 1 ? "año" : "años"} que le pusiste.`,
+                      ok(r.pvCarga) ? `Sólo cargarlo —predial y vigilancia— cuesta ${fM(-r.pvCarga)} en valor presente, y eso corre te lo compren o no.` : null,
+                      "Ahí el problema no es el precio de salida sino el tiempo: un terreno sin uso no produce nada mientras esperas. Dale un uso temporal que pague la espera, o acorta el horizonte.",
+                    ]} />;
               if (r.vpn > 0) return <Veredicto tono="ok" texto={`Crea valor: te bastaría una plusvalía de ${fP(eq)} anual y estás suponiendo ${fP(p)}.`} />;
-              return <Veredicto tono="no" texto={`Necesitarías ${fP(eq)} de plusvalía anual para salir tablas, y estás suponiendo ${fP(p)}. Compara ese número contra lo que la zona ha dado de verdad en diez años.`} />;
+              return <Veredicto tono="no"
+                texto={`Destruye valor: te quita ${fM(-r.vpn)} de valor presente en los ${A.ter.hor} ${A.ter.hor === 1 ? "año" : "años"} que lo piensas tener.`}
+                detalle={[
+                  `Necesitarías ${fP(eq)} de plusvalía anual para salir tablas y estás suponiendo ${fP(p)}: te faltan ${fBrecha(eq - p)}. Compara ese número contra lo que la zona ha dado de verdad en diez años, no contra lo que dice el vendedor.`,
+                  ok(r.pvCarga) ? `Cargarlo cuesta ${fM(-r.pvCarga)} en valor presente entre predial y vigilancia. Ése es el precio de esperar, y corre aunque el terreno no se mueva de precio.` : null,
+                  ok(r.mult) ? `Con tus supuestos lo vendes en ${fX(r.mult)} lo que te costó, y aun así no alcanza: la tasa de ${fP2(r.td)} que le exiges se come esa ganancia en el camino.` : null,
+                  ok(r.tir) ? `Puesto en tasa: rinde ${fP(r.tir)} al año y le exiges ${fP(r.td)}.` : null,
+                  "Un terreno se defiende de dos maneras: que la plusvalía sea creíble, o que mientras esperas produzca algo. Si no puedes sostener ninguna de las dos, no es una inversión, es un ahorro caro.",
+                ]} />;
             })()}
             <div className="mt-4">
               <AreaChart vals={r.Y.map((y) => y.acum)} label="Flujo descontado acumulado. Los primeros años sólo hay salidas." />
