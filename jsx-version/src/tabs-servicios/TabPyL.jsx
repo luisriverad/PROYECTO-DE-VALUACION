@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../lib/theme";
-import { uid, money, num, pct, nfmt, MESES } from "../lib/format";
-import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
+import { uid, money, num, pct, cap, nfmt, MESES } from "../lib/format";
+import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, AvisoMezcla, inputCls, inputSt } from "../components/ui";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ReferenceDot, ComposedChart, Cell
@@ -28,12 +28,12 @@ const EtiquetaMin = ({ viewBox, valor, ancla }) => {
   );
 };
 
-export default function TabPyL({ s, up, m }: any) {
+export default function TabPyL({ s, up, m, L }) {
   const [vista, setVista] = useState("mensual");
   const cols = vista === "mensual" ? m.meses : m.anios;
   const head = vista === "mensual" ? m.meses.map((x) => x.mes) : m.anios.map((a) => a.label);
 
-  const R = ({ label, f, bold, pctSobre, tone, indent, unidades, total = "sum" }: any) => {
+  const R = ({ label, f, bold, pctSobre, tone, indent, unidades, total = "sum" }) => {
     const fmt = (v) => (pctSobre ? pct(v) : unidades ? num(v, 0) : money(v));
     return (
       <tr>
@@ -66,12 +66,15 @@ export default function TabPyL({ s, up, m }: any) {
 
   return (
     <>
-      <Card title="Forecast" sub="Las piezas por modelo mandan: cámbialas aquí y todo el estado financiero se recalcula."
+      <Card title="Forecast" sub={`Las ${L.unis} por ${L.prodS.toLowerCase()} mandan: cámbialas aquí y todo el estado financiero se recalcula.`}
         right={<div className="flex gap-2">
           <Btn small kind={vista === "mensual" ? "dark" : "ghost"} onClick={() => setVista("mensual")}>Año 1 mensual</Btn>
           <Btn small kind={vista === "anual" ? "dark" : "ghost"} onClick={() => setVista("anual")}>{s.supuestos.horizonte} años</Btn>
         </div>} pad={false}>
-        <div style={{ overflowX: "auto" }} className="p-4">
+        <div className="px-4 pt-4">
+          <AvisoMezcla productos={s.productos} L={L} />
+        </div>
+        <div style={{ overflowX: "auto" }} className="px-4 pb-4">
           <table className="w-full" style={{ minWidth: vista === "mensual" ? 1320 : 780 }}>
             <thead><tr>
               <Th align="left" w="240">Concepto</Th>
@@ -82,11 +85,11 @@ export default function TabPyL({ s, up, m }: any) {
               <tr>
                 <Td align="left" bold bg={C.soft} colSpan={cols.length + (vista === "mensual" ? 2 : 1)}>
                   <div className="flex items-center justify-between gap-4">
-                    <span>Piezas por modelo — es lo que mueve todo el forecast</span>
+                    <span>{cap(L.unis)} por {L.prodS.toLowerCase()} — es lo que mueve todo el forecast</span>
                     <span className="text-[11px] font-normal" style={{ color: mixOk ? C.pos : C.neg }}>
                       {mixOk
-                        ? `Mix completo · ${pct(mixTotal, 1)}`
-                        : `El mix suma ${pct(mixTotal, 1)}: ajusta los porcentajes hasta llegar a 100%`}
+                        ? `Mezcla completa · ${pct(mixTotal, 1)}`
+                        : `Mezcla ${pct(mixTotal, 1)} · ${mixTotal < 1 ? `falta ${pct(1 - mixTotal, 1)}` : `sobra ${pct(mixTotal - 1, 1)}`}`}
                     </span>
                   </div>
                 </Td>
@@ -106,7 +109,7 @@ export default function TabPyL({ s, up, m }: any) {
                 </tr>
               ))}
               <tr>
-                <Td align="left" bold>Piezas totales</Td>
+                <Td align="left" bold>{cap(L.unis)} totales</Td>
                 {cols.map((c, i) => (
                   <Td key={i} bold>
                     {vista === "mensual"
@@ -117,7 +120,7 @@ export default function TabPyL({ s, up, m }: any) {
                 {vista === "mensual" && <Td bold>{num(cols.reduce((a, c) => a + (c.unidades || 0), 0), 0)}</Td>}
               </tr>
               <R label="Ventas" f={(c) => c.ventas} bold />
-              <R label="Materiales" f={(c) => -c.mp} indent />
+              <R label={L.insumos} f={(c) => -c.mp} indent />
               <R label="Nómina directa" f={(c) => -c.nomina} indent />
               <R label="Costos directos de producción" f={(c) => -c.cpDir} indent />
               <R label="Costos indirectos de producción" f={(c) => -c.cpInd} indent />
@@ -139,9 +142,9 @@ export default function TabPyL({ s, up, m }: any) {
             </tbody>
           </table>
           <div className="text-[11px] mt-3" style={{ color: C.muted }}>
-            Captura el porcentaje del mix junto a cada modelo — entre todos deben sumar 100% o el volumen no se reparte completo.
+            Captura el porcentaje de la mezcla junto a cada {L.prodS.toLowerCase()} — entre todos deben sumar 100% o el volumen no se reparte completo.
             Es el mismo campo de Pricing: lo cambies donde lo cambies, es el mismo número. Las
-            <b style={{ color: C.ink }}> piezas totales</b> del renglón de abajo se capturan aquí y sólo aquí; el Plan de
+            <b style={{ color: C.ink }}> {L.unis} totales</b> del renglón de abajo se capturan aquí y sólo aquí; el Plan de
             ventas las lee de este forecast.
           </div>
         </div>

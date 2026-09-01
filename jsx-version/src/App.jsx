@@ -4,7 +4,7 @@ import { C, LOGO } from "./lib/theme";
 import { money, num, pct } from "./lib/format";
 import { seed, LEX, computeModel } from "./lib/model";
 import { exportarExcel } from "./lib/excel";
-import { Btn } from "./components/ui";
+import { Btn, ChipMezcla } from "./components/ui";
 import TabEmpresa from "./tabs/TabEmpresa";
 import TabExplosion from "./tabs/TabExplosion";
 import TabInsumos from "./tabs/TabInsumos";
@@ -118,7 +118,7 @@ export default function App() {
   const mSv = useMemo(() => computeModelSv(sv), [sv]);
   const RA = useMemo(() => computeActivos(a), [a]);
   const L = LEX[s.empresa.tipo] || LEX.manufactura;
-  const LSv = LEXSv[sv.empresa.tipo] || LEXSv.manufactura;
+  const LSv = LEXSv.servicios;   // este módulo es de servicios: el léxico no depende de la captura
   const esEmpresa = modulo === "empresa";
   const esServicios = modulo === "servicios";
 
@@ -164,9 +164,14 @@ export default function App() {
     flash("Plataforma en blanco. Empieza por Empresa y supuestos.");
   };
 
+  /* El estado no se guarda entre sesiones: si alguien descuadra la mezcla o
+     borra medio modelo, esto devuelve el ejemplo completo sin recargar. */
+  const restablecer = () => { setS(seed()); setTab("empresa"); flash("Se restableció el ejemplo del módulo."); };
+  const restablecerSv = () => { setSv(seedSv()); flash("Se restableció el ejemplo del módulo."); };
+
   const NAV = [
     { g: "Configuración", items: [["empresa", "Empresa y supuestos"]] },
-    { g: "Costeo", items: [["explosion", "Explosionado de materiales", true], ["insumos", L.insumos], ["mo", L.mo], ["prodcostos", L.cpTab], ["resumen", "Resumen de impacto"], ["productos", "Pricing"]] },
+    { g: "Costeo", items: [["explosion", L.explosionTab, true], ["insumos", L.insumos], ["mo", L.mo], ["prodcostos", L.cpTab], ["resumen", "Resumen de impacto"], ["productos", "Pricing"]] },
     { g: "Presupuesto", items: [["pyl", "Forecast"], ["plan", "Plan de ventas y precios"], ["gastos", "Gastos"], ["inversion", "Inversiones y activos"], ["credito", "Crédito"]] },
     { g: "Evaluación", items: [["wacc", "Costo de capital"], ["rentab", "Rentabilidad y valuación"], ["sens", "Escenarios"], ["ia", "Diagnóstico y datos"]] },
   ];
@@ -194,11 +199,13 @@ export default function App() {
           {esEmpresa ? (
             <>
               <Btn small onClick={descargarExcel}>Exportar a Excel</Btn>
+              <Btn small onClick={restablecer} title="Vuelve al ejemplo completo, tal como viene de fábrica">Restablecer el ejemplo</Btn>
               <Btn small kind={confirmando ? "dark" : "primary"} onClick={limpiar}>{confirmando ? "Confirmar borrado" : "Empezar en blanco"}</Btn>
             </>
           ) : esServicios ? (
             <>
               <Btn small onClick={descargarExcelSv}>Exportar a Excel</Btn>
+              <Btn small onClick={restablecerSv} title="Vuelve al ejemplo completo, tal como viene de fábrica">Restablecer el ejemplo</Btn>
               <Btn small kind={confirmandoSv ? "dark" : "primary"} onClick={limpiarSv}>{confirmandoSv ? "Confirmar borrado" : "Empezar en blanco"}</Btn>
             </>
           ) : (
@@ -240,6 +247,7 @@ export default function App() {
             ["Payback desc.", m.dpbp ? num(m.dpbp, 1) + " años" : "No recupera"],
             ["Ventas Año 1", money(m.anios[0]?.ventas)],
           ].map(([k, v, tone]) => <KpiBarra key={k} k={k} v={v} tone={tone} />)}
+          <ChipMezcla productos={s.productos} />
         </div>
       ) : esServicios ? (
         <div className="px-5 py-3 flex items-center gap-6 flex-wrap" style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
@@ -251,6 +259,7 @@ export default function App() {
             ["Payback desc.", mSv.dpbp ? num(mSv.dpbp, 1) + " años" : "No recupera"],
             ["Ventas Año 1", money(mSv.anios[0]?.ventas)],
           ].map(([k, v, tone]) => <KpiBarra key={k} k={k} v={v} tone={tone} />)}
+          <ChipMezcla productos={sv.productos} />
         </div>
       ) : (
         <div className="px-5 py-3 flex gap-6 flex-wrap" style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
@@ -310,7 +319,7 @@ export default function App() {
             {tab === "inversion" && <TabInversion s={s} up={up} m={m} />}
             {tab === "plan" && <TabPlan s={s} up={up} m={m} L={L} />}
             {tab === "credito" && <TabCredito s={s} up={up} m={m} />}
-            {tab === "pyl" && <TabPyL s={s} up={up} m={m} />}
+            {tab === "pyl" && <TabPyL s={s} up={up} m={m} L={L} />}
             {tab === "wacc" && <TabWACC s={s} up={up} m={m} flash={flash} />}
             {tab === "rentab" && <TabRentabilidad s={s} up={up} m={m} />}
             {tab === "sens" && <TabSensibilidad s={s} m={m} />}

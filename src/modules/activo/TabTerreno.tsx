@@ -71,8 +71,11 @@ export default function TabTerreno({ A, up, R }: any) {
               { lab: "Descontado acumulado", f: (y) => y.acum },
             ]} />
             <Nota>
-              El terreno no deprecia, así que no hay escudo fiscal que amortigüe la espera. Cada año que tarda la venta cuesta el predial
-              más la tasa de descuento completa.
+              El terreno no deprecia, así que no hay escudo fiscal que amortigüe la espera: cada año que tarda la venta cuesta el predial
+              más la tasa de descuento completa. Por eso un lote que sólo se carga casi nunca pasa la prueba, y uno que produce algo
+              mientras se vende —patio, estacionamiento, bodega— sí. El ISR de la salida se calcula contra el costo de adquisición
+              actualizado por inflación, como manda el Art. 19 de la LISR; si se gravara la ganancia nominal se estaría pagando impuesto
+              sobre la inflación y ningún terreno saldría a cuenta.
             </Nota>
           </Card>
         </>}

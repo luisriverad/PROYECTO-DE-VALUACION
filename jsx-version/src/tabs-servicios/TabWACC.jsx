@@ -7,7 +7,7 @@ import { iaFetch } from "../lib/ia";
 /* ============================================================
    10. COSTO DE CAPITAL + IA DAMODARAN
    ============================================================ */
-export default function TabWACC({ s, up, m, flash }: any) {
+export default function TabWACC({ s, up, m, flash }) {
   const w = s.wacc;
   const [cargando, setCargando] = useState(false);
   const [res, setRes] = useState(null);
@@ -102,7 +102,7 @@ Los valores numéricos deben ser decimales (0.045 = 4.5%).`,
     flash("Parámetros aplicados al modelo.");
   };
 
-  const Row = ({ label, children, valor, nota, notaKey }: any) => (
+  const Row = ({ label, children, valor, nota, notaKey }) => (
     <tr>
       <Td align="left" w="30%">{label}</Td>
       <Td w="120">{children}</Td>

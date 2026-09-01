@@ -6,10 +6,10 @@ import { Card, Th, Td, KPI, Empty } from "../components/ui";
 /* ============================================================
    RESUMEN DE IMPACTO
    Las tres lecturas que cierran el costeo, juntas: qué alcanza a
-   producir la plantilla en horas, lo mismo traducido a piezas, y
+   entregar la plantilla en horas, lo mismo traducido a unidades vendidas, y
    cómo cae el costo de producción sobre cada unidad.
    Aquí no se captura nada: todo sale de Mano de obra, del
-   Explosionado y de Costos de producción.
+   del catálogo y de los costos del giro.
    ============================================================ */
 
 /* Renglón de apoyo dentro de un encabezado de tabla: explica la columna sin
@@ -21,7 +21,7 @@ const Sub = ({ children }: any) => (
 export default function TabResumenImpacto({ s, m, L }: any) {
   const cap = m.capacidad;
 
-  /* --- horas por pieza de cada puesto, leídas de las listas de los modelos --- */
+  /* --- horas por unidad de cada puesto, leídas de las listas del catálogo --- */
   const horasPza = useMemo(() => {
     const r = {};
     s.recursosMO.forEach((x) => {
@@ -35,7 +35,7 @@ export default function TabResumenImpacto({ s, m, L }: any) {
     return r;
   }, [s.recursosMO, s.productos]);
 
-  /* --- capacidad en piezas: lo que rinde cada puesto contra el plan --- */
+  /* --- capacidad en unidades: lo que rinde cada puesto contra el plan --- */
   const horasAnio = (r) => (m.moHorasEfect[r.id] || 0) * (r.personas || 1) * 12;
   const pzasTec = (r) => { const h = horasPza[r.id] || 0; return h > 0 ? horasAnio(r) / h : 0; };
   const capInstalada = s.recursosMO.reduce((a, r) => a + pzasTec(r), 0);
@@ -57,16 +57,16 @@ export default function TabResumenImpacto({ s, m, L }: any) {
   ];
   const varU = (g) => (g.porUnidad || 0) + (g.porHora || 0) * m.horasProm;
 
-  /* --- gasto del año que cada pieza tiene que absorber (venía de Pricing) --- */
+  /* --- gasto del año que cada unidad tiene que absorber (venía de Pricing) --- */
   const GASTOS = [
     { lab: "Gasto administrativo", total: (m.gAdmin1 || 0) * 12 },
     { lab: "Gasto de operación", total: (m.gOper1 || 0) * 12 },
     { lab: "Gasto de venta", total: (m.gVenta1 || 0) * 12 },
-    { lab: "Gasto variable por pieza", total: (m.costoPorPieza || 0) * u1 },
+    { lab: `Gasto variable por ${L.uni}`, total: (m.costoPorPieza || 0) * u1 },
   ];
 
   /* ¿A qué volumen deja de doler la absorción?
-     El costo estándar es costo variable por pieza + los fijos que se absorben
+     El costo estándar es costo variable por unidad + los fijos que se absorben
      repartidos entre el volumen del año:
          estándar(u) = variable + fijosAbsorbidos / u
      Igualando el margen ponderado al objetivo se despeja el volumen. Ojo: el
@@ -93,7 +93,7 @@ export default function TabResumenImpacto({ s, m, L }: any) {
   return (
     <>
       <div className="text-[12px] mb-3 px-3 py-2 rounded" style={{ background: C.soft, color: C.muted }}>
-        Lo que el costeo deja como consecuencia: <b style={{ color: C.ink }}>cuánto aguanta la operación</b> y <b style={{ color: C.ink }}>cuánto carga cada unidad</b>. Nada se captura aquí; se corrige en {L.mo}, en el Explosionado o en {L.cpTab}.
+        Lo que el costeo deja como consecuencia: <b style={{ color: C.ink }}>cuánto aguanta la operación</b> y <b style={{ color: C.ink }}>cuánto carga cada {L.uni}</b>. Nada se captura aquí; se corrige en {L.mo}, en {L.explosionTab} o en {L.cpTab}.
       </div>
 
       {/* ---------- Capacidad en horas ---------- */}
@@ -111,31 +111,31 @@ export default function TabResumenImpacto({ s, m, L }: any) {
         )}
       </Card>
 
-      {/* ---------- Capacidad en piezas ---------- */}
-      <Card title="Capacidad instalada, en piezas" sub="Las mismas horas, traducidas a piezas al año: lo que la plantilla alcanza a producir contra lo que el plan promete vender.">
+      {/* ---------- Capacidad en unidades vendibles ---------- */}
+      <Card title={`Capacidad instalada, en ${L.unis}`} sub={`Las mismas horas, traducidas a ${L.unis} al año: lo que la plantilla alcanza a ${L.verbo} contra lo que el plan promete vender.`}>
         <div className="grid grid-cols-3 gap-3">
-          <KPI label="Capacidad instalada" value={num(capInstalada, 0) + " pzas"} sub="Horas productivas ÷ horas por pieza" />
-          <KPI label="Venta proyectada Año 1" value={num(ventaProy, 0) + " pzas"} sub="Plan de ventas" />
-          <KPI label="Diferencia" value={num(dif, 0) + " pzas"} sub={capInstalada > 0 ? pct(dif / capInstalada) + " de la capacidad" : "—"} tone={dif < 0 ? "neg" : "pos"} />
+          <KPI label="Capacidad instalada" value={num(capInstalada, 0) + " " + L.uniCorta} sub={`Horas productivas ÷ horas por ${L.uni}`} />
+          <KPI label="Venta proyectada Año 1" value={num(ventaProy, 0) + " " + L.uniCorta} sub="Plan de ventas" />
+          <KPI label="Diferencia" value={num(dif, 0) + " " + L.uniCorta} sub={capInstalada > 0 ? pct(dif / capInstalada) + " de la capacidad" : "—"} tone={dif < 0 ? "neg" : "pos"} />
         </div>
         {dif < 0 && (
           <div className="mt-3 px-3 py-2 rounded text-[12px]" style={{ background: "#FDECEA", color: C.neg }}>
-            El plan pide más piezas de las que la plantilla alcanza a producir. O contratas, o subes horas, o el plan no se cumple.
+            El plan pide más {L.unis} de las que la plantilla alcanza a {L.verbo}. O contratas, o subes horas, o el plan no se cumple.
           </div>
         )}
       </Card>
 
       {/* ---------- Costo unitario ---------- */}
-      <Card title={`Cuánto le cargan los costos de ${L.cp} a cada unidad`}
-        sub={`Los conceptos capturados en ${L.cpTab}, repartidos entre lo que se va a producir.`}>
+      <Card title={`Cuánto le cargan a cada ${L.uni} los ${L.cpTab.toLowerCase()}`}
+        sub={`Los conceptos capturados en ${L.cpTab}, repartidos entre lo que se va a ${L.verbo}.`}>
 
         {/* La cuenta en palabras, con los números de este modelo */}
         <div className="text-[12.5px] mb-4 px-3 py-2.5 rounded leading-relaxed" style={{ background: C.soft, color: C.ink }}>
-          Cada unidad carga dos cosas. <b>A · lo que se consume al producirla</b>: {money(m.cpVarU, 2)} en promedio,
+          Cada {L.uni} carga dos cosas. <b>A · lo que se consume al {L.verbo}</b>: {money(m.cpVarU, 2)} en promedio,
           que es el consumo por unidad de cada concepto más su costo por hora de mano de obra por las {num(m.horasProm, 2)} hrs
-          que lleva una unidad. <b>B · una rebanada de la base fija</b>, la que se paga aunque no se produzca:
-          {" "}{money(m.cpFijoMes)} al mes × 12 = {money(m.cpFijoMes * 12)} al año, ÷ {num(u1, 0)} unidades del Año 1
-          = <b>{money(m.cpFijoUnit, 2)}</b> por unidad. La tabla de abajo desglosa las dos sumas concepto por concepto.
+          que lleva {L.unUni}. <b>B · una rebanada de la base fija</b>, la que se paga aunque no se {L.verbo}:
+          {" "}{money(m.cpFijoMes)} al mes × 12 = {money(m.cpFijoMes * 12)} al año, ÷ {num(u1, 0)} {L.unis} del Año 1
+          = <b>{money(m.cpFijoUnit, 2)}</b> por {L.uni}. La tabla de abajo desglosa las dos sumas concepto por concepto.
         </div>
 
         <div className="text-[11px] uppercase tracking-wide font-semibold mb-2" style={{ color: C.muted }}>
@@ -147,9 +147,9 @@ export default function TabResumenImpacto({ s, m, L }: any) {
               <Th align="left" w="26%">Concepto</Th>
               <Th>Base fija mensual<Sub>capturada</Sub></Th>
               <Th>Base fija al año<Sub>× 12 meses</Sub></Th>
-              <Th>Consumo por unidad<Sub>capturado</Sub></Th>
+              <Th>Consumo por {L.uni}<Sub>capturado</Sub></Th>
               <Th>Por hora de MO<Sub>× {num(m.horasProm, 2)} hrs</Sub></Th>
-              <Th>A · Variable por unidad<Sub>las dos anteriores</Sub></Th>
+              <Th>A · Variable por {L.uni}<Sub>las dos anteriores</Sub></Th>
             </tr></thead>
             <tbody>
               {CONCEPTOS.map((g) => (
@@ -174,13 +174,13 @@ export default function TabResumenImpacto({ s, m, L }: any) {
         )}
 
         <div className="text-[11px] uppercase tracking-wide font-semibold mb-2" style={{ color: C.muted }}>
-          2 · Cómo cae sobre cada unidad
+          2 · Cómo cae sobre cada {L.uni}
         </div>
 
         <div className="grid grid-cols-4 gap-3 mb-4">
-          <KPI label="A · Se consume al producir" value={money(m.cpVarU, 2)} sub={`Por unidad · ${num(m.horasProm, 2)} hrs de MO en promedio`} />
-          <KPI label="B · Rebanada de la base fija" value={money(m.cpFijoUnit, 2)} sub={`${money(m.cpFijoMes)} al mes, repartidos entre ${num(u1, 0)} unidades`} />
-          <KPI label="A + B · Carga por unidad" value={money(m.cpVarU + m.cpFijoUnit, 2)} sub="Promedio de la mezcla de venta" />
+          <KPI label={`A · Se consume al ${L.verbo}`} value={money(m.cpVarU, 2)} sub={`Por ${L.uni} · ${num(m.horasProm, 2)} hrs de personal en promedio`} />
+          <KPI label="B · Rebanada de la base fija" value={money(m.cpFijoUnit, 2)} sub={`${money(m.cpFijoMes)} al mes, repartidos entre ${num(u1, 0)} ${L.unis}`} />
+          <KPI label={`A + B · Carga por ${L.uni}`} value={money(m.cpVarU + m.cpFijoUnit, 2)} sub="Promedio de la mezcla de venta" />
           <KPI label="Costo total Año 1" value={money(totalAnual)} sub={`${pct(pctVentas)} de las ventas del año`} />
         </div>
 
@@ -188,10 +188,10 @@ export default function TabResumenImpacto({ s, m, L }: any) {
           <thead><tr>
             <Th align="left" w="24%">{L.prodS}</Th>
             <Th>Horas de MO<Sub>por unidad</Sub></Th>
-            <Th>A · Se consume<Sub>al producir una unidad</Sub></Th>
+            <Th>A · Se consume<Sub>al {L.verbo} {L.unUni}</Sub></Th>
             <Th>B · Base fija<Sub>igual para todos</Sub></Th>
-            <Th>A + B<Sub>carga por unidad</Sub></Th>
-            <Th>Peso en el costo<Sub>de la unidad terminada</Sub></Th>
+            <Th>A + B<Sub>carga por {L.uni}</Sub></Th>
+            <Th>Peso en el costo<Sub>{L.uniDe} terminad{L.uni === "servicio" ? "o" : "a"}</Sub></Th>
           </tr></thead>
           <tbody>
             {m.prod.map((p) => (
@@ -210,27 +210,27 @@ export default function TabResumenImpacto({ s, m, L }: any) {
         <div className="text-[11.5px] mt-3 px-3 py-2 rounded leading-relaxed" style={{ background: C.soft, color: C.muted }}>
           <b style={{ color: C.ink }}>Por qué importa el prorrateo:</b> la columna A cambia de {L.prodS.toLowerCase()} a {L.prodS.toLowerCase()},
           porque cada uno consume sus propias horas. La columna B es la misma para todos y depende del volumen:
-          si vendes menos de las {num(u1, 0)} unidades planeadas, esos {money(m.cpFijoMes * 12)} se reparten entre menos piezas,
-          cada una se encarece y el margen real cae aunque el precio no se mueva. La última columna dice qué tanto de la unidad
-          terminada son costos de {L.cp}; el resto son materiales y mano de obra.
+          si vendes menos de {num(u1, 0)} {L.unis}, esos {money(m.cpFijoMes * 12)} se reparten entre menos,
+          cada {L.uni} se encarece y el margen real cae aunque el precio no se mueva. La última columna dice qué tanto
+          {" "}{L.uniDe} son {L.cpTab.toLowerCase()}; el resto son {L.insumos.toLowerCase()} y {L.mo.toLowerCase()}.
         </div>
       </Card>
       <Card title="De dónde sale la absorción de gasto"
-        sub={`El gasto del Año 1 repartido entre las piezas del plan: ${num(u1, 0)} pzas.`}>
+        sub={`El gasto del Año 1 repartido entre el volumen del plan: ${num(u1, 0)} ${L.uniCorta}.`}>
         {escala && (
           <div className="grid grid-cols-4 gap-3 mb-4">
-            <KPI label="Absorción por pieza" value={money(m.absorcion, 2)}
-              sub={`${money(m.gastoTotalAnio1)} ÷ ${num(u1, 0)} pzas del Forecast`} />
+            <KPI label={`Absorción por ${L.uni}`} value={money(m.absorcion, 2)}
+              sub={`${money(m.gastoTotalAnio1)} ÷ ${num(u1, 0)} ${L.uniCorta} del Forecast`} />
             <KPI label="Margen real ponderado" value={pct(escala.real)}
               tone={escala.real < escala.objetivo ? "neg" : "pos"}
               sub={`Objetivo ponderado ${pct(escala.objetivo)}`} />
             <KPI label="Volumen mínimo para el margen objetivo"
-              value={escala.unidades > 0 ? num(escala.unidades, 0) + " pzas" : "—"}
+              value={escala.unidades > 0 ? num(escala.unidades, 0) + " " + L.uniCorta : "—"}
               tone={escala.unidades > 0 && escala.unidades <= u1 ? "pos" : "neg"}
               sub={escala.unidades > 0
                 ? (escala.unidades <= u1
-                  ? `Con los precios de lista de hoy · el plan trae ${num(u1, 0)} pzas y lo pasa`
-                  : `Con los precios de lista de hoy · ${pct(escala.unidades / u1 - 1)} más que las ${num(u1, 0)} del plan`)
+                  ? `Con los precios de lista de hoy · el plan trae ${num(u1, 0)} ${L.uniCorta} y lo pasa`
+                  : `Con los precios de lista de hoy · ${pct(escala.unidades / u1 - 1)} más que ${num(u1, 0)} del plan`)
                 : "Con los precios de lista de hoy no lo alcanza ningún volumen"} />
             {/* según de qué lado del mínimo caiga el plan, lo que interesa es
                 el colchón que traes o lo que bajaría la absorción al llegar */}
@@ -238,10 +238,10 @@ export default function TabResumenImpacto({ s, m, L }: any) {
               <KPI label="Absorción al volumen objetivo" value="—" sub="No hay volumen que alcance: sube precio o baja costo" />
             ) : escala.unidades <= u1 ? (
               <KPI label="Colchón sobre ese mínimo" value={pct(u1 / escala.unidades - 1)} tone="pos"
-                sub={`El plan trae ${num(u1 - escala.unidades, 0)} pzas de más; puede caer ${pct(1 - escala.unidades / u1)} y el margen objetivo se sostiene`} />
+                sub={`El plan trae ${num(u1 - escala.unidades, 0)} ${L.uniCorta} de más; puede caer ${pct(1 - escala.unidades / u1)} y el margen objetivo se sostiene`} />
             ) : (
               <KPI label="Absorción al volumen objetivo" value={money(escala.absorcionMeta, 2)}
-                sub={`Lo que cargaría cada pieza al llegar a ${num(escala.unidades, 0)} pzas · hoy ${money(m.absorcion, 2)} a ${num(u1, 0)}`} />
+                sub={`Lo que cargaría cada ${L.uni} al llegar a ${num(escala.unidades, 0)} ${L.uniCorta} · hoy ${money(m.absorcion, 2)} a ${num(u1, 0)}`} />
             )}
           </div>
         )}
@@ -251,16 +251,16 @@ export default function TabResumenImpacto({ s, m, L }: any) {
           <div className="text-[11.5px] mb-4 px-3 py-2.5 rounded leading-relaxed" style={{ background: C.soft, color: C.muted }}>
             <b style={{ color: C.ink }}>Volumen mínimo para el margen objetivo.</b> Es el punto en el que el negocio llega
             al margen que pediste ({pct(escala.objetivo)} ponderado) sin tocar los precios de lista. Por debajo de{" "}
-            {num(escala.unidades, 0)} pzas, los {money(escala.fijos)} de gasto fijo del año se reparten entre menos piezas,
-            la absorción por pieza sube — sería {money(escala.absorcionMeta, 2)} justo en ese punto, contra{" "}
-            {money(m.absorcion, 2)} a las {num(u1, 0)} pzas del plan — y el margen se cae solo, aunque nada más haya cambiado.
+            {num(escala.unidades, 0)} {L.uniCorta}, los {money(escala.fijos)} de gasto fijo del año se reparten entre menos {L.unis},
+            la absorción por {L.uni} sube — sería {money(escala.absorcionMeta, 2)} justo en ese punto, contra{" "}
+            {money(m.absorcion, 2)} a {num(u1, 0)} {L.uniCorta} del plan — y el margen se cae solo, aunque nada más haya cambiado.
             {escala.unidades <= u1 ? (
               <> <b style={{ color: C.ink }}>Colchón sobre ese mínimo.</b> Qué tan lejos está el plan de ese piso:
-                trae {num(u1 - escala.unidades, 0)} pzas de más, un {pct(u1 / escala.unidades - 1)} arriba del mínimo.
+                trae {num(u1 - escala.unidades, 0)} {L.uniCorta} de más, un {pct(u1 / escala.unidades - 1)} arriba del mínimo.
                 Dicho al revés, las ventas pueden quedarse hasta {pct(1 - escala.unidades / u1)} abajo de lo planeado
                 antes de que el margen objetivo deje de cumplirse.</>
             ) : (
-              <> <b style={{ color: C.neg }}>No hay colchón:</b> el plan se queda {num(escala.unidades - u1, 0)} pzas corto
+              <> <b style={{ color: C.neg }}>No hay colchón:</b> el plan se queda {num(escala.unidades - u1, 0)} {L.uniCorta} corto
                 de ese mínimo, así que con este volumen el margen objetivo no se alcanza. Hay que vender más, subir precio
                 o bajar costo.</>
             )}
@@ -268,7 +268,7 @@ export default function TabResumenImpacto({ s, m, L }: any) {
         )}
         <table className="w-full">
           <thead><tr>
-            <Th align="left" w="40%">Concepto</Th><Th>Gasto total Año 1</Th><Th>Volumen estimado (pzas)</Th><Th>Absorción por pieza</Th>
+            <Th align="left" w="40%">Concepto</Th><Th>Gasto total Año 1</Th><Th>Volumen estimado ({L.uniCorta})</Th><Th>Absorción por {L.uni}</Th>
           </tr></thead>
           <tbody>
             {GASTOS.map((g) => (
@@ -288,16 +288,16 @@ export default function TabResumenImpacto({ s, m, L }: any) {
           </tbody>
         </table>
         <div className="mt-2 text-[11px]" style={{ color: C.muted }}>
-          Es la misma absorción para todas las líneas: el gasto no se traza a un modelo en particular, se reparte por pieza.
+          Es la misma absorción para todas las líneas: el gasto no se traza a un {L.prodS.toLowerCase()} en particular, se reparte por {L.uni}.
           Los importes se capturan en <b style={{ color: C.ink }}>Gastos</b> y el volumen sale del Forecast.
           {escala && escala.unidades > 0 && (
             <> Los <b style={{ color: C.ink }}>{money(escala.fijos)}</b> de gasto fijo del año no cambian si vendes más,
-              así que la absorción por pieza sólo baja con volumen: a {num(u1, 0)} pzas carga {money(m.absorcion, 2)}.</>
+              así que la absorción por {L.uni} sólo baja con volumen: a {num(u1, 0)} {L.uniCorta} carga {money(m.absorcion, 2)}.</>
           )}
           {escala && !(escala.unidades > 0) && (
             <> <b style={{ color: C.neg }}>Ningún volumen alcanza el margen objetivo:</b> el precio de lista ponderado
               ({money(escala.precio)}) no cubre el costo variable ({money(escala.variable, 2)}) más ese margen. Por mucho
-              que vendas, la absorción por pieza tiende a cero pero el margen se queda corto: hay que mover precio o costo.</>
+              que vendas, la absorción por {L.uni} tiende a cero pero el margen se queda corto: hay que mover precio o costo.</>
           )}
         </div>
       </Card>

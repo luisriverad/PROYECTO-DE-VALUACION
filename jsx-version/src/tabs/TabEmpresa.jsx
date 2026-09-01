@@ -23,10 +23,10 @@ export default function TabEmpresa({ s, up, m }) {
         <div className="grid grid-cols-3 gap-3">
           <Field label="Nombre de la empresa"><TxtIn value={s.empresa.nombre} onChange={(v) => up((n) => { n.empresa.nombre = v; })} placeholder="Razón social" /></Field>
           <Field label="Tipo de empresa">
+            {/* Servicios no aparece aquí: ese giro tiene su propio módulo */}
             <select className={inputCls} style={inputSt} value={s.empresa.tipo} onChange={(e) => up((n) => { n.empresa.tipo = e.target.value; })}>
               <option value="manufactura">Manufactura</option>
               <option value="retail">Retail / Comercio</option>
-              <option value="servicios">Servicios</option>
             </select>
           </Field>
           <Field label="Año de arranque"><NumIn value={s.empresa.anio} dec={0} plain onChange={(v) => up((n) => { n.empresa.anio = v; })} /></Field>

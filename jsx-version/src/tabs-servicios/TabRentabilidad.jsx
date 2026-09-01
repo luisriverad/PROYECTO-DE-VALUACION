@@ -10,7 +10,7 @@ import {
 /* ============================================================
    11. RENTABILIDAD Y VALUACIÓN
    ============================================================ */
-export default function TabRentabilidad({ s, up, m }: any) {
+export default function TabRentabilidad({ s, up, m }) {
   const v = s.valuacion;
   const sp = s.supuestos;
   const flujoChart = m.flujos.map((f) => ({ y: "Año " + f.y, FCF: Math.round(f.fcf) }));

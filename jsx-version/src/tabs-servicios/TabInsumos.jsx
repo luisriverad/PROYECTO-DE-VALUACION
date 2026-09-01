@@ -6,7 +6,7 @@ import { Card, Btn, Field, NumIn, PctIn, TxtIn, UnidadIn, Th, Td, KPI, Empty, in
 /* ============================================================
    2. INSUMOS
    ============================================================ */
-export default function TabInsumos({ s, up, m, L }: any) {
+export default function TabInsumos({ s, up, m, L }) {
   const add = () => up((n) => { n.insumos.push({ id: uid(), nombre: "Nuevo insumo", costoLote: 0, volumenLote: 1, unidad: "pza" }); });
   return (
     <Card title={L.insumos} sub="Captura la compra como la haces en la realidad: cuánto pagas y cuánto te entregan. La plataforma deriva el costo por unidad."

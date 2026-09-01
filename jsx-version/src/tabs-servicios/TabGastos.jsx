@@ -6,7 +6,7 @@ import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, in
 /* ============================================================
    5. GASTOS
    ============================================================ */
-export default function TabGastos({ s, up, m }: any) {
+export default function TabGastos({ s, up, m }) {
   const bloques = [
     ["admin", "Gastos administrativos"],
     ["oper", "Gastos operativos"],

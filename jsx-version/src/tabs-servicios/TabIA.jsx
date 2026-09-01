@@ -7,7 +7,7 @@ import { iaFetch } from "../lib/ia";
 /* ============================================================
    13. DIAGNÓSTICO IA
    ============================================================ */
-export default function TabIA({ s, m }: any) {
+export default function TabIA({ s, m }) {
   const [cargando, setCargando] = useState(false);
   const [texto, setTexto] = useState("");
   const [error, setError] = useState("");

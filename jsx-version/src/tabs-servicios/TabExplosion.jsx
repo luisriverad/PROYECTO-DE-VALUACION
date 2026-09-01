@@ -1,16 +1,16 @@
 import React, { useState } from "react";
 import { C } from "../lib/theme";
 import { uid, money, pct } from "../lib/format";
-import { Card, Btn, NumIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
+import { Card, Btn, NumIn, Th, Td, KPI, Empty, AvisoMezcla, inputCls, inputSt } from "../components/ui";
 
 /* ============================================================
    1. EXPLOSIONADO DE MATERIALES  (hoja "Costeo" del libro)
    El costo estándar sin absorción de gasto, armado renglón por renglón:
    la lista de materiales y las horas de cada modelo, con su capacidad.
-   Escribe sobre el mismo estado que Materias primas, Mano de obra y
+   Escribe sobre el mismo estado que las pestañas de insumos, personal y
    Productos, así que la captura va y viene entre las cuatro pestañas.
    ============================================================ */
-export default function TabExplosion({ s, up, m, L }: any) {
+export default function TabExplosion({ s, up, m, L }) {
   const totalMP = m.prod.reduce((a, p) => a + p.mp * (p.mix || 0), 0);
   const totalMO = m.prod.reduce((a, p) => a + p.mod * (p.mix || 0), 0);
 
@@ -45,24 +45,26 @@ export default function TabExplosion({ s, up, m, L }: any) {
 
   return (
     <>
-      <Card title="Explosionado de materiales"
-        sub="El costo estándar armado renglón por renglón: qué lleva cada pieza, cuánto consume y a qué precio. Es la misma captura de Materias primas, Mano de obra y Productos vista del derecho — lo que corrijas aquí se corrige allá, y al revés.">
+      <Card title={L.explosionTab}
+        sub={`El costo estándar armado renglón por renglón: qué lleva cada ${L.uni}, cuánto consume y a qué precio. Es la misma captura de ${L.insumos}, ${L.mo} y ${L.prod} vista del derecho — lo que corrijas aquí se corrige allá, y al revés.`}>
         <div className="grid grid-cols-4 gap-3">
-          <KPI label="Materiales por pieza" value={money(totalMP, 2)} sub="Promedio ponderado por mezcla" />
-          <KPI label="Mano de obra por pieza" value={money(totalMO, 2)} sub="Promedio ponderado por mezcla" />
+          <KPI label={`${L.insumos} por ${L.uni}`} value={money(totalMP, 2)} sub="Promedio ponderado por mezcla" />
+          <KPI label={`${L.mo} por ${L.uni}`} value={money(totalMO, 2)} sub="Promedio ponderado por mezcla" />
           <KPI label="Costo estándar sin absorción" value={money(totalMP + totalMO, 2)} />
           <KPI label="Absorción de gasto" value={money(m.absorcion, 2)} sub="Se carga en Pricing" />
         </div>
       </Card>
 
-      {/* ---------- Alta de productos ---------- */}
+      <AvisoMezcla productos={s.productos} L={L} />
+
+      {/* ---------- Alta de renglones del catálogo ---------- */}
       <div className="flex justify-end">
-        <Btn kind="primary" small onClick={addProd}>+ Producto / Servicio</Btn>
+        <Btn kind="primary" small onClick={addProd}>+ {L.prodS}</Btn>
       </div>
 
-      {/* ---------- Lista de materiales por producto ---------- */}
+      {/* ---------- El catálogo, renglón por renglón ---------- */}
       {s.productos.length === 0 ? (
-        <Card title="Lista de materiales"><Empty texto={`Sin ${L.prod.toLowerCase()} capturados. Agrega el primero para explosionar su costo.`} /></Card>
+        <Card title={L.catalogo}><Empty texto={`Sin ${L.prod.toLowerCase()} capturados. Agrega el primero para explosionar su costo.`} /></Card>
       ) : null}
 
       {s.productos.map((p, pi) => {
@@ -82,22 +84,22 @@ export default function TabExplosion({ s, up, m, L }: any) {
                 title={`Escribe para renombrar este ${L.prodS.toLowerCase()}`}
                 onChange={(e) => up((n) => { n.productos[pi].nombre = e.target.value; })} />
             }
-            sub={`Mezcla ${pct(p.mix || 0)} · consumo por pieza producida`}
+            sub={`Mezcla ${pct(p.mix || 0)} · consumo por ${L.uni} ${L.entregada}`}
             right={
               <div className="flex gap-2">
                 <Btn small onClick={() => addMat(pi)} disabled={!s.insumos.length}
                   title={s.insumos.length ? `Agregar un renglón de ${L.insumo.toLowerCase()}`
-                    : `No hay ${L.insumos.toLowerCase()} capturados: captúralos primero en la pestaña «${L.insumos}»`}>+ Material</Btn>
+                    : `No hay ${L.insumos.toLowerCase()} capturados: captúralos primero en la pestaña «${L.insumos}»`}>{L.bomAdd}</Btn>
                 <Btn small onClick={() => addMano(pi)} disabled={!s.recursosMO.length}
                   title={s.recursosMO.length ? "Agregar un renglón de mano de obra"
-                    : `No hay ${L.mo.toLowerCase()} capturada: captúrala primero en la pestaña «${L.mo}»`}>+ Mano de obra</Btn>
+                    : `No hay ${L.mo.toLowerCase()} capturada: captúrala primero en la pestaña «${L.mo}»`}>{L.moAdd}</Btn>
                 <Btn small kind="danger" title={"Eliminar " + p.nombre} onClick={() => borrarProd(pi)}>×</Btn>
               </div>
             }>
             <table className="w-full">
               <thead><tr>
                 <Th align="left" w="34%">Concepto</Th><Th>Cantidad</Th><Th align="left" w="10%">Unidad</Th>
-                <Th>Costo unitario</Th><Th>Importe por pieza</Th><Th w="34"></Th>
+                <Th>Costo unitario</Th><Th>Importe por {L.uni}</Th><Th w="34"></Th>
               </tr></thead>
               <tbody>
                 {(p.bom || []).map((b, i) => {
@@ -123,7 +125,7 @@ export default function TabExplosion({ s, up, m, L }: any) {
                     <Td align="left" colSpan={6}>
                       <div className="text-[11.5px] leading-relaxed px-1 py-1.5" style={{ color: C.neg }}>
                         No hay {L.insumos.toLowerCase()} capturados todavía, así que no hay de dónde escoger:
-                        el botón «+ Material» está apagado por eso. Captúralos primero en la pestaña
+                        el botón «{L.bomAdd}» está apagado por eso. Captúralos primero en la pestaña
                         <b style={{ color: C.ink }}> {L.insumos}</b> y aquí los vas a poder elegir.
                       </div>
                     </Td>
@@ -133,12 +135,12 @@ export default function TabExplosion({ s, up, m, L }: any) {
                   <tr>
                     <Td align="left" colSpan={6}>
                       <div className="text-[11.5px] px-1 py-1.5" style={{ color: C.muted }}>
-                        Sin materiales en este {L.prodS.toLowerCase()}. Usa «+ Material» para agregar el primero.
+                        Sin {L.insumos.toLowerCase()} en este {L.prodS.toLowerCase()}. Usa «{L.bomAdd}» para agregar el primero.
                       </div>
                     </Td>
                   </tr>
                 )}
-                <tr><Td align="left" colSpan={4} color={C.muted}>Materiales</Td><Td bold>{money(pc.mp, 2)}</Td><Td></Td></tr>
+                <tr><Td align="left" colSpan={4} color={C.muted}>{L.insumos}</Td><Td bold>{money(pc.mp, 2)}</Td><Td></Td></tr>
 
                 {(p.mo || []).map((b, i) => (
                   <tr key={"m" + i}>
@@ -169,12 +171,12 @@ export default function TabExplosion({ s, up, m, L }: any) {
                   <tr>
                     <Td align="left" colSpan={6}>
                       <div className="text-[11.5px] px-1 py-1.5" style={{ color: C.muted }}>
-                        Sin mano de obra en este {L.prodS.toLowerCase()}. Usa «+ Mano de obra» para agregar el primero.
+                        Sin {L.mo.toLowerCase()} en este {L.prodS.toLowerCase()}. Usa «{L.moAdd}» para agregar el primero.
                       </div>
                     </Td>
                   </tr>
                 )}
-                <tr><Td align="left" colSpan={4} color={C.muted}>Mano de obra</Td><Td bold>{money(pc.mod, 2)}</Td><Td></Td></tr>
+                <tr><Td align="left" colSpan={4} color={C.muted}>{L.mo}</Td><Td bold>{money(pc.mod, 2)}</Td><Td></Td></tr>
 
                 <tr>
                   <Td align="left" colSpan={4} bold>Costo estándar sin absorción de gasto</Td>

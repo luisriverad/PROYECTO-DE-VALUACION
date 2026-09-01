@@ -10,7 +10,7 @@ import {
 /* ============================================================
    8. CRÉDITO
    ============================================================ */
-export default function TabCredito({ s, up, m }: any) {
+export default function TabCredito({ s, up, m }) {
   const c = s.credito;
   const [verTodo, setVerTodo] = useState(false);
   const filas = verTodo ? m.cred : m.cred.slice(0, 12);

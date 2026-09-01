@@ -98,10 +98,41 @@ export const seed = () => {
   };
 };
 
+/* Vocabulario por giro. Todo lo que en pantalla suene a fábrica —pieza, material,
+   explosionado— sale de aquí, para que el módulo de servicios hable de servicios
+   y el de comercio de artículos sin duplicar una sola pestaña.
+     uni / unis / uniCorta : la unidad que se vende, en singular, plural y corta
+     verbo / entregada     : "producir" / "producida" y sus equivalentes
+     explosionTab          : cómo se llama la pestaña donde se arma el costo
+     catalogo, bomAdd, moAdd : título del catálogo y botones de alta de renglón */
 export const LEX = {
-  manufactura: { insumos: "Materias primas", insumo: "Materia prima", mo: "Mano de obra directa", prod: "Productos", prodS: "Producto", bom: "Lista de materiales (BOM)", cp: "producción", cpTab: "Costos de producción" },
-  retail: { insumos: "Mercancía", insumo: "Artículo", mo: "Personal de piso", prod: "SKUs / Líneas", prodS: "SKU", bom: "Costo de adquisición", cp: "operación", cpTab: "Costos de operación" },
-  servicios: { insumos: "Insumos directos", insumo: "Insumo", mo: "Personal operativo", prod: "Servicios", prodS: "Servicio", bom: "Insumos por servicio", cp: "servicio", cpTab: "Costos del servicio" },
+  manufactura: {
+    insumos: "Materias primas", insumo: "Materia prima", mo: "Mano de obra directa",
+    prod: "Productos", prodS: "Producto", bom: "Lista de materiales (BOM)",
+    cp: "producción", cpTab: "Costos de producción",
+    uni: "pieza", unis: "piezas", uniCorta: "pzas", verbo: "producir", entregada: "producida",
+    unUni: "una pieza", uniDe: "de la pieza",
+    explosionTab: "Explosionado de materiales", catalogo: "Lista de materiales",
+    bomAdd: "+ Material", moAdd: "+ Mano de obra",
+  },
+  retail: {
+    insumos: "Mercancía", insumo: "Artículo", mo: "Personal de piso",
+    prod: "SKUs / Líneas", prodS: "SKU", bom: "Costo de adquisición",
+    cp: "operación", cpTab: "Costos de operación",
+    uni: "unidad", unis: "unidades", uniCorta: "uds", verbo: "vender", entregada: "vendida",
+    unUni: "una unidad", uniDe: "de la unidad",
+    explosionTab: "Explosionado de costo", catalogo: "Catálogo de SKUs",
+    bomAdd: "+ Artículo", moAdd: "+ Personal",
+  },
+  servicios: {
+    insumos: "Insumos directos", insumo: "Insumo", mo: "Personal operativo",
+    prod: "Servicios", prodS: "Servicio", bom: "Insumos por servicio",
+    cp: "servicio", cpTab: "Costos del servicio",
+    uni: "servicio", unis: "servicios", uniCorta: "svs", verbo: "entregar", entregada: "entregado",
+    unUni: "un servicio", uniDe: "del servicio",
+    explosionTab: "Diseño de servicios", catalogo: "Catálogo de servicios",
+    bomAdd: "+ Insumo", moAdd: "+ Horas de personal",
+  },
 };
 
 /* ============================================================

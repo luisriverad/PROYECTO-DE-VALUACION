@@ -7,7 +7,7 @@ import { computeModel } from "../lib/model-servicios";
 /* ============================================================
    12. ESCENARIOS Y SENSIBILIDAD
    ============================================================ */
-export default function TabSensibilidad({ s, m }: any) {
+export default function TabSensibilidad({ s, m }) {
   const deltas = [-0.2, -0.1, 0, 0.1, 0.2];
 
   const grid = useMemo(() => {
@@ -24,7 +24,7 @@ export default function TabSensibilidad({ s, m }: any) {
 
   const variables = useMemo(() => {
     const base = m.vpn;
-    const casos: any[] = [
+    const casos = [
       ["Precio de venta", (c, f) => c.productos.forEach((p) => { p.precio *= f; })],
       ["Volumen", (c, f) => { c.plan.unidadesMes = c.plan.unidadesMes.map((u) => u * f); }],
       ["Costo de materiales", (c, f) => c.insumos.forEach((i) => { i.costoLote *= f; })],

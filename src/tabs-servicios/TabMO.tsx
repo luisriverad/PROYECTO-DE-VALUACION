@@ -13,7 +13,7 @@ export default function TabMO({ s, up, m, L }: any) {
   const costoInef = s.recursosMO.reduce((a, r) => a + inefDe(r), 0);
   return (
     <>
-      <Card title={L.mo} sub="El sueldo se convierte en tarifa por hora; esa tarifa es la que absorbe cada unidad producida. El índice de ineficiencia descuenta lo que se va en preparación, paros, retrabajo y tiempo muerto: el sueldo no baja, las horas productivas sí."
+      <Card title={L.mo} sub={`El sueldo se convierte en tarifa por hora; esa tarifa es la que absorbe cada ${L.uni} ${L.entregada}. El índice de ineficiencia descuenta lo que se va en preparación, paros, retrabajo y tiempo muerto: el sueldo no baja, las horas productivas sí.`}
         right={<Btn kind="primary" small onClick={add}>+ Agregar puesto</Btn>}>
         {s.recursosMO.length === 0 ? <Empty texto="Sin puestos capturados." /> : (
           <table className="w-full">
@@ -54,7 +54,7 @@ export default function TabMO({ s, up, m, L }: any) {
       {costoInef > 0 && (
         <div className="px-3 py-2 rounded text-[12px]" style={{ background: C.soft, color: C.ink }}>
           La nómina anual sigue siendo <b>{money(m.nominaMes * 12)}</b> — la ineficiencia no baja lo que pagas. Lo que cambia es que
-          <b> {money(costoInef)}</b> de esa nómina no compra producción, y por eso la tarifa por hora sube y cada pieza carga más mano de obra.
+          <b> {money(costoInef)}</b> de esa nómina no compra producción, y por eso la tarifa por hora sube y cada {L.uni} carga más {L.mo.toLowerCase()}.
         </div>
       )}
     </>

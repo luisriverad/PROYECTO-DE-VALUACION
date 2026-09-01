@@ -59,11 +59,11 @@ export default function TabCostosProduccion({ s, up, m, L }) {
   return (
     <>
       <div className="text-[12px] mb-3 px-3 py-2 rounded" style={{ background: C.soft, color: C.muted }}>
-        Ningún costo de {L.cp} es puramente fijo ni puramente variable. Cada concepto se captura en tres piezas: la <b style={{ color: C.ink }}>base fija</b> que pagas aunque no produzcas, el <b style={{ color: C.ink }}>consumo por unidad</b> y el <b style={{ color: C.ink }}>consumo por hora de mano de obra</b>. Usa el que corresponda y deja los otros en cero.
+        Ningún costo de {L.cp} es puramente fijo ni puramente variable. Cada concepto se captura en tres partes: la <b style={{ color: C.ink }}>base fija</b> que pagas aunque no vendas, el <b style={{ color: C.ink }}>consumo por {L.uni}</b> y el <b style={{ color: C.ink }}>consumo por hora de personal</b>. Usa el que corresponda y deja los otros en cero.
       </div>
 
       <Bloque k="directos" titulo={"Costos directos de " + L.cp}
-        sub="Se consumen al producir: energía eléctrica, agua, gas, combustible." />
+        sub={`Se consumen al ${L.verbo}: energía eléctrica, agua, gas, combustible, licencias.`} />
       <Bloque k="indirectos" titulo={"Costos indirectos de " + L.cp}
         sub="Sostienen la operación sin incorporarse al producto: químicos, mantenimiento, herramienta, equipo de protección." />
 

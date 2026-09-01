@@ -17,9 +17,9 @@ export default function TabProductos({ s, up, m, L }) {
   return (
     <>
       <Card title="Pricing"
-        sub="Del costo unitario al precio de lista: cuánto gasto absorbe cada pieza, qué margen le pides y en cuánto la vendes. Haz clic en un renglón para ver su costeo abajo."
-        right={<Btn kind="primary" small onClick={addProd}>+ Producto / Servicio</Btn>}>
-        {s.productos.length === 0 ? <Empty texto="Sin productos capturados." /> : (
+        sub={`Del costo unitario al precio de lista: cuánto gasto absorbe cada ${L.uni}, qué margen le pides y en cuánto la vendes. Haz clic en un renglón para ver su costeo abajo.`}
+        right={<Btn kind="primary" small onClick={addProd}>+ {L.prodS}</Btn>}>
+        {s.productos.length === 0 ? <Empty texto={`Sin ${L.prod.toLowerCase()} capturados.`} /> : (
           <div style={{ overflowX: "auto" }}>
             <table className="w-full" style={{ minWidth: 1040 }}>
               <thead><tr>
@@ -54,7 +54,7 @@ export default function TabProductos({ s, up, m, L }) {
         </div>
       </Card>
 
-      {/* el costeo renglón por renglón vive en Explosionado; aquí sólo el
+      {/* el costeo renglón por renglón vive en la pestaña del catálogo; aquí sólo el
           resultado del producto seleccionado arriba */}
       {p && pc && (
         <>
@@ -62,7 +62,7 @@ export default function TabProductos({ s, up, m, L }) {
             Costeo de <b style={{ color: C.ink }}>{p.nombre}</b> — haz clic en otro renglón de la tabla para cambiarlo.
           </div>
           <div className="grid grid-cols-4 gap-3">
-            <KPI label="Materiales + MO" value={money(pc.directo, 2)} sub={`${money(pc.mp, 2)} materiales · ${money(pc.mod, 2)} MO`} />
+            <KPI label={`${L.insumos} + ${L.mo}`} value={money(pc.directo, 2)} sub={`${money(pc.mp, 2)} de ${L.insumos.toLowerCase()} · ${money(pc.mod, 2)} de personal`} />
             <KPI label={"Costos de " + L.cp} value={money(pc.cp, 2)} sub={money(pc.cpVar, 2) + " variable"} />
             <KPI label="Costo estándar" value={money(pc.estandar, 2)} sub="Con absorción de gasto" />
             <KPI label="Margen de contribución" value={pct(pc.margenContrib)} sub="Precio − costo variable" />

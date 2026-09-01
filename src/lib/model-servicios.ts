@@ -2,106 +2,143 @@
 import { uid, MESES, irr, npv } from "./format";
 
 /* ============================================================
-   ESTADO INICIAL — ejemplo MI ZAPATO (los alumnos lo sustituyen)
+   ESTADO INICIAL — ejemplo MI ESTUDIO DE DISEÑO (los alumnos lo sustituyen)
+   Un despacho de diseño gráfico: la unidad que se vende es un proyecto
+   entregado, y lo que lo cuesta son horas de gente más insumos de entrega
+   (licencias por pieza, impresiones, fotografía, ilustración externa).
    ============================================================ */
 export const seed = () => {
   const I = (nombre, costoLote, volumenLote, unidad) => ({ id: uid(), nombre, costoLote, volumenLote, unidad });
   const ins = [
-    I("Piel tipo 1", 2500, 10, "m"), I("Piel tipo 2", 3300, 10, "m"),
-    I("Piel tipo 3", 5850, 10, "m"), I("Piel tipo 4", 9500, 10, "m"),
-    I("Suela piel", 2500, 5, "m"), I("Suela madera", 990, 100, "pza"),
-    I("Pegamento", 900, 10, "lt"), I("Agujetas", 300, 100, "pza"), I("Hilo", 100, 100, "m"),
+    I("Licencia de tipografías", 6000, 20, "licencia"),
+    I("Banco de imágenes", 3500, 50, "imagen"),
+    I("Impresión de dummies y pruebas de color", 1200, 10, "juego"),
+    I("Sesión de fotografía de producto", 18000, 2, "sesión"),
+    I("Ilustración externa", 9000, 6, "pieza"),
+    I("Mensajería y entregas", 1500, 30, "envío"),
   ];
   const mo = [
-    { id: uid(), nombre: "Técnico 1", sueldoMensual: 10000, personas: 1, horasMes: 160, ineficiencia: 0 },
-    { id: uid(), nombre: "Técnico 2", sueldoMensual: 10000, personas: 1, horasMes: 160, ineficiencia: 0 },
-    { id: uid(), nombre: "Técnico 3", sueldoMensual: 12000, personas: 1, horasMes: 160, ineficiencia: 0 },
-    { id: uid(), nombre: "Técnico 4", sueldoMensual: 15000, personas: 1, horasMes: 160, ineficiencia: 0 },
+    { id: uid(), nombre: "Director de arte", sueldoMensual: 45000, personas: 1, horasMes: 160, ineficiencia: 0.15 },
+    { id: uid(), nombre: "Diseñador senior", sueldoMensual: 28000, personas: 2, horasMes: 160, ineficiencia: 0.12 },
+    { id: uid(), nombre: "Diseñador junior", sueldoMensual: 18000, personas: 2, horasMes: 160, ineficiencia: 0.2 },
+    { id: uid(), nombre: "Ejecutivo de cuenta", sueldoMensual: 22000, personas: 1, horasMes: 160, ineficiencia: 0.25 },
   ];
-  const base = (pielIdx, moIdx) => ({
-    bom: [
-      { insumoId: ins[pielIdx].id, cant: 0.33 }, { insumoId: ins[4].id, cant: 0.02 },
-      { insumoId: ins[5].id, cant: 2 }, { insumoId: ins[6].id, cant: 0.005 },
-      { insumoId: ins[7].id, cant: 2 }, { insumoId: ins[8].id, cant: 0.001 },
-    ],
-    mo: [{ moId: mo[moIdx].id, horas: 4 }],
+  const receta = (bom, horas) => ({
+    bom: bom.map(([i, cant]) => ({ insumoId: ins[i].id, cant })),
+    mo: horas.map(([i, h]) => ({ moId: mo[i].id, horas: h })),
   });
   return {
-    empresa: { nombre: "MI ZAPATO, S.A. DE C.V.", tipo: "manufactura", anio: 2026 },
+    empresa: { nombre: "MI ESTUDIO DE DISEÑO, S.A. DE C.V.", tipo: "servicios", anio: 2026 },
     supuestos: {
       isr: 0.3, ptu: 0.1, inflacion: 0.035, gPerp: 0.03, diasBase: 360,
-      dso: 30, pctCredito: 0.1, dio: 60, dpo: 45,
+      dso: 45, pctCredito: 0.6, dio: 0, dpo: 30,
       indexarPrecios: false, impuestoAnio1: true, nominaEscalaVolumen: true,
       anioCambioGastos: 3, horizonte: 5,
     },
     insumos: ins,
     recursosMO: mo,
     productos: [
-      { id: uid(), nombre: "Modelo 1", mix: 0.4, margen: 0.15, precio: 3500, ...base(0, 0) },
-      { id: uid(), nombre: "Modelo 2", mix: 0.3, margen: 0.15, precio: 3500, ...base(1, 1) },
-      { id: uid(), nombre: "Modelo 3", mix: 0.2, margen: 0.2, precio: 4000, ...base(2, 2) },
-      { id: uid(), nombre: "Modelo 4", mix: 0.1, margen: 0.25, precio: 4500, ...base(3, 3) },
+      /* mezcla: de cada 100 proyectos del año, cuántos son de cada tipo */
+      { id: uid(), nombre: "Identidad corporativa", mix: 0.15, margen: 0.35, precio: 85000,
+        ...receta([[0, 2], [1, 5], [2, 1]], [[0, 20], [1, 60], [2, 40], [3, 12]]) },
+      { id: uid(), nombre: "Campaña digital (mensual)", mix: 0.45, margen: 0.3, precio: 42000,
+        ...receta([[1, 12]], [[0, 6], [1, 20], [2, 30], [3, 10]]) },
+      { id: uid(), nombre: "Diseño editorial (catálogo)", mix: 0.25, margen: 0.3, precio: 48000,
+        ...receta([[1, 8], [2, 2], [3, 0.5], [5, 1]], [[0, 8], [1, 30], [2, 25], [3, 6]]) },
+      { id: uid(), nombre: "Empaque y etiqueta", mix: 0.15, margen: 0.4, precio: 62000,
+        ...receta([[0, 1], [2, 3], [4, 1], [5, 1]], [[0, 12], [1, 35], [2, 20], [3, 6]]) },
     ],
     prodCostos: {
       directos: [
-        { id: uid(), nombre: "Energía eléctrica", fijoMes: 1200, porUnidad: 8, porHora: 0 },
-        { id: uid(), nombre: "Agua", fijoMes: 350, porUnidad: 1.5, porHora: 0 },
-        { id: uid(), nombre: "Gas", fijoMes: 400, porUnidad: 3, porHora: 0 },
+        { id: uid(), nombre: "Licencias de software de diseño", fijoMes: 9500, porUnidad: 0, porHora: 0 },
+        { id: uid(), nombre: "Nube y almacenamiento de proyectos", fijoMes: 1800, porUnidad: 0, porHora: 0 },
+        { id: uid(), nombre: "Impresión de entregables", fijoMes: 0, porUnidad: 350, porHora: 0 },
       ],
       indirectos: [
-        { id: uid(), nombre: "Químicos y solventes", fijoMes: 0, porUnidad: 6, porHora: 0 },
-        { id: uid(), nombre: "Mantenimiento de máquinas", fijoMes: 1200, porUnidad: 0, porHora: 4 },
-        { id: uid(), nombre: "Herramienta y consumibles", fijoMes: 0, porUnidad: 0, porHora: 2.5 },
-        { id: uid(), nombre: "Equipo de protección y uniformes", fijoMes: 800, porUnidad: 0, porHora: 0 },
+        { id: uid(), nombre: "Renta de equipo de cómputo y monitores", fijoMes: 6500, porUnidad: 0, porHora: 0 },
+        { id: uid(), nombre: "Capacitación y suscripciones", fijoMes: 2200, porUnidad: 0, porHora: 0 },
+        { id: uid(), nombre: "Respaldo y ciberseguridad", fijoMes: 1500, porUnidad: 0, porHora: 0 },
       ],
     },
     gastos: {
       admin: [
-        { id: uid(), nombre: "CEO / Socio", m1: 50000, m2: 120000 },
-        { id: uid(), nombre: "CMO / Socio", m1: 35000, m2: 100000 },
-        { id: uid(), nombre: "Diseño", m1: 15000, m2: 40000 },
-        { id: uid(), nombre: "Gerente de planta", m1: 25000, m2: 40000 },
-        { id: uid(), nombre: "Asistente", m1: 0, m2: 20000 },
+        { id: uid(), nombre: "Socio director", m1: 55000, m2: 90000 },
+        { id: uid(), nombre: "Dirección de cuentas", m1: 30000, m2: 55000 },
+        { id: uid(), nombre: "Administración y facturación", m1: 12000, m2: 22000 },
       ],
       oper: [
-        { id: uid(), nombre: "Renta oficina", m1: 20500, m2: 35000 },
-        { id: uid(), nombre: "Gastos de operación", m1: 5000, m2: 10000 },
-        { id: uid(), nombre: "Administración / contabilidad", m1: 7000, m2: 7000 },
-        { id: uid(), nombre: "Arrendamiento equipo de cómputo", m1: 1900, m2: 1900 },
-        { id: uid(), nombre: "Seguridad social (IMSS/INFONAVIT)", m1: 850, m2: 850 },
+        { id: uid(), nombre: "Renta del estudio", m1: 22000, m2: 35000 },
+        { id: uid(), nombre: "Contabilidad y legal", m1: 8000, m2: 12000 },
+        { id: uid(), nombre: "Internet, luz y servicios", m1: 4500, m2: 7000 },
+        { id: uid(), nombre: "Seguridad social (IMSS/INFONAVIT)", m1: 9500, m2: 15000 },
       ],
-      venta: [{ id: uid(), nombre: "Marketing / redes sociales", m1: 25000, m2: 40000 }],
+      venta: [
+        { id: uid(), nombre: "Portafolio, premios y presencia digital", m1: 12000, m2: 20000 },
+        { id: uid(), nombre: "Prospección y nuevos negocios", m1: 8000, m2: 15000 },
+      ],
       porPieza: [
-        { id: uid(), nombre: "Bolsas", costo: 3.5 },
-        { id: uid(), nombre: "Cajas", costo: 12 },
+        { id: uid(), nombre: "Entrega de archivos y respaldo del proyecto", costo: 250 },
+        { id: uid(), nombre: "Junta de cierre y presentación", costo: 900 },
       ],
     },
     activos: [
-      { id: uid(), nombre: "Máquina Singer M-1000 (1)", inversion: 140000, anios: 10, tipo: "dep", mesInicio: 1 },
-      { id: uid(), nombre: "Máquina Singer M-1000 (2)", inversion: 140000, anios: 10, tipo: "dep", mesInicio: 5 },
-      { id: uid(), nombre: "Máquina SIYO 9000", inversion: 127000, anios: 10, tipo: "dep", mesInicio: 4 },
-      { id: uid(), nombre: "Acondicionar taller", inversion: 35000, anios: 1, tipo: "amort", mesInicio: 1 },
-      { id: uid(), nombre: "Acondicionamiento oficinas", inversion: 65000, anios: 1, tipo: "amort", mesInicio: 1 },
+      { id: uid(), nombre: "Estaciones de trabajo y monitores", inversion: 240000, anios: 4, tipo: "dep", mesInicio: 1 },
+      { id: uid(), nombre: "Tableta gráfica y periféricos", inversion: 45000, anios: 4, tipo: "dep", mesInicio: 1 },
+      { id: uid(), nombre: "Mobiliario del estudio", inversion: 90000, anios: 10, tipo: "dep", mesInicio: 1 },
+      { id: uid(), nombre: "Acondicionamiento del local", inversion: 120000, anios: 5, tipo: "amort", mesInicio: 1 },
+      { id: uid(), nombre: "Marca propia y sitio web", inversion: 60000, anios: 3, tipo: "amort", mesInicio: 2 },
     ],
-    plan: { unidadesMes: [0, 25, 25, 25, 50, 75, 75, 125, 150, 150, 200, 150], crec: [0.3, 0.25, 0.2, 0.15] },
-    credito: { activo: true, monto: 500000, tasaAnual: 0.15, plazoAnios: 3, tipo: "insoluto", mesInicio: 1, prepagos: [] },
+    /* proyectos entregados al mes: el primer mes se va en armar el equipo */
+    plan: { unidadesMes: [2, 4, 6, 7, 8, 9, 9, 10, 11, 12, 13, 14], crec: [0.25, 0.2, 0.15, 0.1] },
+    credito: { activo: true, monto: 300000, tasaAnual: 0.15, plazoAnios: 3, tipo: "insoluto", mesInicio: 1, prepagos: [] },
     wacc: {
       rf: 0.08724, beta: 1.2, erp: 0.0433, pTamano: 0, pStartup: 0.05, crp: 0.0379, conv: 0.02,
-      wE: 1, wD: 0, sector: "Apparel / Footwear", perfil: "",
+      wE: 1, wD: 0, sector: "Advertising / Design Services", perfil: "",
       notas: {
         rf: "Bono M 10 años", beta: "Unlevered beta sector", erp: "ERP implícita S&P 500", crp: "Country risk premium México",
-        pTamano: "Empresa pequeña, menor liquidez", pStartup: "Riesgo de ejecución del arranque", conv: "Ajuste discrecional del inversionista",
+        pTamano: "Despacho pequeño, menor liquidez", pStartup: "Riesgo de ejecución del arranque", conv: "Ajuste discrecional del inversionista",
       },
       fuente: "",
     },
-    valuacion: { multiplo: 8.85, caja: 0, pasLab: 0, pasFin: 0, capex: [0, 0, 0, 0, 0], inversionManual: null },
+    valuacion: { multiplo: 7.5, caja: 0, pasLab: 0, pasFin: 0, capex: [0, 0, 0, 0, 0], inversionManual: null },
   };
 };
 
+/* Vocabulario por giro. Todo lo que en pantalla suene a fábrica —pieza, material,
+   explosionado— sale de aquí, para que el módulo de servicios hable de servicios
+   y el de comercio de artículos sin duplicar una sola pestaña.
+     uni / unis / uniCorta : la unidad que se vende, en singular, plural y corta
+     verbo / entregada     : "producir" / "producida" y sus equivalentes
+     explosionTab          : cómo se llama la pestaña donde se arma el costo
+     catalogo, bomAdd, moAdd : título del catálogo y botones de alta de renglón */
 export const LEX = {
-  manufactura: { insumos: "Materias primas", insumo: "Materia prima", mo: "Mano de obra directa", prod: "Productos", prodS: "Producto", bom: "Lista de materiales (BOM)", cp: "producción", cpTab: "Costos de producción" },
-  retail: { insumos: "Mercancía", insumo: "Artículo", mo: "Personal de piso", prod: "SKUs / Líneas", prodS: "SKU", bom: "Costo de adquisición", cp: "operación", cpTab: "Costos de operación" },
-  servicios: { insumos: "Insumos directos", insumo: "Insumo", mo: "Personal operativo", prod: "Servicios", prodS: "Servicio", bom: "Insumos por servicio", cp: "servicio", cpTab: "Costos del servicio" },
+  manufactura: {
+    insumos: "Materias primas", insumo: "Materia prima", mo: "Mano de obra directa",
+    prod: "Productos", prodS: "Producto", bom: "Lista de materiales (BOM)",
+    cp: "producción", cpTab: "Costos de producción",
+    uni: "pieza", unis: "piezas", uniCorta: "pzas", verbo: "producir", entregada: "producida",
+    unUni: "una pieza", uniDe: "de la pieza",
+    explosionTab: "Explosionado de materiales", catalogo: "Lista de materiales",
+    bomAdd: "+ Material", moAdd: "+ Mano de obra",
+  },
+  retail: {
+    insumos: "Mercancía", insumo: "Artículo", mo: "Personal de piso",
+    prod: "SKUs / Líneas", prodS: "SKU", bom: "Costo de adquisición",
+    cp: "operación", cpTab: "Costos de operación",
+    uni: "unidad", unis: "unidades", uniCorta: "uds", verbo: "vender", entregada: "vendida",
+    unUni: "una unidad", uniDe: "de la unidad",
+    explosionTab: "Explosionado de costo", catalogo: "Catálogo de SKUs",
+    bomAdd: "+ Artículo", moAdd: "+ Personal",
+  },
+  servicios: {
+    insumos: "Insumos directos", insumo: "Insumo", mo: "Personal operativo",
+    prod: "Servicios", prodS: "Servicio", bom: "Insumos por servicio",
+    cp: "servicio", cpTab: "Costos del servicio",
+    uni: "servicio", unis: "servicios", uniCorta: "svs", verbo: "entregar", entregada: "entregado",
+    unUni: "un servicio", uniDe: "del servicio",
+    explosionTab: "Diseño de servicios", catalogo: "Catálogo de servicios",
+    bomAdd: "+ Insumo", moAdd: "+ Horas de personal",
+  },
 };
 
 /* ============================================================

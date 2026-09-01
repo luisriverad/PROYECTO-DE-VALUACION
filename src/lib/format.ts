@@ -4,6 +4,9 @@ export const uid = () => Math.random().toString(36).slice(2, 9);
 export const nfmt = (d) => new Intl.NumberFormat("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 export const money = (v, d = 0) => (v === null || v === undefined || !isFinite(v) ? "—" : (v < 0 ? "-" : "") + "$" + nfmt(d).format(Math.abs(v)));
 export const num = (v, d = 2) => (v === null || v === undefined || !isFinite(v) ? "—" : nfmt(d).format(v));
+/* Primera letra en mayúscula: el léxico se guarda en minúsculas y a veces
+   encabeza una etiqueta ("Servicios Año 1"). */
+export const cap = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 export const pct = (v, d = 1) => (v === null || v === undefined || !isFinite(v) ? "—" : nfmt(d).format(v * 100) + "%");
 /* El modelo no arranca en enero: arranca cuando arranca el proyecto, así que
    los meses se numeran desde el 1 en vez de nombrarse. */

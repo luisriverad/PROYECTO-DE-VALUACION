@@ -19,15 +19,15 @@ export default function TabEmpresa({ s, up, m }: any) {
   );
   return (
     <>
-      <Card title="Identidad del proyecto" sub="El tipo de empresa cambia la nomenclatura de toda la plataforma.">
+      <Card title="Identidad del proyecto" sub="Este módulo evalúa un negocio de servicios: el giro queda fijo y de ahí sale la nomenclatura de todas las pestañas.">
         <div className="grid grid-cols-3 gap-3">
           <Field label="Nombre de la empresa"><TxtIn value={s.empresa.nombre} onChange={(v) => up((n) => { n.empresa.nombre = v; })} placeholder="Razón social" /></Field>
           <Field label="Tipo de empresa">
-            <select className={inputCls} style={inputSt} value={s.empresa.tipo} onChange={(e) => up((n) => { n.empresa.tipo = e.target.value; })}>
-              <option value="manufactura">Manufactura</option>
-              <option value="retail">Retail / Comercio</option>
-              <option value="servicios">Servicios</option>
-            </select>
+            {/* En este módulo el giro no se elige: es el módulo de servicios */}
+            <div className="w-full px-2 py-1.5 rounded text-[13px]"
+              style={{ background: C.soft, border: `1px solid ${C.line}`, color: C.ink }}>
+              Servicios
+            </div>
           </Field>
           <Field label="Año de arranque"><NumIn value={s.empresa.anio} dec={0} plain onChange={(v) => up((n) => { n.empresa.anio = v; })} /></Field>
         </div>

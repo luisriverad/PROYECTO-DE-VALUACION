@@ -29,7 +29,7 @@ export default function ModuloServicios({ s, up, m, L, flash, topH }) {
 
   const NAV = [
     { g: "Configuración", items: [["empresa", "Empresa y supuestos"]] },
-    { g: "Costeo", items: [["explosion", "Explosionado de materiales", true], ["insumos", L.insumos], ["mo", L.mo], ["prodcostos", L.cpTab], ["resumen", "Resumen de impacto"], ["productos", "Pricing"]] },
+    { g: "Costeo", items: [["explosion", L.explosionTab, true], ["insumos", L.insumos], ["mo", L.mo], ["prodcostos", L.cpTab], ["resumen", "Resumen de impacto"], ["productos", "Pricing"]] },
     { g: "Presupuesto", items: [["pyl", "Forecast"], ["plan", "Plan de ventas y precios"], ["gastos", "Gastos"], ["inversion", "Inversiones y activos"], ["credito", "Crédito"]] },
     { g: "Evaluación", items: [["wacc", "Costo de capital"], ["rentab", "Rentabilidad y valuación"], ["sens", "Escenarios"], ["ia", "Diagnóstico y datos"]] },
   ];
@@ -77,7 +77,7 @@ export default function ModuloServicios({ s, up, m, L, flash, topH }) {
         {tab === "inversion" && <TabInversion s={s} up={up} m={m} />}
         {tab === "plan" && <TabPlan s={s} up={up} m={m} L={L} />}
         {tab === "credito" && <TabCredito s={s} up={up} m={m} />}
-        {tab === "pyl" && <TabPyL s={s} up={up} m={m} />}
+        {tab === "pyl" && <TabPyL s={s} up={up} m={m} L={L} />}
         {tab === "wacc" && <TabWACC s={s} up={up} m={m} flash={flash} />}
         {tab === "rentab" && <TabRentabilidad s={s} up={up} m={m} />}
         {tab === "sens" && <TabSensibilidad s={s} m={m} />}

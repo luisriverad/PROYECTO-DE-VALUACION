@@ -99,9 +99,12 @@ export const DEF_ACTIVOS = {
     hor: 10, capSal: 0.080, pctCV: 0.06,
   },
   ter: {
+    /* Lote bardeado que mientras se vende se renta como patio de maniobras:
+       $18,000 al mes. Sin ese ingreso el terreno sólo cuesta cargarlo, y la
+       plusvalía que necesitaría para pagar la espera se vuelve impagable. */
     precio: 1800000, pctAdq: 0.06, bardeo: 90000,
-    predial: 14000, vigilancia: 30000, rentaTemp: 0,
-    plus: 0.11, hor: 7, pctCV: 0.07,
+    predial: 14000, vigilancia: 30000, rentaTemp: 216000,
+    plus: 0.13, hor: 7, pctCV: 0.07,
   },
   auto: {
     precio: 620000, anios: 5, rv: 285000,
@@ -204,8 +207,12 @@ export function calcMaq(A, sup, ov) {
   const monto = base * m.ltvM;
   const capProp = Math.max(0, -inv0 - monto);
   const pago = monto > 0 ? pmt(m.tcM, m.plazoM, monto) : 0;
+  /* El horizonte manda: si la vida económica pasa de 10 años, el bucle tiene
+     que llegar hasta allá o el rescate y la recuperación del capital de
+     trabajo se pierden y el VPN sale mutilado. Tope de 40 por seguridad. */
+  const T = Math.min(40, Math.max(10, m.ve || 0));
   const Y = []; let prevIng = 0, acum = 0, prevSaldo = monto;
-  for (let t = 0; t <= 10; t++) {
+  for (let t = 0; t <= T; t++) {
     const on = t >= 1 && t <= m.ve;
     const ing = on ? m.ing1 * Math.pow(1 + m.gIng, t - 1) : 0;
     const aho = on ? m.aho1 * Math.pow(1 + inf, t - 1) : 0;
@@ -216,7 +223,11 @@ export function calcMaq(A, sup, ov) {
     const imp = -ebit * isr;
     const nopat = ebit + imp;
     const addDep = -dep;
-    const dct = t <= 1 ? 0 : -(m.pctCT * (ing - prevIng));
+    /* El capital de trabajo crece con las ventas mientras el proyecto opera y
+       se recupera completo en el último año (recCT). El delta tiene que parar
+       ahí: si sigue después de la vida económica, el ingreso cae a cero y el
+       delta devuelve el capital una segunda vez. */
+    const dct = t <= 1 || t > m.ve ? 0 : -(m.pctCT * (ing - prevIng));
     const capex = on ? -m.mto1 * Math.pow(1 + inf, t - 1) : 0;
     const fcfOp = nopat + addDep + dct + capex;
     const invR = t === 0 ? inv0 : 0;
@@ -287,12 +298,18 @@ export function calcInm(A, sup, ov) {
      mercado inmobiliario: el accionista carga con el diferencial entre lo que
      rinde el ladrillo y lo que cuesta la hipoteca, amplificado por su D/E. */
   const de = capProp > 0 ? monto / capProp : 0;
-  const ke = sup.opInm ? sup.ke : td + (td - i.th) * de;
+  /* Re-apalancado (MM II): Re = Ra + (Ra - Rd)·D/E. Con piso en la tasa del
+     activo: si el banco cobra más de lo que rinde el ladrillo, la fórmula
+     devolvería una tasa exigida MENOR y el modelo premiaría endeudarse caro.
+     La deuda amplifica el riesgo del accionista, nunca lo reduce. */
+  const keRel = td + (td - i.th) * de;
+  const ke = sup.opInm ? sup.ke : Math.max(td, keRel);
   const pago = monto > 0 ? pmt(i.th, i.plazo, monto) : 0;
   const depA = i.precio * i.pctConstr * i.tasaDep;
   const rentaAnual = i.rentaMes * 12;
+  const T = Math.min(40, Math.max(10, i.hor || 0));
   const Y = []; let prevSaldo = monto;
-  for (let t = 0; t <= 10; t++) {
+  for (let t = 0; t <= T; t++) {
     const on = t >= 1 && t <= i.hor;
     const rb = on ? rentaAnual * Math.pow(1 + i.gRenta, t - 1) : 0;
     const vac = -rb * i.vac;
@@ -311,9 +328,12 @@ export function calcInm(A, sup, ov) {
     const amo = on ? -(prevSaldo - saldo) : 0;
     const isr0 = -Math.max(0, noi + dep) * isr;
     const isr1 = -Math.max(0, noi + dep + intr) * isr;
-    const vs = t === i.hor ? (noi * (1 + i.gRenta)) / i.capSal : 0;
+    /* Salida por capitalización del NOI del año siguiente. Con cap rate en
+       cero la división no existe: sin cap rate no hay valor de salida que
+       estimar, y devolver NaN contaminaría todo el tablero. */
+    const vs = t === i.hor && i.capSal > 0 ? (noi * (1 + i.gRenta)) / i.capSal : 0;
     const cv = -vs * i.pctCV;
-    const libros = invTot - depA * i.hor;
+    const libros = Math.max(0, invTot - depA * i.hor);
     const iga = t === i.hor ? -Math.max(0, vs + cv - libros) * isr : 0;
     const liq = t === i.hor ? -saldo : 0;
     const fu = t === 0 ? -invTot : noi + isr0 + vs + cv + iga;
@@ -373,8 +393,9 @@ export function calcTer(A, sup, ov) {
   const td = ov.td != null ? ov.td : sup.tasas.ter;
   const gAdq = g.precio * g.pctAdq;
   const invTot = g.precio + gAdq + g.bardeo;
+  const T = Math.min(40, Math.max(10, g.hor || 0));
   const Y = []; let ac = 0, pvCarga = 0;
-  for (let t = 0; t <= 10; t++) {
+  for (let t = 0; t <= T; t++) {
     const on = t >= 1 && t <= g.hor;
     const valEst = t <= g.hor ? g.precio * Math.pow(1 + g.plus, t) : 0;
     const carga = on ? -(g.predial + g.vigilancia) * Math.pow(1 + inf, t - 1) : 0;
@@ -382,11 +403,16 @@ export function calcTer(A, sup, ov) {
     const impT = -Math.max(0, ingT + carga) * isr;
     const venta = t === g.hor ? valEst : 0;
     const cv = -venta * g.pctCV;
-    const iga = t === g.hor ? -Math.max(0, venta + cv - invTot) * isr : 0;
+    /* El ISR de la ganancia se calcula contra el costo de adquisición
+       ACTUALIZADO por inflación (Art. 19 LISR). El terreno no se deprecia:
+       si el impuesto pegara sobre la ganancia nominal se estaría gravando la
+       inflación, y con eso ningún terreno pasa la prueba jamás. */
+    const costoAct = invTot * Math.pow(1 + inf, t);
+    const iga = t === g.hor ? -Math.max(0, venta + cv - costoAct) * isr : 0;
     const total = t === 0 ? -invTot : carga + ingT + impT + venta + cv + iga;
     const desc = total / Math.pow(1 + td, t); ac += desc;
     if (t >= 1) pvCarga += carga / Math.pow(1 + td, t);
-    Y.push({ t, valEst, carga, ingT, impT, venta, cv, iga, total, desc, acum: ac });
+    Y.push({ t, valEst, costoAct, carga, ingT, impT, venta, cv, iga, total, desc, acum: ac });
   }
   const vpn = Y.reduce((s, y) => s + y.desc, 0);
   /* plusvalía que deja el VPN en cero; _ns evita recursión infinita */
@@ -412,10 +438,16 @@ export function calcAuto(A, sup, ov) {
   const pagoC = fin > 0 ? pmt(a.tc, a.plazoC, fin) : 0;
   const depA = a.vfisc ? a.precio / a.vfisc : 0;
   const rentaAnual = a.rentaMes * 12;
+  const T = Math.min(40, Math.max(10, a.anios || 0));
   const Y = []; let prevSaldo = fin;
-  for (let t = 0; t <= 10; t++) {
+  for (let t = 0; t <= T; t++) {
     const on = t >= 1 && t <= a.anios;
-    const comun = on ? -((a.seguro + a.tenencia + a.combustible) * Math.pow(1 + inf, t - 1) + a.mto1 * Math.pow(1 + a.gMto, t - 1)) : 0;
+    /* Lo que cubre un arrendamiento son los gastos del activo —seguro,
+       tenencia, mantenimiento—, nunca el combustible: ése lo pagas conduzcas
+       lo que conduzcas y sea tuyo el coche o no. */
+    const propios = on ? -((a.seguro + a.tenencia) * Math.pow(1 + inf, t - 1) + a.mto1 * Math.pow(1 + a.gMto, t - 1)) : 0;
+    const combus = on ? -(a.combustible * Math.pow(1 + inf, t - 1)) : 0;
+    const comun = propios + combus;
     const escC = -comun * isr * a.ded;
     const escD = t >= 1 && t <= Math.min(a.vfisc, a.anios) ? depA * isr * a.ded : 0;
     const libros = Math.max(0, a.precio - depA * Math.min(a.anios, a.vfisc));
@@ -429,13 +461,13 @@ export function calcAuto(A, sup, ov) {
     const liq = t === a.anios ? -saldo : 0;
     const renta = on ? -rentaAnual * Math.pow(1 + a.gRentaA, t - 1) : 0;
     const escR = -renta * isr * a.ded;
-    const comC = comun * (1 - a.incluidos);
+    const comC = propios * (1 - a.incluidos) + combus;
     const escCC = -comC * isr * a.ded;
     const dev = t === a.anios ? a.deposito : 0;
     const optA = t === 0 ? -a.precio : comun + escC + escD + rev;
     const optB = t === 0 ? -eng : comun + escC + escD + rev + pagoT + escI + liq;
     const optC = t === 0 ? -a.deposito : renta + escR + comC + escCC + dev;
-    Y.push({ t, comun, escC, escD, rev, saldo, pagoT, escI, liq, renta, escR, comC, escCC, dev,
+    Y.push({ t, comun, propios, combus, escC, escD, rev, saldo, pagoT, escI, liq, renta, escR, comC, escCC, dev,
       A: optA, B: optB, C: optC,
       dA: optA / Math.pow(1 + td, t), dB: optB / Math.pow(1 + td, t), dC: optC / Math.pow(1 + td, t) });
     prevSaldo = saldo;

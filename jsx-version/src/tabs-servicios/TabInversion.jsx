@@ -6,7 +6,7 @@ import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, in
 /* ============================================================
    6. INVERSIONES Y ACTIVOS
    ============================================================ */
-export default function TabInversion({ s, up, m }: any) {
+export default function TabInversion({ s, up, m }) {
   const totalDep = s.activos.filter((a) => a.tipo === "dep").reduce((a, b) => a + b.inversion, 0);
   const totalAmo = s.activos.filter((a) => a.tipo === "amort").reduce((a, b) => a + b.inversion, 0);
   return (

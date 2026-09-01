@@ -223,6 +223,58 @@ export const Td = ({ children, align = "right", bold, color, bg, colSpan }: any)
 /* `destaca` pinta el KPI en el naranja de la paleta: es para el dato que hay
    que ver primero en la tarjeta, sin recurrir al verde ni al rojo, que ya
    significan otra cosa (bueno / malo). */
+/* La mezcla tiene que sumar 100%. Si no, el forecast reparte de menos o de más
+   y todo el costeo sale movido sin que nadie lo note: por eso el aviso dice
+   cuánto falta —o cuánto sobra— y no sólo que está mal. */
+export function AvisoMezcla({ productos, L }: any) {
+  const lista = productos || [];
+  if (!lista.length) return null;
+  const total = lista.reduce((a, p) => a + (p.mix || 0), 0);
+  const dif = 1 - total;
+  const ok = Math.abs(dif) <= 0.0005;
+  const P = (v) => nfmt(1).format(v * 100) + "%";
+  return (
+    <div className="text-[12px] mb-3 px-3 py-2 rounded leading-relaxed"
+      style={{
+        background: ok ? C.accentSoft : "#FDECEA",
+        border: `1px solid ${ok ? C.accent : "#EDB4AE"}`,
+        color: ok ? "#3E6B27" : C.neg,
+      }}>
+      <b>Mezcla {P(total)}</b>
+      {ok ? (
+        <> · completa. El volumen del forecast se reparte entero entre {lista.length} {(L ? L.prod : "productos").toLowerCase()}.</>
+      ) : dif > 0 ? (
+        <> · falta <b>{P(dif)}</b> por repartir. Con la mezcla incompleta, el forecast deja fuera ese {P(dif)} del
+          volumen: las ventas, el costo y el margen salen más bajos de lo que deberían. Súbele a algún renglón hasta llegar a 100%.</>
+      ) : (
+        <> · sobra <b>{P(-dif)}</b>. La mezcla pasa de 100%, así que el forecast reparte más volumen del que hay en el
+          plan y todo sale inflado. Bájale a algún renglón hasta dejarla en 100%.</>
+      )}
+    </div>
+  );
+}
+
+/* Versión compacta del aviso para la barra superior: se ve desde cualquier
+   pestaña, porque la mezcla se descuadra en una pantalla y el daño aparece en
+   otra. Si la mezcla está bien, no estorba: no se dibuja. */
+export function ChipMezcla({ productos }: any) {
+  const lista = productos || [];
+  if (!lista.length) return null;
+  const total = lista.reduce((a, p) => a + (p.mix || 0), 0);
+  const dif = 1 - total;
+  if (Math.abs(dif) <= 0.0005) return null;
+  const P = (v) => nfmt(1).format(Math.abs(v) * 100) + "%";
+  return (
+    <div className="rounded-lg px-3 py-1.5 self-center"
+      style={{ background: "#FDECEA", border: `1px solid #EDB4AE`, color: C.neg }}>
+      <div className="text-[10px] uppercase tracking-wide font-semibold">Mezcla incompleta</div>
+      <div className="text-[12.5px] font-semibold">
+        {P(total)} · {dif > 0 ? `falta ${P(dif)}` : `sobra ${P(dif)}`}
+      </div>
+    </div>
+  );
+}
+
 export const KPI = ({ label, value, sub, tone, destaca }: any) => (
   <div className="rounded-lg px-3 py-3"
     style={{ background: destaca ? C.tasaBg : C.white, border: `1px solid ${destaca ? C.tasaLinea : C.line}` }}>

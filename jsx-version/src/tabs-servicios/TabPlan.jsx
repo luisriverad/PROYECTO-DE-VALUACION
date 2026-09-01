@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../lib/theme";
-import { uid, money, num, pct, nfmt, MESES } from "../lib/format";
+import { uid, money, num, pct, cap, nfmt, MESES } from "../lib/format";
 import { Card, Btn, Field, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -10,13 +10,13 @@ import {
 /* ============================================================
    7. PLAN DE VENTAS
    ============================================================ */
-export default function TabPlan({ s, up, m, L }: any) {
+export default function TabPlan({ s, up, m, L }) {
   const data = m.meses.map((x) => ({ mes: x.mes, Ventas: Math.round(x.ventas), Unidades: x.unidades }));
   return (
     <>
-      {/* Las piezas del mes se capturan en el Forecast, en el renglón «Piezas
-          totales». Aquí sólo se leen: por eso van en negro y sin caja de captura. */}
-      <Card title="Plan de unidades — Año 1" sub="Mes a mes. Aquí se decide si el proyecto arranca o se ahoga.">
+      {/* El volumen del mes se captura en el Forecast, en el renglón de totales.
+          Aquí sólo se lee: por eso va en negro y sin caja de captura. */}
+      <Card title={`Plan de ${L.unis} — Año 1`} sub="Mes a mes. Aquí se decide si el proyecto arranca o se ahoga.">
         <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(12, minmax(0,1fr))" }}>
           {MESES.map((mes, i) => (
             <Field key={mes} label={mes}>
@@ -28,14 +28,14 @@ export default function TabPlan({ s, up, m, L }: any) {
           ))}
         </div>
         <div className="mt-2 text-[11px]" style={{ color: C.muted }}>
-          Estas piezas ya no se capturan aquí: vienen del <b style={{ color: C.ink }}>Forecast</b>, del renglón «Piezas totales».
+          Esto ya no se captura aquí: viene del <b style={{ color: C.ink }}>Forecast</b>, del renglón «{cap(L.unis)} totales».
           Cámbialas ahí y este plan y todo lo que cuelga de él se recalculan solos.
         </div>
         <div className="mt-3 grid grid-cols-4 gap-3">
-          <KPI label="Unidades Año 1" value={num(m.unidadesAnio[0], 0)} />
+          <KPI label={`${cap(L.unis)} Año 1`} value={num(m.unidadesAnio[0], 0)} />
           <KPI label="Ventas Año 1" value={money(m.anios[0]?.ventas)} />
           <KPI label="Precio promedio ponderado" value={money(m.precioProm, 2)} />
-          <KPI label="Ticket variable unitario" value={money(m.cvProm, 2)} sub="Materiales + gasto por unidad" />
+          <KPI label="Ticket variable unitario" value={money(m.cvProm, 2)} sub={`${L.insumos} + gasto por ${L.uni}`} />
         </div>
       </Card>
 
