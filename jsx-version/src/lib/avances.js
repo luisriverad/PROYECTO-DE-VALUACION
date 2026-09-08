@@ -39,6 +39,25 @@ export function resumenActivo(estado) {
 /* jsonb no acepta NaN ni Infinity: un número sucio rompería el guardado entero */
 function num(v) { return typeof v === "number" && isFinite(v) ? v : null; }
 
+/* Une lo guardado sobre el ejemplo de fábrica.
+
+   Un modelo guardado con una versión anterior de la plataforma puede no tener
+   todas las partes que el motor espera hoy, y `computeModel` no perdona: una
+   sección faltante deja la pantalla en blanco. Completar los huecos con la
+   semilla cuesta una función y evita que un guardado viejo tumbe la sesión. */
+export function mezclar(semilla, guardado) {
+  if (!guardado || typeof guardado !== "object" || Array.isArray(guardado)) return semilla;
+  const out = { ...semilla };
+  for (const k of Object.keys(guardado)) {
+    const a = (semilla || {})[k];
+    const b = guardado[k];
+    const ambosObjeto = a && b && typeof a === "object" && typeof b === "object"
+      && !Array.isArray(a) && !Array.isArray(b);
+    out[k] = ambosObjeto ? { ...a, ...b } : b;
+  }
+  return out;
+}
+
 /* ---------- cargar ----------
    Devuelve { empresa, servicios, activo } con lo que haya guardado. Lo que no
    exista se queda fuera y la aplicación arranca ese módulo con el ejemplo. */
@@ -110,6 +129,18 @@ function explicar(msg) {
   if (/JWT|token|expired/i.test(msg))
     return "La sesión caducó. Vuelve a entrar y reintenta.";
   return "No se pudo guardar: " + (msg || "error desconocido");
+}
+
+/* Trae el trabajo completo de una persona. Sólo devuelve algo si quien
+   pregunta es el administrador: la política de RLS lo decide en el servidor,
+   no este código. */
+export async function traerAvancesDe(usuario) {
+  if (!configurado || !usuario) return {};
+  const { data, error } = await sb.from("avances").select("modulo, estado").eq("usuario", usuario);
+  if (error) throw new Error("No se pudo abrir el proyecto: " + error.message);
+  const out = {};
+  for (const f of data || []) if (f?.estado) out[f.modulo] = f.estado;
+  return out;
 }
 
 /* ---------- tablero del administrador ----------

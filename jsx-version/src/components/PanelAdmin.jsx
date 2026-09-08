@@ -29,7 +29,7 @@ function cuando(iso) {
   return d.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function PanelAdmin() {
+export default function PanelAdmin({ abrirProyecto }) {
   const [padron, setPadron] = useState([]);
   const [avances, setAvances] = useState([]);
   const [error, setError] = useState(null);
@@ -122,10 +122,16 @@ export default function PanelAdmin() {
                     {p.rol === "admin" ? (
                       <span className="text-[11px]" style={{ color: C.muted }}>—</span>
                     ) : (
-                      <Btn small kind={p.activo === false ? "ghost" : "danger"}
-                        disabled={ocupado === p.id} onClick={() => alta(p)}>
-                        {ocupado === p.id ? "…" : p.activo === false ? "Reactivar" : "Dar de baja"}
-                      </Btn>
+                      <div className="flex gap-1 justify-start">
+                        <Btn small kind="dark" onClick={() => abrirProyecto?.(p)}
+                          title={`Abrir el proyecto de ${p.nombre || p.correo}`}>
+                          Entrar a proyecto
+                        </Btn>
+                        <Btn small kind={p.activo === false ? "ghost" : "danger"}
+                          disabled={ocupado === p.id} onClick={() => alta(p)}>
+                          {ocupado === p.id ? "…" : p.activo === false ? "Reactivar" : "Dar de baja"}
+                        </Btn>
+                      </div>
                     )}
                   </Td>
                 </tr>

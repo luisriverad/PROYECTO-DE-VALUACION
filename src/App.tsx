@@ -7,7 +7,7 @@ import { exportarExcel } from "./lib/excel";
 import { Btn, ChipMezcla } from "./components/ui";
 import { esAdmin } from "./lib/auth";
 import PanelAdmin from "./components/PanelAdmin";
-import { cargarAvances, guardarAvance, guardarTodo, resumenEmpresa, resumenActivo, alGuardar } from "./lib/avances";
+import { cargarAvances, traerAvancesDe, guardarAvance, guardarTodo, resumenEmpresa, resumenActivo, alGuardar, mezclar } from "./lib/avances";
 import TabEmpresa from "./tabs/TabEmpresa";
 import TabExplosion from "./tabs/TabExplosion";
 import TabInsumos from "./tabs/TabInsumos";
@@ -91,6 +91,12 @@ export default function App({ perfil, salir }: any) {
   const [guardandoYa, setGuardandoYa] = useState(false);
   /* a qué módulo regresar al cerrar administración */
   const [moduloPrevio, setModuloPrevio] = useState("empresa");
+  /* Visita al proyecto de un alumno. Mientras dura, la plataforma muestra SU
+     modelo y no el propio: por eso el trabajo del administrador se guarda a un
+     lado y se restaura al salir, y por eso el autoguardado se apaga. Escribir
+     aquí guardaría el modelo del alumno como si fuera del administrador. */
+  const [viendo, setViendo] = useState<any>(null);
+  const respaldo = useRef<any>(null);
   const [modulo, setModulo] = useState("empresa");
   const [s, setS] = useState(seed);
   const [sv, setSv] = useState(seedSv);   // estado del módulo INVERSIÓN SERVICIOS
@@ -100,7 +106,7 @@ export default function App({ perfil, salir }: any) {
 
   const [glosario, setGlosario] = useState(false);   // panel de glosario del módulo de activos
 
-  useEffect(() => { guardarActivos(a); }, [a]);
+  useEffect(() => { if (!viendo) guardarActivos(a); }, [a, viendo]);
 
   /* el glosario se cierra con Escape */
   useEffect(() => {
@@ -132,7 +138,32 @@ export default function App({ perfil, salir }: any) {
   const esServicios = modulo === "servicios";
   const esAdminTab = modulo === "admin";
   const soyAdmin = esAdmin(perfil);
+  const abrirProyecto = async (alumno: any) => {
+    try {
+      const est: any = await traerAvancesDe(alumno.id);
+      respaldo.current = { s, sv, a };
+      setViendo({ id: alumno.id, nombre: alumno.nombre || alumno.correo, correo: alumno.correo });
+      setS(mezclar(seed(), est.empresa));
+      setSv(mezclar(seedSv(), est.servicios));
+      setA(mezclar(seedActivos(), est.activo));
+      setModulo("empresa");
+      setTab("empresa");
+      flash(`Estás viendo el proyecto de ${alumno.nombre || alumno.correo}.`);
+    } catch (e: any) {
+      flash(e?.message || "No se pudo abrir el proyecto.");
+    }
+  };
+
+  const cerrarProyecto = () => {
+    const r = respaldo.current;
+    if (r) { setS(r.s); setSv(r.sv); setA(r.a); }
+    respaldo.current = null;
+    setViendo(null);
+    setModulo("admin");
+  };
+
   const verAdministracion = () => {
+    if (viendo) { cerrarProyecto(); return; }
     if (esAdminTab) { setModulo(moduloPrevio); return; }
     setModuloPrevio(modulo);
     setModulo("admin");
@@ -146,9 +177,9 @@ export default function App({ perfil, salir }: any) {
     cargarAvances(perfil.id)
       .then((d: any) => {
         if (!vivo) return;
-        if (d.empresa) setS(d.empresa);
-        if (d.servicios) setSv(d.servicios);
-        if (d.activo) setA(d.activo);
+        if (d.empresa) setS(mezclar(seed(), d.empresa));
+        if (d.servicios) setSv(mezclar(seedSv(), d.servicios));
+        if (d.activo) setA(mezclar(seedActivos(), d.activo));
         setListo(true);
       })
       .catch(() => { if (vivo) setListo(true); });
@@ -161,9 +192,9 @@ export default function App({ perfil, salir }: any) {
 
   /* Autoguardado por módulo: se dispara al cambiar el modelo y espera a que el
      alumno deje de teclear. */
-  useEffect(() => { if (listo && perfil?.id) guardarAvance(perfil.id, "empresa", s, resumenEmpresa(s, m)); }, [s, listo]);
-  useEffect(() => { if (listo && perfil?.id) guardarAvance(perfil.id, "servicios", sv, resumenEmpresa(sv, mSv)); }, [sv, listo]);
-  useEffect(() => { if (listo && perfil?.id) guardarAvance(perfil.id, "activo", a, resumenActivo(a)); }, [a, listo]);
+  useEffect(() => { if (listo && perfil?.id && !viendo) guardarAvance(perfil.id, "empresa", s, resumenEmpresa(s, m)); }, [s, listo]);
+  useEffect(() => { if (listo && perfil?.id && !viendo) guardarAvance(perfil.id, "servicios", sv, resumenEmpresa(sv, mSv)); }, [sv, listo]);
+  useEffect(() => { if (listo && perfil?.id && !viendo) guardarAvance(perfil.id, "activo", a, resumenActivo(a)); }, [a, listo]);
 
   const up = (fn) => setS((prev) => { const n = JSON.parse(JSON.stringify(prev)); fn(n); return n; });
   const upSv = (fn) => setSv((prev) => { const n = JSON.parse(JSON.stringify(prev)); fn(n); return n; });
@@ -245,7 +276,9 @@ export default function App({ perfil, salir }: any) {
           <div>
             <div className="text-[15px] font-semibold tracking-tight" style={{ color: C.white }}>PLATAFORMA DE EVALUACIÓN DE INVERSIÓN</div>
             <div className="text-[11px]" style={{ color: "#9BA0A5" }}>
-              {esAdminTab
+              {viendo
+                ? `Proyecto de ${viendo.nombre} · sólo lectura`
+                : esAdminTab
                 ? "Padrón del grupo y avance de cada proyecto"
                 : esEmpresa
                 ? `${s.empresa.nombre || "Proyecto sin nombre"} · Ejercicio ${s.empresa.anio} · Horizonte ${s.supuestos.horizonte} años`
@@ -256,13 +289,18 @@ export default function App({ perfil, salir }: any) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {esAdminTab ? null : (
+          {esAdminTab || viendo ? null : (
             <Btn small kind="dark" onClick={guardarAvanceYa} disabled={guardandoYa}
               title="Guarda tu avance en la nube en este momento">
               {guardandoYa ? "Guardando…" : "Guardar avance"}
             </Btn>
           )}
-          {esAdminTab ? null : esEmpresa ? (
+          {esAdminTab ? null : viendo ? (
+            <>
+              {esEmpresa && <Btn small onClick={descargarExcel}>Exportar a Excel</Btn>}
+              {esServicios && <Btn small onClick={descargarExcelSv}>Exportar a Excel</Btn>}
+            </>
+          ) : esEmpresa ? (
             <>
               <Btn small onClick={descargarExcel}>Exportar a Excel</Btn>
               <Btn small onClick={restablecer} title="Vuelve al ejemplo completo, tal como viene de fábrica">Restablecer el ejemplo</Btn>
@@ -293,10 +331,12 @@ export default function App({ perfil, salir }: any) {
                     y al alumno etiquetarlo no le aporta nada. Queda el grupo y el
                     estado del guardado, que sí son información útil. */}
                 <div className="text-[10px]" style={{ color: "#9BA0A5" }}>
+                  {/* durante una visita el estado del guardado se calla: se
+                      refiere al trabajo propio y ahí sólo confunde */}
                   {[
                     perfil.grupo || null,
-                    guardado.estado === "guardando" ? "guardando…" : null,
-                    guardado.estado === "guardado" ? "guardado" : null,
+                    !viendo && guardado.estado === "guardando" ? "guardando…" : null,
+                    !viendo && guardado.estado === "guardado" ? "guardado" : null,
                   ].filter(Boolean).join(" · ")}
                 </div>
                 {perfil._fallo && (
@@ -304,7 +344,7 @@ export default function App({ perfil, salir }: any) {
                     Perfil no leído · {perfil._fallo}
                   </div>
                 )}
-                {guardado.estado === "error" && (
+                {!viendo && guardado.estado === "error" && (
                   <div className="text-[10px]" style={{ color: "#E88" }} title={guardado.detalle || ""}>
                     Sin guardar en la nube
                   </div>
@@ -348,6 +388,22 @@ export default function App({ perfil, salir }: any) {
           );
         })}
       </div>
+
+      {/* Visita al proyecto de un alumno: se avisa de forma imposible de ignorar */}
+      {viendo && (
+        <div className="px-5 py-2 flex items-center justify-between gap-3 flex-wrap"
+          style={{ background: C.admin, color: C.white }}>
+          <div className="text-[12px] leading-snug">
+            <b>Estás viendo el proyecto de {viendo.nombre}.</b>{" "}
+            Sólo lectura: lo que muevas aquí no se guarda, ni en su archivo ni en el tuyo.
+          </div>
+          <button onClick={cerrarProyecto}
+            style={{ background: C.white, color: C.admin, border: `1px solid ${C.white}` }}
+            className="text-[11px] font-semibold px-2.5 py-1 rounded hover:opacity-80 transition-opacity shrink-0">
+            Salir del proyecto
+          </button>
+        </div>
+      )}
 
       {/* Barra de KPIs (no aplica en administración) */}
       {esAdminTab ? null : esEmpresa ? (
@@ -442,7 +498,7 @@ export default function App({ perfil, salir }: any) {
       ) : esServicios ? (
         <ModuloServicios s={sv} up={upSv} m={mSv} L={LSv} flash={flash} topH={topH} />
       ) : esAdminTab ? (
-        <div className="p-5"><PanelAdmin /></div>
+        <div className="p-5"><PanelAdmin abrirProyecto={abrirProyecto} /></div>
       ) : (
         <ModuloActivo A={a} up={upA} setA={setA} R={RA} flash={flash} topH={topH} />
       )}
