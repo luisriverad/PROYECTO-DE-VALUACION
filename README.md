@@ -1,4 +1,4 @@
-# Plataforma de Evaluación de la Inversión
+# Plataforma de Evaluación de Inversión
 
 Herramienta de evaluación financiera de proyectos para el aula: cada alumno captura su empresa
 —manufactura, retail o servicios— y la plataforma construye el costeo, el presupuesto, el estado
@@ -25,6 +25,62 @@ Abre `http://localhost:5173`.
 | `npm run build` | Compila a `dist/` |
 | `npm run preview` | Sirve la compilación de producción |
 
+## Entrada y cuentas
+
+La plataforma abre en una página de entrada: correo y contraseña. La autenticación corre en
+[Supabase](https://supabase.com) —las contraseñas se cifran y se validan del lado del servidor, nunca
+tocan el bundle— y cada cuenta tiene un rol: `admin` o `alumno`. Hay un solo administrador, quien da
+el curso.
+
+### Qué ve cada quien
+
+El **alumno** entra directo a la plataforma. Su trabajo se guarda solo contra su cuenta, así que lo
+recupera desde cualquier computadora.
+
+El **administrador** ve además una macro pestaña **Administración** con dos tableros: el padrón
+—quién tiene cuenta, cuándo entró y cuándo guardó por última vez— y el avance de cada proyecto, con
+el nombre, la inversión, el VPN y la TIR con los que va cada alumno en este momento.
+
+Esconder esa pestaña es cortesía, no seguridad: el candado está en las políticas de RLS. Si un alumno
+llamara a esas consultas a mano, la base le devolvería únicamente su propia fila.
+
+### Montarlo la primera vez
+
+1. Crea un proyecto gratuito en Supabase.
+2. Abre **SQL Editor → New query**, pega `supabase/esquema.sql` completo y córrelo. Crea la tabla de
+   perfiles, la de avances, el alta automática de cada usuario nuevo y todas las políticas de acceso.
+   El guion es idempotente: se puede volver a correr sin romper nada.
+3. Ve a **Project Settings → API** y copia *Project URL* y la llave *anon public*. Escríbelas en las
+   constantes `URL_FIJA` y `ANON_FIJA` al principio de `src/lib/auth.ts` (y su espejo en
+   `jsx-version/src/lib/auth.js`), o defínelas al compilar como `VITE_SUPABASE_URL` y
+   `VITE_SUPABASE_ANON_KEY`, que tienen prioridad.
+4. Crea tu cuenta en **Authentication → Users → Add user**, con *Auto Confirm User* activado.
+5. Vuelve al SQL Editor y nómbrate administrador:
+   `update public.perfiles set rol = 'admin' where correo = 'tu@correo.com';`
+
+La llave *anon* sí puede ir en el código: está diseñada para ser pública y no abre nada por sí sola,
+porque cada tabla está protegida con RLS. No la confundas con la *service_role*, que sí es secreta y
+no debe salir nunca del panel de Supabase.
+
+### Dar de alta al grupo
+
+Las cuentas se crean desde **Authentication → Users** en el panel de Supabase, una por alumno, con
+*Auto Confirm User* activado para que puedan entrar sin confirmar correo. Cada alta genera sola su
+fila de perfil como `alumno`. El nombre y el grupo se editan en **Table Editor → perfiles**.
+
+Mientras no captures el proyecto de Supabase, la página de entrada se ve pero avisa que el acceso no
+está configurado y no deja pasar a nadie.
+
+### Dónde vive el trabajo
+
+Los tres módulos se guardan en la tabla `avances`, una fila por alumno y módulo, con el modelo
+completo en `estado` y las cifras del tablero en `resumen`. El guardado es automático: se dispara al
+cambiar el modelo y espera a que el alumno deje de teclear, para no escribir en cada tecla. El
+encabezado dice si está guardando, si ya guardó o si algo falló.
+
+Antes de esto sólo el módulo de activos recordaba algo, y sólo en el navegador donde se capturó:
+cerrar la pestaña costaba el avance de empresa y servicios.
+
 ## Botones de IA
 
 Dos funciones llaman a la API de Claude: la búsqueda de parámetros de Damodaran en Costo de capital
@@ -46,15 +102,23 @@ Sin llave, el resto de la plataforma funciona completo; solo esos dos botones de
 
 ```
 src/
+  main.tsx                 Punto de entrada: monta la puerta
   App.tsx                  Shell: encabezado, menú lateral, ruteo de pestañas
   lib/
+    auth.ts                Sesión de Supabase y roles
+    avances.ts             Guardado del trabajo en la nube y lectura del tablero
     theme.ts               Paleta Profit120 y logotipo
     format.ts              Formato de números, TIR y valor presente
     model.ts               Estado inicial (ejemplo MI ZAPATO) y motor de cálculo
     excel.ts               Exportación del libro de diez pestañas
     claude.ts              Puente con la API de Claude
-  components/ui.tsx        Card, Btn, tablas, inputs, KPI
+  components/
+    ui.tsx                 Card, Btn, tablas, inputs, KPI
+    Login.tsx              Página de entrada
+    Puerta.tsx             Decide entre la entrada y la plataforma
+    PanelAdmin.tsx         Pestaña de administración
   tabs/                    Una pestaña por archivo
+supabase/esquema.sql       Perfiles, avances, roles y políticas de acceso
 jsx-version/               La misma app sin TypeScript (ver jsx-version/LEEME.md)
 ```
 

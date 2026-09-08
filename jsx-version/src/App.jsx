@@ -5,6 +5,9 @@ import { money, num, pct } from "./lib/format";
 import { seed, LEX, computeModel } from "./lib/model";
 import { exportarExcel } from "./lib/excel";
 import { Btn, ChipMezcla } from "./components/ui";
+import { esAdmin } from "./lib/auth";
+import PanelAdmin from "./components/PanelAdmin";
+import { cargarAvances, guardarAvance, guardarTodo, resumenEmpresa, resumenActivo, alGuardar } from "./lib/avances";
 import TabEmpresa from "./tabs/TabEmpresa";
 import TabExplosion from "./tabs/TabExplosion";
 import TabInsumos from "./tabs/TabInsumos";
@@ -81,7 +84,11 @@ function CajaResultado({ ev, inversion }) {
   );
 }
 
-export default function App() {
+export default function App({ perfil, salir }) {
+  /* el trabajo se recupera de la nube antes de dejar guardar encima */
+  const [listo, setListo] = useState(false);
+  const [guardado, setGuardado] = useState({ estado: "limpio" });
+  const [guardandoYa, setGuardandoYa] = useState(false);
   const [modulo, setModulo] = useState("empresa");
   const [s, setS] = useState(seed);
   const [sv, setSv] = useState(seedSv);   // estado del módulo INVERSIÓN SERVICIOS
@@ -121,11 +128,55 @@ export default function App() {
   const LSv = LEXSv.servicios;   // este módulo es de servicios: el léxico no depende de la captura
   const esEmpresa = modulo === "empresa";
   const esServicios = modulo === "servicios";
+  const esAdminTab = modulo === "admin";
+  const soyAdmin = esAdmin(perfil);
+
+  /* Recuperar lo guardado. Hasta que termina no se escribe nada encima: sin
+     esta guarda, el ejemplo de fábrica pisaría el trabajo real del alumno. */
+  useEffect(() => {
+    if (!perfil?.id) { setListo(true); return; }
+    let vivo = true;
+    cargarAvances(perfil.id)
+      .then((d) => {
+        if (!vivo) return;
+        if (d.empresa) setS(d.empresa);
+        if (d.servicios) setSv(d.servicios);
+        if (d.activo) setA(d.activo);
+        setListo(true);
+      })
+      .catch(() => { if (vivo) setListo(true); });
+    return () => { vivo = false; };
+  }, [perfil?.id]);
+
+  /* Aviso de guardado, para que el alumno no tenga que adivinar si su trabajo
+     está a salvo. */
+  useEffect(() => { alGuardar((estado, detalle) => setGuardado({ estado, detalle })); }, []);
+
+  /* Autoguardado por módulo: se dispara al cambiar el modelo y espera a que el
+     alumno deje de teclear. */
+  useEffect(() => { if (listo && perfil?.id) guardarAvance(perfil.id, "empresa", s, resumenEmpresa(s, m)); }, [s, listo]);
+  useEffect(() => { if (listo && perfil?.id) guardarAvance(perfil.id, "servicios", sv, resumenEmpresa(sv, mSv)); }, [sv, listo]);
+  useEffect(() => { if (listo && perfil?.id) guardarAvance(perfil.id, "activo", a, resumenActivo(a)); }, [a, listo]);
 
   const up = (fn) => setS((prev) => { const n = JSON.parse(JSON.stringify(prev)); fn(n); return n; });
   const upSv = (fn) => setSv((prev) => { const n = JSON.parse(JSON.stringify(prev)); fn(n); return n; });
   const upA = (fn) => setA((prev) => { const n = JSON.parse(JSON.stringify(prev)); fn(n); return n; });
   const flash = (t) => { setToast(t); setTimeout(() => setToast(null), 2600); };
+
+  /* Guardar a mano. El autoguardado ya corre solo, pero un botón que responde
+     es la diferencia entre confiar en la plataforma y no confiar: quien acaba
+     de capturar una hora de trabajo quiere ver que quedó. */
+  const guardarAvanceYa = async () => {
+    if (guardandoYa) return;
+    setGuardandoYa(true);
+    const err = await guardarTodo(perfil?.id, [
+      { modulo: "empresa", estado: s, resumen: resumenEmpresa(s, m) },
+      { modulo: "servicios", estado: sv, resumen: resumenEmpresa(sv, mSv) },
+      { modulo: "activo", estado: a, resumen: resumenActivo(a) },
+    ]);
+    setGuardandoYa(false);
+    flash(err || "Avance guardado.");
+  };
 
   const descargarExcel = () => {
     try { exportarExcel(XLSX, s, m); flash("Libro de Excel generado."); }
@@ -185,9 +236,11 @@ export default function App() {
           <img src={LOGO} alt="Profit120" style={{ height: 32, width: "auto" }} />
           <div style={{ background: "#3C4045", width: 1, height: 30 }} />
           <div>
-            <div className="text-[15px] font-semibold tracking-tight" style={{ color: C.white }}>PLATAFORMA DE EVALUACIÓN DE LA INVERSIÓN</div>
+            <div className="text-[15px] font-semibold tracking-tight" style={{ color: C.white }}>PLATAFORMA DE EVALUACIÓN DE INVERSIÓN</div>
             <div className="text-[11px]" style={{ color: "#9BA0A5" }}>
-              {esEmpresa
+              {esAdminTab
+                ? "Padrón del grupo y avance de cada proyecto"
+                : esEmpresa
                 ? `${s.empresa.nombre || "Proyecto sin nombre"} · Ejercicio ${s.empresa.anio} · Horizonte ${s.supuestos.horizonte} años`
                 : esServicios
                 ? `${sv.empresa.nombre || "Proyecto sin nombre"} · Ejercicio ${sv.empresa.anio} · Horizonte ${sv.supuestos.horizonte} años`
@@ -196,7 +249,13 @@ export default function App() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {esEmpresa ? (
+          {esAdminTab ? null : (
+            <Btn small kind="dark" onClick={guardarAvanceYa} disabled={guardandoYa}
+              title="Guarda tu avance en la nube en este momento">
+              {guardandoYa ? "Guardando…" : "Guardar avance"}
+            </Btn>
+          )}
+          {esAdminTab ? null : esEmpresa ? (
             <>
               <Btn small onClick={descargarExcel}>Exportar a Excel</Btn>
               <Btn small onClick={restablecer} title="Vuelve al ejemplo completo, tal como viene de fábrica">Restablecer el ejemplo</Btn>
@@ -214,12 +273,41 @@ export default function App() {
               <Btn small kind="primary" onClick={() => { setA(seedActivos()); flash("Se restablecieron los supuestos de ejemplo."); }}>Restablecer el ejemplo</Btn>
             </>
           )}
+
+          {/* quién entró: el rol se ve, para que nadie dude con qué permisos trabaja */}
+          {perfil && (
+            <>
+              <div style={{ background: "#3C4045", width: 1, height: 24 }} className="mx-1" />
+              <div className="text-right leading-tight mr-1">
+                <div className="text-[12px] font-medium" style={{ color: C.white }}>{perfil.nombre}</div>
+                {/* El rol no se anuncia: quien administra ya lo sabe por su pestaña,
+                    y al alumno etiquetarlo no le aporta nada. Queda el grupo y el
+                    estado del guardado, que sí son información útil. */}
+                <div className="text-[10px]" style={{ color: "#9BA0A5" }}>
+                  {[
+                    perfil.grupo || null,
+                    guardado.estado === "guardando" ? "guardando…" : null,
+                    guardado.estado === "guardado" ? "guardado" : null,
+                  ].filter(Boolean).join(" · ")}
+                </div>
+                {guardado.estado === "error" && (
+                  <div className="text-[10px]" style={{ color: "#E88" }} title={guardado.detalle || ""}>
+                    Sin guardar en la nube
+                  </div>
+                )}
+              </div>
+              <Btn small onClick={salir} title="Cerrar la sesión en este navegador">Salir</Btn>
+            </>
+          )}
         </div>
       </div>
 
       {/* Macro pestañas: módulos de la plataforma */}
       <div className="px-5 pt-3 flex items-end gap-1" style={{ background: C.ink }}>
-        {MODULOS.map((mod) => {
+        {(soyAdmin
+          ? MODULOS.concat([{ k: "admin", label: "Administración", sub: "Padrón del grupo y avance de cada proyecto" }])
+          : MODULOS
+        ).map((mod) => {
           const on = modulo === mod.k;
           return (
             <button key={mod.k} onClick={() => setModulo(mod.k)} title={mod.sub}
@@ -236,8 +324,8 @@ export default function App() {
         })}
       </div>
 
-      {/* Barra de KPIs (sólo aplica al módulo de empresa) */}
-      {esEmpresa ? (
+      {/* Barra de KPIs (no aplica en administración) */}
+      {esAdminTab ? null : esEmpresa ? (
         <div className="px-5 py-3 flex items-center gap-6 flex-wrap" style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
           <CajaResultado ev={m.ev} inversion={m.inversion} />
           {[
@@ -328,6 +416,8 @@ export default function App() {
         </div>
       ) : esServicios ? (
         <ModuloServicios s={sv} up={upSv} m={mSv} L={LSv} flash={flash} topH={topH} />
+      ) : esAdminTab ? (
+        <div className="p-5"><PanelAdmin /></div>
       ) : (
         <ModuloActivo A={a} up={upA} setA={setA} R={RA} flash={flash} topH={topH} />
       )}

@@ -36,7 +36,7 @@ export function exportarExcel(XLSX, s, m) {
 
   /* ---------- SUPUESTOS ---------- */
   const sup = [
-    ["PLATAFORMA DE EVALUACIÓN DE LA INVERSIÓN"],
+    ["PLATAFORMA DE EVALUACIÓN DE INVERSIÓN"],
     [s.empresa.nombre || "Proyecto sin nombre"],
     vacio,
     ["IDENTIDAD"],
