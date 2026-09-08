@@ -17,6 +17,9 @@ export const C = {
   /* caja de la tasa de descuento: naranja, para que salte a la vista sin
      chocar con el rojo de los números negativos ni con el verde del acento.
      Tampoco es el ámbar de los avisos, que significa otra cosa. */
+  /* naranja de administración: separa la vista de quien da el curso de los
+     módulos de trabajo, sin competir con el verde del acento */
+  admin: "#E0821F",
   tasaBg: "#FFF1E4",
   tasaLinea: "#E9AF7E",
   tasaTexto: "#9C4A16",

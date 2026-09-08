@@ -27,7 +27,7 @@ export const seed = () => {
     mo: [{ moId: mo[moIdx].id, horas: 4 }],
   });
   return {
-    empresa: { nombre: "MI ZAPATO, S.A. DE C.V.", tipo: "manufactura", anio: 2026 },
+    empresa: { empresario: "", nombre: "MI ZAPATO, S.A. DE C.V.", tipo: "manufactura", anio: 2026 },
     supuestos: {
       isr: 0.3, ptu: 0.1, inflacion: 0.035, gPerp: 0.03, diasBase: 360,
       dso: 30, pctCredito: 0.1, dio: 60, dpo: 45,

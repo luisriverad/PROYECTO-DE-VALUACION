@@ -28,7 +28,7 @@ export const seed = () => {
     mo: horas.map(([i, h]) => ({ moId: mo[i].id, horas: h })),
   });
   return {
-    empresa: { nombre: "MI ESTUDIO DE DISEÑO, S.A. DE C.V.", tipo: "servicios", anio: 2026 },
+    empresa: { empresario: "", nombre: "MI ESTUDIO DE DISEÑO, S.A. DE C.V.", tipo: "servicios", anio: 2026 },
     supuestos: {
       isr: 0.3, ptu: 0.1, inflacion: 0.035, gPerp: 0.03, diasBase: 360,
       dso: 45, pctCredito: 0.6, dio: 0, dpo: 30,

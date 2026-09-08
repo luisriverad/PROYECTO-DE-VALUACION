@@ -43,11 +43,24 @@ export function esAdmin(perfil) { return perfil?.rol === "admin"; }
    —cuenta recién creada a mano sin perfil— se asume alumno, que es el rol
    sin privilegios: ante la duda, el menos poderoso. */
 async function traerPerfil(userId, correo) {
-  const base = { id: userId, correo, nombre: correo.split("@")[0], rol: "alumno" };
+  const base = { id: userId, correo, nombre: correo.split("@")[0], rol: "alumno", activo: true };
   try {
-    const { data } = await sb.from("perfiles").select("id, nombre, rol, grupo").eq("id", userId).maybeSingle();
+    /* `*` y no una lista de columnas: si la base va una versión atrasada y le
+       falta alguna, se prefiere leer el perfil con lo que haya —y sobre todo
+       el rol— a que la consulta entera falle y todos entren como alumnos. */
+    const { data, error } = await sb.from("perfiles").select("*").eq("id", userId).maybeSingle();
+    if (error) {
+      /* Que no se pueda leer el perfil no impide trabajar, pero sí explica que
+         alguien no vea lo que le toca. Se guarda para poder decirlo en pantalla
+         en vez de dejar al usuario adivinando. */
+      base._fallo = error.message || "no se pudo leer el perfil";
+      return base;
+    }
     if (data) return Object.assign(base, data, { correo });
-  } catch (e) { /* sin perfil se entra como alumno */ }
+    base._fallo = "tu cuenta no tiene fila en la tabla de perfiles";
+  } catch (e) {
+    base._fallo = e?.message || "no se pudo consultar el perfil";
+  }
   return base;
 }
 
@@ -113,8 +126,65 @@ export async function entrar(correo, contrasena) {
   return null;
 }
 
+/* ---------- darse de alta ----------
+   El nombre del empresario se manda como metadato de la cuenta; el trigger de
+   la base lo copia a `perfiles.nombre` al crear la fila. Así el administrador
+   ve nombres de personas en el padrón, no direcciones de correo.
+
+   Devuelve null si quedó y entró, un texto si algo falló, y el aviso de
+   confirmación si el proyecto exige verificar el correo. */
+export async function registrar(nombre, correo, contrasena) {
+  if (!configurado) return "La plataforma todavía no tiene configurado el acceso. Avisa al administrador.";
+  const mail = (correo || "").trim().toLowerCase();
+  const quien = (nombre || "").trim();
+  if (!quien) return "Escribe el nombre del empresario.";
+  if (!mail) return "Escribe tu correo.";
+  if ((contrasena || "").length < 6) return "La contraseña necesita al menos 6 caracteres.";
+
+  let r;
+  try {
+    r = await sb.auth.signUp({ email: mail, password: contrasena, options: { data: { nombre: quien } } });
+  } catch (e) {
+    return "No se pudo conectar. Revisa tu conexión a internet e intenta de nuevo.";
+  }
+
+  const msg = r?.error?.message || "";
+  if (msg) {
+    if (/already registered|already been registered|user already/i.test(msg))
+      return "Ese correo ya tiene cuenta. Entra con tu contraseña o pide que te la restablezcan.";
+    if (/password/i.test(msg)) return "La contraseña no cumple el mínimo del sistema: usa al menos 6 caracteres.";
+    if (/invalid.*email|email.*invalid/i.test(msg)) return "Ese correo no parece válido.";
+    if (/signups? not allowed|disabled/i.test(msg))
+      return "El alta de cuentas está deshabilitada en este momento. Pídele el alta al administrador.";
+    return "No se pudo crear la cuenta: " + msg;
+  }
+
+  /* sin sesión de vuelta, el proyecto pide confirmar el correo antes de entrar */
+  if (!r?.data?.session) return "CONFIRMA";
+
+  if (r?.data?.user?.id) marcarAcceso(r.data.user.id);
+  return null;
+}
+
 export async function salir() {
   try { await sb?.auth?.signOut(); } catch (e) { /* la sesión local ya se limpió */ }
+}
+
+/* ---------- dar de baja y reactivar ----------
+   La comprobación de quién manda vive en la base, no aquí: esta llamada sólo
+   pide, y Postgres decide. Un alumno que la invocara a mano recibiría el
+   mismo «no» que si no existiera el botón. */
+export async function cambiarAlta(id, activo) {
+  if (!configurado) return "El acceso a la nube no está configurado.";
+  const { error } = await sb.rpc("dar_de_baja", { p_id: id, p_activo: activo });
+  if (error) {
+    if (/Sólo el administrador|permission|denied/i.test(error.message || ""))
+      return "Sólo el administrador puede dar de baja o reactivar cuentas.";
+    if (/function|does not exist|schema cache/i.test(error.message || ""))
+      return "Falta correr la última versión de supabase/esquema.sql: la función dar_de_baja no existe todavía.";
+    return "No se pudo cambiar el alta: " + error.message;
+  }
+  return null;
 }
 
 /* ---------- padrón ----------
@@ -124,7 +194,7 @@ export async function salir() {
 export async function traerPadron() {
   if (!configurado) return [];
   const { data, error } = await sb.from("perfiles")
-    .select("id, nombre, correo, rol, grupo, ultimo_acceso")
+    .select("id, nombre, correo, rol, grupo, activo, ultimo_acceso")
     .order("nombre", { ascending: true });
   if (error) throw new Error("No se pudo leer el padrón: " + error.message);
   return data || [];

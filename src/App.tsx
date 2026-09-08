@@ -89,6 +89,8 @@ export default function App({ perfil, salir }: any) {
   const [listo, setListo] = useState(false);
   const [guardado, setGuardado] = useState<any>({ estado: "limpio" });
   const [guardandoYa, setGuardandoYa] = useState(false);
+  /* a qué módulo regresar al cerrar administración */
+  const [moduloPrevio, setModuloPrevio] = useState("empresa");
   const [modulo, setModulo] = useState("empresa");
   const [s, setS] = useState(seed);
   const [sv, setSv] = useState(seedSv);   // estado del módulo INVERSIÓN SERVICIOS
@@ -130,6 +132,11 @@ export default function App({ perfil, salir }: any) {
   const esServicios = modulo === "servicios";
   const esAdminTab = modulo === "admin";
   const soyAdmin = esAdmin(perfil);
+  const verAdministracion = () => {
+    if (esAdminTab) { setModulo(moduloPrevio); return; }
+    setModuloPrevio(modulo);
+    setModulo("admin");
+  };
 
   /* Recuperar lo guardado. Hasta que termina no se escribe nada encima: sin
      esta guarda, el ejemplo de fábrica pisaría el trabajo real del alumno. */
@@ -193,7 +200,7 @@ export default function App({ perfil, salir }: any) {
     setConfirmando(false);
     setS({
       ...seed(),
-      empresa: { nombre: "", tipo: s.empresa.tipo, anio: new Date().getFullYear() + 1 },
+      empresa: { empresario: s.empresa.empresario || "", nombre: "", tipo: s.empresa.tipo, anio: new Date().getFullYear() + 1 },
       insumos: [], recursosMO: [], productos: [], prodCostos: { directos: [], indirectos: [] },
       gastos: { admin: [], oper: [], venta: [], porPieza: [] }, activos: [],
       plan: { unidadesMes: Array(12).fill(0), crec: [0.2, 0.15, 0.12, 0.1] },
@@ -206,7 +213,7 @@ export default function App({ perfil, salir }: any) {
     setConfirmandoSv(false);
     setSv({
       ...seedSv(),
-      empresa: { nombre: "", tipo: sv.empresa.tipo, anio: new Date().getFullYear() + 1 },
+      empresa: { empresario: sv.empresa.empresario || "", nombre: "", tipo: sv.empresa.tipo, anio: new Date().getFullYear() + 1 },
       insumos: [], recursosMO: [], productos: [], prodCostos: { directos: [], indirectos: [] },
       gastos: { admin: [], oper: [], venta: [], porPieza: [] }, activos: [],
       plan: { unidadesMes: Array(12).fill(0), crec: [0.2, 0.15, 0.12, 0.1] },
@@ -279,7 +286,9 @@ export default function App({ perfil, salir }: any) {
             <>
               <div style={{ background: "#3C4045", width: 1, height: 24 }} className="mx-1" />
               <div className="text-right leading-tight mr-1">
-                <div className="text-[12px] font-medium" style={{ color: C.white }}>{perfil.nombre}</div>
+                {/* el correo va en el globo de ayuda: sirve para saber con qué
+                    cuenta se está trabajando sin ocupar espacio en la barra */}
+                <div className="text-[12px] font-medium" style={{ color: C.white }} title={perfil.correo || ""}>{perfil.nombre}</div>
                 {/* El rol no se anuncia: quien administra ya lo sabe por su pestaña,
                     y al alumno etiquetarlo no le aporta nada. Queda el grupo y el
                     estado del guardado, que sí son información útil. */}
@@ -290,10 +299,29 @@ export default function App({ perfil, salir }: any) {
                     guardado.estado === "guardado" ? "guardado" : null,
                   ].filter(Boolean).join(" · ")}
                 </div>
+                {perfil._fallo && (
+                  <div className="text-[10px]" style={{ color: "#E88" }} title={perfil._fallo}>
+                    Perfil no leído · {perfil._fallo}
+                  </div>
+                )}
                 {guardado.estado === "error" && (
                   <div className="text-[10px]" style={{ color: "#E88" }} title={guardado.detalle || ""}>
                     Sin guardar en la nube
                   </div>
+                )}
+                {/* Administración vive aquí y no entre los módulos: no es una
+                    parte del trabajo, es la vista de quien da el curso. */}
+                {soyAdmin && (
+                  <button onClick={verAdministracion}
+                    title={esAdminTab ? "Volver a tu proyecto" : "Padrón del grupo y avance de cada proyecto"}
+                    style={{
+                      background: esAdminTab ? C.admin : "transparent",
+                      color: esAdminTab ? C.white : C.admin,
+                      border: `1px solid ${C.admin}`,
+                    }}
+                    className="mt-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded hover:opacity-80 transition-opacity">
+                    Administración
+                  </button>
                 )}
               </div>
               <Btn small onClick={salir} title="Cerrar la sesión en este navegador">Salir</Btn>
@@ -304,10 +332,7 @@ export default function App({ perfil, salir }: any) {
 
       {/* Macro pestañas: módulos de la plataforma */}
       <div className="px-5 pt-3 flex items-end gap-1" style={{ background: C.ink }}>
-        {(soyAdmin
-          ? MODULOS.concat([{ k: "admin", label: "Administración", sub: "Padrón del grupo y avance de cada proyecto" }])
-          : MODULOS
-        ).map((mod) => {
+        {MODULOS.map((mod) => {
           const on = modulo === mod.k;
           return (
             <button key={mod.k} onClick={() => setModulo(mod.k)} title={mod.sub}

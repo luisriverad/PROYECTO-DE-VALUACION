@@ -20,7 +20,12 @@ export default function TabEmpresa({ s, up, m }: any) {
   return (
     <>
       <Card title="Identidad del proyecto" sub="Este módulo evalúa un negocio de servicios: el giro queda fijo y de ahí sale la nomenclatura de todas las pestañas.">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
+          {/* Quién es el dueño del proyecto va primero: es de quien se evalúa la
+              inversión, y la empresa puede todavía no existir. */}
+          <Field label="Nombre del empresario">
+            <TxtIn value={s.empresa.empresario || ""} onChange={(v) => up((n) => { n.empresa.empresario = v; })} placeholder="Nombre y apellido" />
+          </Field>
           <Field label="Nombre de la empresa"><TxtIn value={s.empresa.nombre} onChange={(v) => up((n) => { n.empresa.nombre = v; })} placeholder="Razón social" /></Field>
           <Field label="Tipo de empresa">
             {/* En este módulo el giro no se elige: es el módulo de servicios */}

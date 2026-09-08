@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from "react";
 import { C } from "../lib/theme";
 import { money, pct, num } from "../lib/format";
-import { traerPadron } from "../lib/auth";
+import { traerPadron, cambiarAlta } from "../lib/auth";
 import { traerAvances } from "../lib/avances";
 import { Card, Btn, Th, Td, Empty } from "./ui";
 
@@ -45,6 +45,19 @@ export default function PanelAdmin() {
 
   useEffect(traer, []);
 
+  /* Dar de baja o reactivar. Se pregunta antes de la baja porque el alumno se
+     queda fuera de inmediato; reactivar no necesita confirmación. */
+  const [ocupado, setOcupado] = useState<string | null>(null);
+  const alta = async (p: any) => {
+    const baja = p.activo !== false;
+    if (baja && !window.confirm(`¿Dar de baja a ${p.nombre || p.correo}? No podrá entrar ni guardar, pero su trabajo se conserva y puedes reactivarlo después.`)) return;
+    setOcupado(p.id);
+    const err = await cambiarAlta(p.id, !baja);
+    setOcupado(null);
+    if (err) { setError(err); return; }
+    traer();
+  };
+
   /* el avance más reciente de cada quien, para la columna de actividad */
   const ultimoGuardado: any = {};
   for (const av of avances) {
@@ -74,18 +87,21 @@ export default function PanelAdmin() {
 
   return (
     <>
-      <Card title="Padrón" sub="Quién tiene cuenta, cuándo entró y cuándo guardó por última vez."
+      <Card title="Padrón"
+        sub={`${alumnos.length} ${alumnos.length === 1 ? "cuenta" : "cuentas"} de alumno · ${alumnos.filter((x: any) => x.activo !== false).length} activas · ${new Set(filas.map((f) => f.usuario)).size} con trabajo guardado`}
         right={<Btn small onClick={traer}>Actualizar</Btn>}>
         {padron.length === 0 ? <Empty texto="Todavía no hay cuentas dadas de alta." /> : (
           <table className="w-full" style={{ borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: C.soft }}>
-                <Th align="left">Nombre</Th>
+                <Th align="left">Empresario</Th>
                 <Th align="left">Correo</Th>
                 <Th align="left">Rol</Th>
                 <Th align="left">Grupo</Th>
                 <Th align="left">Última entrada</Th>
                 <Th align="left">Último guardado</Th>
+                <Th align="left">Estado</Th>
+                <Th align="left"></Th>
               </tr>
             </thead>
             <tbody>
@@ -99,6 +115,19 @@ export default function PanelAdmin() {
                   <Td align="left" color={C.muted}>{p.grupo || "—"}</Td>
                   <Td align="left" color={C.muted}>{cuando(p.ultimo_acceso)}</Td>
                   <Td align="left" color={C.muted}>{cuando(ultimoGuardado[p.id])}</Td>
+                  <Td align="left" color={p.activo === false ? C.neg : C.pos}>
+                    {p.activo === false ? "De baja" : "Activa"}
+                  </Td>
+                  <Td align="left">
+                    {p.rol === "admin" ? (
+                      <span className="text-[11px]" style={{ color: C.muted }}>—</span>
+                    ) : (
+                      <Btn small kind={p.activo === false ? "ghost" : "danger"}
+                        disabled={ocupado === p.id} onClick={() => alta(p)}>
+                        {ocupado === p.id ? "…" : p.activo === false ? "Reactivar" : "Dar de baja"}
+                      </Btn>
+                    )}
+                  </Td>
                 </tr>
               ))}
             </tbody>
@@ -114,7 +143,7 @@ export default function PanelAdmin() {
           <table className="w-full" style={{ borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: C.soft }}>
-                <Th align="left">Alumno</Th>
+                <Th align="left">Empresario</Th>
                 <Th align="left">Módulo</Th>
                 <Th align="left">Proyecto</Th>
                 <Th>Inversión</Th>
@@ -152,11 +181,9 @@ export default function PanelAdmin() {
         )}
 
         <div className="text-[11px] mt-4 leading-relaxed" style={{ color: C.muted }}>
-          {alumnos.length > 0 && (
-            <>Hay {alumnos.length} {alumnos.length === 1 ? "alumno" : "alumnos"} con cuenta
-              {" "}y {new Set(filas.map((f) => f.usuario)).size} con trabajo guardado. </>
-          )}
-          Las altas, las bajas y el cambio de rol se hacen desde el panel de Supabase.
+          Los alumnos se dan de alta solos desde la página de entrada. Dar de baja apaga la cuenta:
+          no puede entrar ni guardar, pero su trabajo se conserva y se puede reactivar. Para borrarla
+          de raíz, con todo y su trabajo, hay que hacerlo desde el panel de Supabase.
         </div>
       </Card>
     </>

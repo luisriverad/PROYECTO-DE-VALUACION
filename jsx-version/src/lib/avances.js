@@ -20,6 +20,7 @@ export const MODULOS_GUARDABLES = ["empresa", "servicios", "activo"];
    enteros: la lista lee `resumen`, y el modelo sólo se toca si hace falta. */
 export function resumenEmpresa(estado, m) {
   return {
+    empresario: estado?.empresa?.empresario || "",
     proyecto: estado?.empresa?.nombre || "",
     tipo: estado?.empresa?.tipo || "",
     vpn: num(m?.vpn), tir: num(m?.tir), wacc: num(m?.waccNom),

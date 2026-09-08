@@ -40,6 +40,7 @@ export function exportarExcel(XLSX, s, m) {
     [s.empresa.nombre || "Proyecto sin nombre"],
     vacio,
     ["IDENTIDAD"],
+    ["Nombre del empresario", s.empresa.empresario || ""],
     ["Tipo de empresa", s.empresa.tipo],
     ["Año de arranque", s.empresa.anio],
     ["Horizonte de evaluación (años)", H],
