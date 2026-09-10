@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Card, Btn, Field, TxtArea, LlaveIA } from "../../components/ui";
+import { Card, Btn, Field, TxtArea } from "../../components/ui";
 import { C } from "../../lib/theme";
 import { num } from "../../lib/format";
 import { iaFetch, buscaEnWeb, nombreProveedor } from "../../lib/ia";
@@ -151,7 +151,6 @@ Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin backticks y s
       <Card title="Llena los supuestos con IA"
         sub="Describe la empresa y la inversión que estás evaluando; la IA busca los datos de mercado y propone la tasa."
         right={<div className="flex gap-2 items-center">
-          <LlaveIA />
           <Btn kind="primary" small onClick={analizar} disabled={cargando}>{cargando ? "Analizando…" : "Proponer tasa con IA"}</Btn>
         </div>}>
         <Field label="Describe la empresa y la inversión"

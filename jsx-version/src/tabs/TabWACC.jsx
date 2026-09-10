@@ -1,16 +1,21 @@
 import React, { useState, useMemo } from "react";
 import { C } from "../lib/theme";
 import { uid, money, num, pct, nfmt, MESES } from "../lib/format";
-import { Card, Btn, Field, NumIn, PctIn, TxtIn, TxtArea, Slider, LlaveIA, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
+import { Card, Btn, Field, NumIn, PctIn, TxtIn, TxtArea, Slider, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
 import { iaFetch } from "../lib/ia";
+import { leerJSON } from "../lib/investigacion";
+import { estadoPerfil, textoPerfil, MIN_PALABRAS } from "../lib/perfil";
 
 /* ============================================================
    10. COSTO DE CAPITAL + IA DAMODARAN
    ============================================================ */
-export default function TabWACC({ s, up, m, flash }) {
+export default function TabWACC({ s, up, m, flash, irA }) {
   const w = s.wacc;
   const [cargando, setCargando] = useState(false);
   const [res, setRes] = useState(null);
+  /* cómo estaban los parámetros antes de llenarlos, para poder deshacer */
+  const [antes, setAntes] = useState(null);
+  const st = estadoPerfil(s);
 
   /* Campos que la IA puede llenar, en el orden en que aparecen en la tabla */
   const CAMPOS = [
@@ -43,38 +48,38 @@ export default function TabWACC({ s, up, m, flash }) {
   };
   const zona = zonaDe(w.wD);
 
-  const analizar = async () => {
-    const perfil = (w.perfil || "").trim();
-    if (!perfil && !(w.sector || "").trim()) {
-      flash("Describe la empresa o escribe el sector antes de buscar.");
+  /* Un solo botón: toma el perfil de Empresa y supuestos, busca los datos de
+     mercado y los aplica de una vez. Lo que había antes se guarda para poder
+     deshacer, porque el botón pisa lo que se hubiera capturado a mano. */
+  const obtener = async () => {
+    if (!st.listo) {
+      flash(`Primero describe tu empresa en Empresa y supuestos: faltan ${st.faltan} palabras.`);
       return;
     }
     setCargando(true); setRes(null);
     try {
-      const { texto: txt } = await iaFetch({
+      const r = await iaFetch({
           maxTokens: 8000,
           buscar: true,
           prompt: `Eres analista financiero. Vas a llenar los parámetros de mercado del costo de capital (CAPM) de esta empresa.
 
-DESCRIPCIÓN DE LA EMPRESA:
-"""
-${perfil || "(el usuario no la describió: usa únicamente el sector declarado)"}
-"""
+PERFIL DE LA EMPRESA (lo capturó el empresario en Empresa y supuestos):
+${textoPerfil(s)}
 
-SECTOR DECLARADO: "${w.sector || "(no declarado: dedúcelo de la descripción)"}"
+SECTOR DECLARADO: "${w.sector || "(no declarado: dedúcelo del perfil)"}"
 
-Busca los datos más recientes en las bases públicas de Aswath Damodaran (NYU Stern, páginas "Data: Current" y "Country Default Spreads and Risk Premiums") y el rendimiento actual del bono gubernamental a 10 años del país donde opera la empresa (en México, el Bono M 10 años). Si la descripción no dice el país, supón México.
+Busca los datos más recientes en las bases públicas de Aswath Damodaran (NYU Stern, páginas "Data: Current" y "Country Default Spreads and Risk Premiums") y el rendimiento actual del bono gubernamental a 10 años del país donde opera la empresa (en México, el Bono M 10 años). Si el perfil no dice el país, supón México.
 
 Devuelve estos campos:
-1. sector: nombre exacto de la industria de Damodaran que mejor corresponde a lo que describe el usuario.
+1. sector: nombre exacto de la industria de Damodaran que mejor corresponde al perfil.
 2. rf: tasa libre de riesgo, el bono soberano a 10 años de ese país.
 3. beta: beta desapalancada (unlevered beta) de esa industria, mercados emergentes o global.
 4. erp: prima de riesgo de mercado madura (ERP implícita del S&P 500).
 5. crp: country risk premium del país donde opera.
-6. pTamano: prima por tamaño, según las ventas, los empleados y la liquidez que describe el usuario. 0 si es una empresa grande; sube hasta 0.05 en una microempresa.
-7. pStartup: prima por etapa. 0 si es un negocio maduro con historial; entre 0.03 y 0.10 si está arrancando o el producto no está probado.
-8. conv: prima de negociación, ajuste discrecional por iliquidez, dependencia de un cliente o riesgo de gobierno corporativo. 0 si no hay razón clara.
-9. notas: objeto con una línea corta de justificación para cada campo: {"rf","beta","erp","crp","pTamano","pStartup","conv"}.
+6. pTamano: prima por tamaño, según las ventas del último año, las personas trabajando y la liquidez del perfil. 0 si es una empresa grande; sube hasta 0.05 en una microempresa.
+7. pStartup: prima por etapa, según la etapa y los años operando del perfil. 0 si es un negocio establecido con historial; entre 0.03 y 0.10 si es idea o arranque, o si el producto no está probado.
+8. conv: prima de negociación por iliquidez, dependencia de un cliente (qué parte de las ventas es el cliente más grande), gobierno corporativo (quién toma las decisiones) o proveedores críticos. 0 si no hay razón clara.
+9. notas: objeto con una línea corta de justificación para cada campo: {"rf","beta","erp","crp","pTamano","pStartup","conv"}. Cuando uses un dato del perfil, cítalo.
 10. fecha: fecha o edición de los datos de Damodaran que usaste.
 11. nota: una línea explicando qué industria elegiste y por qué.
 
@@ -82,24 +87,37 @@ Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin backticks y s
 {"sector":"...","rf":0.0872,"beta":1.15,"erp":0.0433,"crp":0.0379,"pTamano":0.02,"pStartup":0.05,"conv":0.00,"notas":{"rf":"...","beta":"...","erp":"...","crp":"...","pTamano":"...","pStartup":"...","conv":"..."},"fecha":"...","nota":"..."}
 Los valores numéricos deben ser decimales (0.045 = 4.5%).`,
         });
-      const j = txt.replace(/```json|```/g, "").trim();
-      const start = j.indexOf("{"), end = j.lastIndexOf("}");
-      const parsed = JSON.parse(j.slice(start, end + 1));
-      setRes(parsed);
+      const parsed = leerJSON(r);
+      /* sólo números de verdad: un "n/d" o un texto no pisa lo que ya había */
+      const valor = (k) => { const v = parsed[k]; const x = typeof v === "number" ? v : parseFloat(v); return v != null && v !== "" && isFinite(x) ? x : null; };
+      const previo = { sector: w.sector, fuente: w.fuente, notas: { ...(w.notas || {}) } };
+      CAMPOS.forEach(({ k }) => { previo[k] = w[k]; });
+      const industria = parsed.sector || parsed.industria || w.sector;
+      up((n) => {
+        CAMPOS.forEach(({ k }) => { const x = valor(k); if (x != null) n.wacc[k] = x; });
+        if (industria) n.wacc.sector = industria;
+        n.wacc.notas = n.wacc.notas || {};
+        if (parsed.notas) CAMPOS.forEach(({ k }) => { if (parsed.notas[k]) n.wacc.notas[k] = String(parsed.notas[k]); });
+        n.wacc.fuente = `Damodaran · ${industria} · ${parsed.fecha || ""}`;
+      });
+      setAntes(previo);
+      setRes({ ...parsed, ...Object.fromEntries(CAMPOS.map(({ k }) => [k, valor(k)])) });
+      flash("Parámetros de costo de capital obtenidos y aplicados.");
     } catch (e) {
-      flash("No se pudo obtener la información: " + e.message);
+      flash("No se pudieron obtener los parámetros: " + e.message);
     } finally { setCargando(false); }
   };
 
-  const aplicar = () => {
-    const industria = res.sector || res.industria || w.sector;
+  const deshacer = () => {
+    if (!antes) return;
     up((n) => {
-      CAMPOS.forEach(({ k }) => { if (isFinite(res[k])) n.wacc[k] = res[k]; });
-      if (industria) n.wacc.sector = industria;
-      if (res.notas) CAMPOS.forEach(({ k }) => { if (res.notas[k]) n.wacc.notas[k] = res.notas[k]; });
-      n.wacc.fuente = `Damodaran · ${industria} · ${res.fecha || ""}`;
+      CAMPOS.forEach(({ k }) => { n.wacc[k] = antes[k]; });
+      n.wacc.sector = antes.sector;
+      n.wacc.fuente = antes.fuente;
+      n.wacc.notas = { ...antes.notas };
     });
-    flash("Parámetros aplicados al modelo.");
+    setAntes(null); setRes(null);
+    flash("Se restauraron los parámetros anteriores.");
   };
 
   const Row = ({ label, children, valor, nota, notaKey }) => (
@@ -117,28 +135,30 @@ Los valores numéricos deben ser decimales (0.045 = 4.5%).`,
   return (
     <>
       <Card title="Parámetros de mercado" sub="El costo de capital es la vara con la que se mide todo lo demás."
-        right={<div className="flex gap-2 items-center">
-          <LlaveIA />
-          <Btn kind="primary" small onClick={analizar} disabled={cargando}>{cargando ? "Analizando…" : "Llenar parámetros con IA"}</Btn>
-        </div>}>
-        <div className="mb-3 rounded-lg p-3" style={{ background: C.soft, border: `1px solid ${C.line}` }}>
-          <Field label="Describe la empresa y la IA llena los parámetros"
-            hint="Entre más concreto, mejor: qué vende y a quién, país y ciudad, años operando, ventas anuales aproximadas, número de empleados, si ya opera o apenas arranca, y cómo se financia.">
-            <TxtArea rows={4} value={w.perfil} onChange={(v) => up((n) => { n.wacc.perfil = v; })}
-              placeholder="Ej.: Fábrica de calzado en León, Guanajuato. 12 años operando, vende a mayoristas nacionales, ventas de 45 millones de pesos al año, 60 empleados, sin deuda bancaria. Quiere abrir una línea propia de tenis." />
-          </Field>
-          <div className="flex items-center gap-2 mt-2">
-            <Btn kind="primary" small onClick={analizar} disabled={cargando}>{cargando ? "Analizando…" : "Llenar parámetros con IA"}</Btn>
-            <LlaveIA alineado="izq" />
-            <span className="text-[11px]" style={{ color: C.muted }}>
-              Busca los datos de Damodaran para tu industria y ajusta las primas de tamaño, etapa y negociación al perfil que describiste.
-              Cada quien usa su propia llave de Anthropic.
-            </span>
-          </div>
+        right={<Btn kind="primary" onClick={obtener} disabled={cargando || !st.listo}
+          title={st.listo ? "Toma el perfil de Empresa y supuestos, busca los datos de Damodaran y los aplica a la tabla" : "Completa primero la descripción de tu empresa en Empresa y supuestos"}>
+          {cargando ? "OBTENIENDO PARÁMETROS…" : "OBTENER PARÁMETROS DE COSTO DE CAPITAL"}
+        </Btn>}>
+        {/* la descripción ya no se escribe aquí: se lee de Empresa y supuestos */}
+        <div className="mb-3 rounded-lg px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-[11.5px] leading-relaxed"
+          style={{ background: st.listo ? C.soft : "#FBF3E0", border: `1px solid ${st.listo ? C.line : "#E9CF8F"}` }}>
+          <span style={{ color: st.listo ? C.muted : C.ink }}>
+            {st.listo ? (
+              <>Usa la descripción y el diagnóstico de <b style={{ color: C.ink }}>Empresa y supuestos</b> ({st.palabras} palabras · {st.respondidas} de {st.total} preguntas
+                respondidas). Busca los datos de Damodaran para tu industria, ajusta las primas de tamaño, etapa y negociación a tu perfil y los
+                aplica directo a la tabla. Usa tu propia llave de «CARGA DE API KEY».</>
+            ) : (
+              <><b>Falta la descripción de tu empresa.</b> Llevas {st.palabras} de {MIN_PALABRAS} palabras. El botón se habilita en cuanto la
+                completes en Empresa y supuestos.</>
+            )}
+          </span>
+          <button onClick={() => irA?.("empresa")} className="text-[11px] font-medium hover:underline shrink-0" style={{ color: C.azul }}>
+            {st.listo ? "Revisar el perfil →" : "Ir a Empresa y supuestos →"}
+          </button>
         </div>
 
         <div className="mb-3 grid grid-cols-3 gap-3">
-          <Field label="Sector / industria" hint="Escríbelo como lo nombraría Damodaran: Apparel, Retail (General), Software (System & Application), Trucking… Si describes la empresa arriba, la IA lo corrige por ti.">
+          <Field label="Sector / industria" hint="Como lo nombraría Damodaran: Apparel, Retail (General), Software (System & Application), Trucking… El botón lo llena por ti.">
             <TxtIn value={w.sector} onChange={(v) => up((n) => { n.wacc.sector = v; })} />
           </Field>
           {w.fuente && <div className="col-span-2 text-[11px] self-end pb-2" style={{ color: C.muted }}>Fuente activa: {w.fuente}</div>}
@@ -146,9 +166,9 @@ Los valores numéricos deben ser decimales (0.045 = 4.5%).`,
 
         {res && (
           <div className="mb-4 rounded p-3" style={{ background: C.soft, border: `1px solid ${C.line}` }}>
-            <div className="text-[12px] font-semibold mb-2">Lo que encontró la IA</div>
+            <div className="text-[12px] font-semibold mb-2" style={{ color: C.pos }}>✓ Parámetros obtenidos y aplicados a la tabla</div>
             <div className="grid grid-cols-4 gap-3 mb-2">
-              {CAMPOS.filter(({ k }) => isFinite(res[k])).map(({ k, etiqueta, esPct }) => (
+              {CAMPOS.filter(({ k }) => res[k] != null).map(({ k, etiqueta, esPct }) => (
                 <KPI key={k} label={etiqueta} value={esPct ? pct(res[k], 2) : num(res[k], 2)} sub={res.notas ? res.notas[k] : null} />
               ))}
             </div>
@@ -156,8 +176,8 @@ Los valores numéricos deben ser decimales (0.045 = 4.5%).`,
               <b style={{ color: C.ink }}>{res.sector || res.industria}</b> · {res.fecha}. {res.nota}
             </div>
             <div className="flex gap-2">
-              <Btn kind="dark" small onClick={aplicar}>Aplicar al modelo</Btn>
-              <Btn small onClick={() => setRes(null)}>Descartar</Btn>
+              {antes && <Btn small kind="danger" onClick={deshacer}>Deshacer: volver a los anteriores</Btn>}
+              <Btn small onClick={() => setRes(null)}>Cerrar</Btn>
             </div>
             <div className="text-[10.5px] mt-2" style={{ color: C.muted }}>
               Verifica los datos contra la fuente original antes de defenderlos frente a un inversionista.

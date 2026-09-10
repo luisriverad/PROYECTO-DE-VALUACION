@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { C } from "../lib/theme";
 import { uid, money, num, pct, nfmt, MESES } from "../lib/format";
 import { Card, Btn, Field, NumIn, PctIn, TxtIn, Th, Td, KPI, Empty, inputCls, inputSt } from "../components/ui";
+import PerfilEmpresa from "../components/PerfilEmpresa";
 
 /* ============================================================
    1. EMPRESA Y SUPUESTOS
@@ -37,6 +38,9 @@ export default function TabEmpresa({ s, up, m }: any) {
           <Field label="Año de arranque"><NumIn value={s.empresa.anio} dec={0} plain onChange={(v) => up((n) => { n.empresa.anio = v; })} /></Field>
         </div>
       </Card>
+
+      {/* el único lugar donde se describe la empresa: de aquí lee toda la IA */}
+      <PerfilEmpresa s={s} up={up} />
 
       <div className="grid grid-cols-2 gap-4">
         <Card title="Supuestos fiscales y macro">

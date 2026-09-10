@@ -55,6 +55,15 @@ export function mezclar(semilla: any, guardado: any) {
       && !Array.isArray(a) && !Array.isArray(b);
     out[k] = ambosObjeto ? { ...a, ...b } : b;
   }
+
+  /* La descripción de la empresa antes se escribía en Costo de capital y en
+     Investigación; ahora vive sólo en Empresa y supuestos. Lo que alguien ya
+     hubiera escrito se trae a su lugar nuevo en vez de perderse. */
+  if (out.empresa && typeof out.empresa === "object" && !String(out.empresa.descripcion || "").trim()) {
+    const viejas = [out.wacc?.perfil, out.investigacion?.contexto].map((x: any) => String(x || "").trim()).filter(Boolean);
+    const unica = [...new Set(viejas)].join("\n\n");
+    if (unica) out.empresa = { ...out.empresa, descripcion: unica };
+  }
   return out;
 }
 

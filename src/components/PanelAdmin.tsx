@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from "react";
 import { C } from "../lib/theme";
 import { money, pct, num } from "../lib/format";
-import { traerPadron, cambiarAlta } from "../lib/auth";
+import { traerPadron, cambiarAlta, eliminarCuenta } from "../lib/auth";
 import { traerAvances } from "../lib/avances";
 import { Card, Btn, Th, Td, Empty } from "./ui";
 
@@ -53,6 +53,23 @@ export default function PanelAdmin({ abrirProyecto }: any) {
     if (baja && !window.confirm(`¿Dar de baja a ${p.nombre || p.correo}? No podrá entrar ni guardar, pero su trabajo se conserva y puedes reactivarlo después.`)) return;
     setOcupado(p.id);
     const err = await cambiarAlta(p.id, !baja);
+    setOcupado(null);
+    if (err) { setError(err); return; }
+    traer();
+  };
+
+  /* Eliminar no tiene vuelta atrás, así que no basta un «Aceptar»: hay que
+     escribir la palabra, para que no se borre a nadie por un clic de más. */
+  const eliminar = async (p: any) => {
+    const quien = p.nombre || p.correo;
+    const ok = window.prompt(
+      `Vas a ELIMINAR para siempre a ${quien} (${p.correo || "sin correo"}).\n\n` +
+      `Se borran su cuenta de acceso, su perfil y todo su trabajo guardado. No se puede deshacer.\n\n` +
+      `Escribe ELIMINAR para confirmar:`);
+    if (ok == null) return;
+    if (ok.trim().toUpperCase() !== "ELIMINAR") { window.alert("No se eliminó: no escribiste ELIMINAR."); return; }
+    setOcupado(p.id);
+    const err = await eliminarCuenta(p.id);
     setOcupado(null);
     if (err) { setError(err); return; }
     traer();
@@ -131,6 +148,10 @@ export default function PanelAdmin({ abrirProyecto }: any) {
                           disabled={ocupado === p.id} onClick={() => alta(p)}>
                           {ocupado === p.id ? "…" : p.activo === false ? "Reactivar" : "Dar de baja"}
                         </Btn>
+                        <Btn small kind="danger" disabled={ocupado === p.id} onClick={() => eliminar(p)}
+                          title={`Borrar para siempre la cuenta de ${p.nombre || p.correo} y todo su trabajo`}>
+                          Eliminar
+                        </Btn>
                       </div>
                     )}
                   </Td>
@@ -188,8 +209,9 @@ export default function PanelAdmin({ abrirProyecto }: any) {
 
         <div className="text-[11px] mt-4 leading-relaxed" style={{ color: C.muted }}>
           Los alumnos se dan de alta solos desde la página de entrada. Dar de baja apaga la cuenta:
-          no puede entrar ni guardar, pero su trabajo se conserva y se puede reactivar. Para borrarla
-          de raíz, con todo y su trabajo, hay que hacerlo desde el panel de Supabase.
+          no puede entrar ni guardar, pero su trabajo se conserva y se puede reactivar. Eliminar la
+          borra de raíz —cuenta de acceso, perfil y todo su trabajo— y no se puede deshacer; el correo
+          queda libre para volver a darse de alta.
         </div>
       </Card>
     </>

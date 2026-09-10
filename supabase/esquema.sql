@@ -22,7 +22,7 @@ create table if not exists public.perfiles (
 alter table public.perfiles enable row level security;
 
 -- Dar de baja no borra: apaga. El trabajo del alumno se conserva y la cuenta
--- se puede reactivar. Borrarla de verdad se hace desde el panel de Supabase.
+-- se puede reactivar. Borrarla de verdad es `eliminar_cuenta`, más abajo.
 alter table public.perfiles add column if not exists activo boolean not null default true;
 
 -- El check va aparte para poder re-correr el guion sobre una tabla que ya existe.
@@ -118,6 +118,35 @@ $$;
 
 revoke all on function public.dar_de_baja(uuid, boolean) from public;
 grant execute on function public.dar_de_baja(uuid, boolean) to authenticated;
+
+-- ---------- Eliminar definitivamente ----------
+-- A diferencia de la baja, esto no tiene vuelta atrás: borra la cuenta de
+-- `auth.users` —el acceso por la API de Supabase, sesiones y llaves de
+-- renovación incluidas—, su perfil y todo su trabajo. El correo queda libre
+-- para darse de alta de nuevo desde cero. Los `delete` de avances y perfiles
+-- sobran porque las llaves foráneas ya van en cascada, pero se dejan
+-- explícitos para no depender de ello. Nunca borra a un administrador.
+create or replace function public.eliminar_cuenta(p_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.es_admin() then
+    raise exception 'Sólo el administrador puede eliminar cuentas';
+  end if;
+  if exists (select 1 from public.perfiles where id = p_id and rol = 'admin') then
+    raise exception 'No se puede eliminar una cuenta de administrador';
+  end if;
+  delete from public.avances where usuario = p_id;
+  delete from public.perfiles where id = p_id;
+  delete from auth.users where id = p_id;
+end;
+$$;
+
+revoke all on function public.eliminar_cuenta(uuid) from public, anon;
+grant execute on function public.eliminar_cuenta(uuid) to authenticated;
 
 -- ¿La cuenta que llama sigue dada de alta? Lo usan las políticas de avances.
 create or replace function public.esta_activo()

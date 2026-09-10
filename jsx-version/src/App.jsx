@@ -4,7 +4,7 @@ import { C, LOGO } from "./lib/theme";
 import { money, num, pct } from "./lib/format";
 import { seed, LEX, computeModel } from "./lib/model";
 import { exportarExcel } from "./lib/excel";
-import { Btn, ChipMezcla } from "./components/ui";
+import { Btn, ChipMezcla, LlaveIA } from "./components/ui";
 import { esAdmin } from "./lib/auth";
 import PanelAdmin from "./components/PanelAdmin";
 import { cargarAvances, traerAvancesDe, guardarAvance, guardarTodo, resumenEmpresa, resumenActivo, alGuardar, mezclar } from "./lib/avances";
@@ -24,6 +24,7 @@ import TabWACC from "./tabs/TabWACC";
 import TabRentabilidad from "./tabs/TabRentabilidad";
 import TabSensibilidad from "./tabs/TabSensibilidad";
 import TabIA from "./tabs/TabIA";
+import { TabInvestigacion, TabContraste } from "./components/Investigacion";
 import ModuloActivo from "./modules/ModuloActivo";
 import { cargarActivos, guardarActivos, seedActivos, computeActivos } from "./lib/activos";
 import TabGlosario from "./modules/activo/TabGlosario";
@@ -231,7 +232,8 @@ export default function App({ perfil, salir }) {
     setConfirmando(false);
     setS({
       ...seed(),
-      empresa: { empresario: s.empresa.empresario || "", nombre: "", tipo: s.empresa.tipo, anio: new Date().getFullYear() + 1 },
+      /* la descripción y el diagnóstico son del empresario, no del ejemplo: se conservan */
+      empresa: { empresario: s.empresa.empresario || "", nombre: "", tipo: s.empresa.tipo, anio: new Date().getFullYear() + 1, descripcion: s.empresa.descripcion || "", diagnostico: s.empresa.diagnostico || {} },
       insumos: [], recursosMO: [], productos: [], prodCostos: { directos: [], indirectos: [] },
       gastos: { admin: [], oper: [], venta: [], porPieza: [] }, activos: [],
       plan: { unidadesMes: Array(12).fill(0), crec: [0.2, 0.15, 0.12, 0.1] },
@@ -244,7 +246,7 @@ export default function App({ perfil, salir }) {
     setConfirmandoSv(false);
     setSv({
       ...seedSv(),
-      empresa: { empresario: sv.empresa.empresario || "", nombre: "", tipo: sv.empresa.tipo, anio: new Date().getFullYear() + 1 },
+      empresa: { empresario: sv.empresa.empresario || "", nombre: "", tipo: sv.empresa.tipo, anio: new Date().getFullYear() + 1, descripcion: sv.empresa.descripcion || "", diagnostico: sv.empresa.diagnostico || {} },
       insumos: [], recursosMO: [], productos: [], prodCostos: { directos: [], indirectos: [] },
       gastos: { admin: [], oper: [], venta: [], porPieza: [] }, activos: [],
       plan: { unidadesMes: Array(12).fill(0), crec: [0.2, 0.15, 0.12, 0.1] },
@@ -263,6 +265,7 @@ export default function App({ perfil, salir }) {
     { g: "Costeo", items: [["explosion", L.explosionTab, true], ["insumos", L.insumos], ["mo", L.mo], ["prodcostos", L.cpTab], ["resumen", "Resumen de impacto"], ["productos", "Pricing"]] },
     { g: "Presupuesto", items: [["pyl", "Forecast"], ["plan", "Plan de ventas y precios"], ["gastos", "Gastos"], ["inversion", "Inversiones y activos"], ["credito", "Crédito"]] },
     { g: "Evaluación", items: [["wacc", "Costo de capital"], ["rentab", "Rentabilidad y valuación"], ["sens", "Escenarios"], ["ia", "Diagnóstico y datos"]] },
+    { g: "Investigación", items: [["investigacion", "Investigación profunda"], ["contraste", "CONTRASTE", true]] },
   ];
 
   return (
@@ -289,6 +292,9 @@ export default function App({ perfil, salir }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* la llave de la IA vive aquí y en ningún otro lado: es de la cuenta, no de una pestaña.
+              `key` la vuelve a montar si cambia la cuenta, para no arrastrar el estado de otra */}
+          {perfil && <LlaveIA key={perfil.id} correo={perfil.correo} />}
           {esAdminTab || viendo ? null : (
             <Btn small kind="dark" onClick={guardarAvanceYa} disabled={guardandoYa}
               title="Guarda tu avance en la nube en este momento">
@@ -489,10 +495,12 @@ export default function App({ perfil, salir }) {
             {tab === "plan" && <TabPlan s={s} up={up} m={m} L={L} />}
             {tab === "credito" && <TabCredito s={s} up={up} m={m} />}
             {tab === "pyl" && <TabPyL s={s} up={up} m={m} L={L} />}
-            {tab === "wacc" && <TabWACC s={s} up={up} m={m} flash={flash} />}
+            {tab === "wacc" && <TabWACC s={s} up={up} m={m} flash={flash} irA={setTab} />}
             {tab === "rentab" && <TabRentabilidad s={s} up={up} m={m} />}
             {tab === "sens" && <TabSensibilidad s={s} m={m} />}
             {tab === "ia" && <TabIA s={s} m={m} />}
+            {tab === "investigacion" && <TabInvestigacion s={s} up={up} m={m} L={L} irA={setTab} flash={flash} />}
+            {tab === "contraste" && <TabContraste s={s} up={up} m={m} L={L} irA={setTab} />}
           </div>
         </div>
       ) : esServicios ? (

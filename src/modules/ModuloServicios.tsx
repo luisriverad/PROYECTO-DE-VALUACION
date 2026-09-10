@@ -23,6 +23,7 @@ import TabWACC from "../tabs-servicios/TabWACC";
 import TabRentabilidad from "../tabs-servicios/TabRentabilidad";
 import TabSensibilidad from "../tabs-servicios/TabSensibilidad";
 import TabIA from "../tabs-servicios/TabIA";
+import { TabInvestigacion, TabContraste } from "../components/Investigacion";
 
 export default function ModuloServicios({ s, up, m, L, flash, topH }: any) {
   const [tab, setTab] = useState("empresa");
@@ -32,6 +33,7 @@ export default function ModuloServicios({ s, up, m, L, flash, topH }: any) {
     { g: "Costeo", items: [["explosion", L.explosionTab, true], ["insumos", L.insumos], ["mo", L.mo], ["prodcostos", L.cpTab], ["resumen", "Resumen de impacto"], ["productos", "Pricing"]] },
     { g: "Presupuesto", items: [["pyl", "Forecast"], ["plan", "Plan de ventas y precios"], ["gastos", "Gastos"], ["inversion", "Inversiones y activos"], ["credito", "Crédito"]] },
     { g: "Evaluación", items: [["wacc", "Costo de capital"], ["rentab", "Rentabilidad y valuación"], ["sens", "Escenarios"], ["ia", "Diagnóstico y datos"]] },
+    { g: "Investigación", items: [["investigacion", "Investigación profunda"], ["contraste", "CONTRASTE", true]] },
   ];
 
   return (
@@ -78,10 +80,12 @@ export default function ModuloServicios({ s, up, m, L, flash, topH }: any) {
         {tab === "plan" && <TabPlan s={s} up={up} m={m} L={L} />}
         {tab === "credito" && <TabCredito s={s} up={up} m={m} />}
         {tab === "pyl" && <TabPyL s={s} up={up} m={m} L={L} />}
-        {tab === "wacc" && <TabWACC s={s} up={up} m={m} flash={flash} />}
+        {tab === "wacc" && <TabWACC s={s} up={up} m={m} flash={flash} irA={setTab} />}
         {tab === "rentab" && <TabRentabilidad s={s} up={up} m={m} />}
         {tab === "sens" && <TabSensibilidad s={s} m={m} />}
         {tab === "ia" && <TabIA s={s} m={m} />}
+        {tab === "investigacion" && <TabInvestigacion s={s} up={up} m={m} L={L} irA={setTab} flash={flash} />}
+        {tab === "contraste" && <TabContraste s={s} up={up} m={m} L={L} irA={setTab} />}
       </div>
     </div>
   );

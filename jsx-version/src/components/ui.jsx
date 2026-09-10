@@ -1,8 +1,8 @@
 /* Componentes base de la interfaz */
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { C } from "../lib/theme";
 import { nfmt } from "../lib/format";
-import { cargarConfig, guardarConfig, borrarConfig, detectaProveedor, PROVEEDORES, LISTA } from "../lib/ia";
+import { cargarConfig, guardarConfig, borrarConfig, detectaProveedor, mascara, listarModelos, PROVEEDORES, LISTA } from "../lib/ia";
 
 /* ============================================================
    COMPONENTES BASE
@@ -36,39 +36,117 @@ export const Btn = ({ children, onClick, kind = "ghost", small, disabled, title 
   );
 };
 
-/* ---------- llave de la IA, que cada quien carga en su navegador ----------
-   Acepta llaves de cualquier proveedor, porque no todos tienen cuenta de
-   Anthropic. Se dice de frente cuál funciona mejor y por qué. */
-export function LlaveIA({ alineado = "der" }) {
+/* ---------- llave de la IA: un solo botón, en el encabezado ----------
+   Cada quien carga la suya y queda ligada a su cuenta (ver lib/ia). La llave
+   guardada nunca vuelve a la pantalla: el campo sale vacío y sólo se muestra
+   una máscara para reconocerla. Así no se lee por encima del hombro ni queda
+   en el DOM para quien abra las herramientas del navegador. */
+export function LlaveIA({ correo }) {
   const [abierto, setAbierto] = useState(false);
-  const [c, setC] = useState(() => cargarConfig());
-  const [tiene, setTiene] = useState(() => !!cargarConfig().llave);
+  const sinLlave = () => {
+    const g = cargarConfig();
+    return { prov: g.prov, modelo: g.modelo, url: g.url, esfuerzo: g.esfuerzo, maxSalida: g.maxSalida, llave: "" };
+  };
+  const [c, setC] = useState(sinLlave);
+  const [cargada, setCargada] = useState(() => mascara(cargarConfig().llave));
+  const [aviso, setAviso] = useState("");
   const P = PROVEEDORES[c.prov] || PROVEEDORES.anthropic;
 
-  const abrir = () => { setC(cargarConfig()); setAbierto(!abierto); };
+  /* Modelos de la cuenta: se consultan solos en cuanto hay una llave con qué
+     preguntar, y el alumno elige de lo que su contrato de verdad incluye. */
+  const [modelos, setModelos] = useState(null);
+  const [buscando, setBuscando] = useState(false);
+  const [errModelos, setErrModelos] = useState("");
+  const [aMano, setAMano] = useState(false);
+  const turno = useRef(0);   // si llegan dos respuestas, cuenta sólo la de la última pregunta
+
+  const olvidarLista = () => { turno.current++; setModelos(null); setErrModelos(""); setBuscando(false); setAMano(false); };
+
+  const abrir = () => {
+    setC(sinLlave());
+    setCargada(mascara(cargarConfig().llave));
+    setAviso("");
+    olvidarLista();
+    setAbierto(!abierto);
+  };
   const set = (k, v) => setC((x) => Object.assign({}, x, { [k]: v }));
+  /* otro proveedor = otra empresa: el modelo y la lista anteriores ya no aplican */
+  const sinModelo = { modelo: "", esfuerzo: null, maxSalida: null };
+  const cambiarProv = (p) => { olvidarLista(); setC((x) => Object.assign({}, x, { prov: p }, sinModelo)); };
   /* al pegar la llave se adivina el proveedor por el prefijo, para no preguntar */
   const pegar = (v) => {
     const p = detectaProveedor(v);
-    setC((x) => Object.assign({}, x, { llave: v }, p ? { prov: p } : {}));
+    if (p && p !== c.prov) olvidarLista();
+    setC((x) => (p && p !== x.prov ? Object.assign({}, x, { llave: v, prov: p }, sinModelo) : Object.assign({}, x, { llave: v })));
   };
-  const guardar = () => { guardarConfig(c); setTiene(!!(c.llave || "").trim()); setAbierto(false); };
-  const quitar = () => { borrarConfig(); setC(cargarConfig()); setTiene(false); setAbierto(false); };
+  const elegir = (m) => setC((x) => Object.assign({}, x, { modelo: m.id, esfuerzo: m.esfuerzo, maxSalida: m.maxSalida }));
+
+  const consultar = async (x) => {
+    const yo = ++turno.current;
+    setBuscando(true); setErrModelos("");
+    try {
+      const lista = await listarModelos({ prov: x.prov, llave: x.llave, url: x.url });
+      if (yo !== turno.current) return;
+      const Px = PROVEEDORES[x.prov] || PROVEEDORES.anthropic;
+      setModelos(lista);
+      setAMano(false);
+      /* se respeta el que ya tenía; si no, el recomendado; si no, el más nuevo */
+      elegir(lista.find((m) => m.id === x.modelo) || lista.find((m) => m.id === Px.modelo) || lista[0]);
+    } catch (e) {
+      if (yo !== turno.current) return;
+      setModelos(null);
+      setErrModelos(e?.message || "No se pudo consultar la lista de modelos.");
+    } finally {
+      if (yo === turno.current) setBuscando(false);
+    }
+  };
+
+  /* se pregunta al abrir (con la llave guardada) y al terminar de pegar una nueva */
+  useEffect(() => {
+    if (!abierto) return;
+    const k = (c.llave || "").trim();
+    const g = cargarConfig();
+    const conQue = k.length >= 20 || (!k && !!g.llave && g.prov === c.prov);
+    if (!conQue || (PROVEEDORES[c.prov]?.pideUrl && !(c.url || "").trim())) return;
+    const t = setTimeout(() => consultar(c), 500);
+    return () => clearTimeout(t);
+  }, [abierto, c.llave, c.prov, c.url]);
+  /* campo vacío con llave ya cargada = conservarla y sólo cambiar proveedor o modelo */
+  const guardar = () => {
+    const actual = (cargarConfig().llave || "").trim();
+    const llave = (c.llave || "").trim() || actual;
+    if (!llave) { setAviso("Pega tu llave antes de guardar."); return; }
+    if (!guardarConfig({ ...c, llave })) {
+      setAviso("No se pudo guardar: entra con tu cuenta, o este navegador tiene bloqueado el almacenamiento (modo privado).");
+      return;
+    }
+    setCargada(mascara(llave));
+    setC((x) => Object.assign({}, x, { llave: "" }));
+    setAbierto(false);
+  };
+  const quitar = () => { borrarConfig(); setCargada(""); setC(sinLlave()); setAbierto(false); };
 
   return (
     <span className="relative inline-block">
-      <Btn small kind={tiene ? "ghost" : "dark"} onClick={abrir}
-        title={tiene ? `Llave de ${P.nombre} cargada en este navegador` : "Pega tu API key para usar la IA"}>
-        {tiene ? "API key cargada ✓" : "Cargar API key"}
-      </Btn>
+      <button onClick={abrir}
+        title={cargada ? `Tu llave de ${PROVEEDORES[cargarConfig().prov]?.nombre || "IA"} está cargada` : "Carga tu propia API key para usar la IA"}
+        style={{ background: C.llave, color: C.llaveTexto, border: `1px solid ${C.llave}` }}
+        className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded flex items-center gap-1.5 hover:opacity-85 transition-opacity">
+        CARGA DE API KEY
+        {cargada && (
+          <span aria-label="llave cargada"
+            style={{ background: C.llaveTexto, color: C.llave, width: 14, height: 14, borderRadius: 9999, fontSize: 9, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>✓</span>
+        )}
+      </button>
       {abierto && (
         <div className="absolute mt-1 rounded-lg p-3 text-left"
-          style={{ [alineado === "der" ? "right" : "left"]: 0, top: "100%", width: 370, zIndex: 30,
-            background: C.white, border: `1px solid ${C.line}`, boxShadow: "0 8px 28px rgba(0,0,0,.14)" }}>
+          style={{ right: 0, top: "100%", width: 370, zIndex: 40, color: C.ink,
+            background: C.white, border: `1px solid ${C.line}`, boxShadow: "0 8px 28px rgba(0,0,0,.18)" }}>
 
           <div className="text-[11px] mb-2 leading-relaxed" style={{ color: C.muted }}>
-            Sirve la llave de cualquier proveedor. Se guarda únicamente en este navegador: no viaja al
-            servidor ni la ve nadie más que abra la liga.
+            Tu llave es sólo tuya: queda ligada a tu cuenta{correo ? <> (<b style={{ color: C.ink }}>{correo}</b>)</> : null}.
+            Nadie que entre con otra cuenta la puede ver ni usar, y se borra de este navegador al salir.
+            Va directo de tu equipo a tu proveedor: no pasa por el servidor de la plataforma.
           </div>
 
           <div className="rounded px-2.5 py-2 mb-2.5" style={{ background: C.accentSoft, border: `1px solid ${C.accent}` }}>
@@ -79,17 +157,26 @@ export function LlaveIA({ alineado = "der" }) {
             </div>
           </div>
 
+          {cargada && (
+            <div className="rounded px-2.5 py-2 mb-2.5 text-[11px] leading-relaxed" style={{ background: C.soft, border: `1px solid ${C.line}` }}>
+              Llave cargada: <code style={{ fontFamily: "ui-monospace, monospace", color: C.ink }}>{cargada}</code>
+              <div style={{ color: C.muted }}>Por seguridad no se muestra completa. Para cambiarla, pega otra abajo.</div>
+            </div>
+          )}
+
           <div className="text-[11px] mb-1 font-medium" style={{ color: C.muted }}>Proveedor</div>
           <select className={inputCls} style={{ ...inputSt, cursor: "pointer" }} value={c.prov}
-            onChange={(e) => set("prov", e.target.value)}>
+            onChange={(e) => cambiarProv(e.target.value)}>
             {LISTA.map((k) => (
               <option key={k} value={k}>{PROVEEDORES[k].nombre}{PROVEEDORES[k].recomendado ? " — recomendado" : ""}</option>
             ))}
           </select>
 
-          <div className="text-[11px] mb-1 mt-2 font-medium" style={{ color: C.muted }}>API key</div>
+          <div className="text-[11px] mb-1 mt-2 font-medium" style={{ color: C.muted }}>{cargada ? "Reemplazar llave" : "API key"}</div>
+          {/* new-password: que el administrador de contraseñas no la guarde ni la ofrezca a otra cuenta */}
           <input type="password" className={inputCls} style={inputSt} value={c.llave}
-            placeholder={P.prefijo ? P.prefijo + "…" : "tu llave"} autoComplete="off"
+            name="p120-llave-ia" autoComplete="new-password" spellCheck={false} data-lpignore="true" data-1p-ignore="true"
+            placeholder={cargada ? "Déjalo vacío para conservar la actual" : P.prefijo ? P.prefijo + "…" : "tu llave"}
             onChange={(e) => pegar(e.target.value)} />
           <div className="text-[10px] mt-1" style={{ color: C.muted }}>{P.ayudaLlave}</div>
 
@@ -103,17 +190,46 @@ export function LlaveIA({ alineado = "der" }) {
             </>
           )}
 
-          <div className="text-[11px] mb-1 mt-2 font-medium" style={{ color: C.muted }}>Modelo</div>
-          <input className={inputCls} style={inputSt} value={c.modelo}
-            placeholder={P.modelo || "nombre del modelo"}
-            onChange={(e) => set("modelo", e.target.value)} />
-          <div className="text-[10px] mt-1" style={{ color: C.muted }}>
-            {P.modelo ? `Déjalo vacío para usar ${P.modelo}. Cámbialo si tu cuenta tiene otro.` : "Escribe el nombre exacto del modelo de tu servicio."}
+          <div className="flex items-center justify-between mt-2 mb-1">
+            <div className="text-[11px] font-medium" style={{ color: C.muted }}>Modelo</div>
+            <button onClick={() => consultar(c)} disabled={buscando}
+              className="text-[10.5px] font-medium hover:underline" style={{ color: C.azul, opacity: buscando ? 0.5 : 1 }}>
+              {buscando ? "Consultando tu cuenta…" : modelos ? "Actualizar lista" : "Ver los modelos de mi cuenta"}
+            </button>
           </div>
+          {modelos && !aMano ? (
+            <select className={inputCls} style={{ ...inputSt, cursor: "pointer" }} value={c.modelo}
+              onChange={(e) => {
+                if (e.target.value === "__a_mano") { setAMano(true); return; }
+                const m = modelos.find((x) => x.id === e.target.value);
+                if (m) elegir(m);
+              }}>
+              {modelos.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.nombre}{m.nombre !== m.id ? ` · ${m.id}` : ""}{m.id === P.modelo ? " — recomendado" : ""}
+                </option>
+              ))}
+              <option value="__a_mano">Otro: escribirlo a mano…</option>
+            </select>
+          ) : (
+            <input className={inputCls} style={inputSt} value={c.modelo}
+              placeholder={P.modelo || "nombre del modelo"}
+              onChange={(e) => setC((x) => Object.assign({}, x, { modelo: e.target.value, esfuerzo: null, maxSalida: null }))} />
+          )}
+          <div className="text-[10px] mt-1 leading-relaxed" style={{ color: errModelos ? C.neg : modelos ? C.pos : C.muted }}>
+            {buscando ? `Preguntando a ${P.nombre} qué modelos tiene tu cuenta…`
+              : errModelos ? errModelos
+                : modelos ? <>✓ Llave válida · {modelos.length} {modelos.length === 1 ? "modelo disponible" : "modelos disponibles"} en tu cuenta de {P.nombre}.
+                  {aMano && <> <button onClick={() => setAMano(false)} className="underline" style={{ color: C.azul }}>Volver a la lista</button></>}</>
+                  : P.pideUrl ? "Escribe la dirección del servicio y pega tu llave: se consulta qué modelos tiene."
+                    : "Pega tu llave y aquí aparecen los modelos que incluye tu cuenta, para que elijas."}
+          </div>
+
+          {aviso && <div className="text-[11px] mt-2 px-2 py-1.5 rounded" style={{ background: "#FDECEA", color: C.neg }}>{aviso}</div>}
 
           <div className="flex gap-2 mt-3">
             <Btn small kind="primary" onClick={guardar}>Guardar</Btn>
-            {tiene && <Btn small kind="danger" onClick={quitar}>Quitar</Btn>}
+            {cargada && <Btn small kind="danger" onClick={quitar}>Quitar mi llave</Btn>}
             <Btn small onClick={() => setAbierto(false)}>Cerrar</Btn>
           </div>
 

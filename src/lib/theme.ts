@@ -20,6 +20,10 @@ export const C = {
   /* naranja de administración: separa la vista de quien da el curso de los
      módulos de trabajo, sin competir con el verde del acento */
   admin: "#E0821F",
+  /* botón de la llave de la IA: amarillo con letra negra, para encontrarlo
+     de inmediato en el encabezado oscuro */
+  llave: "#FFD21F",
+  llaveTexto: "#111111",
   tasaBg: "#FFF1E4",
   tasaLinea: "#E9AF7E",
   tasaTexto: "#9C4A16",

@@ -81,22 +81,26 @@ encabezado dice si está guardando, si ya guardó o si algo falló.
 Antes de esto sólo el módulo de activos recordaba algo, y sólo en el navegador donde se capturó:
 cerrar la pestaña costaba el avance de empresa y servicios.
 
-## Botones de IA
+## IA: cada quien con su propia llave
 
-Dos funciones llaman a la API de Claude: la búsqueda de parámetros de Damodaran en Costo de capital
-y el diagnóstico ejecutivo en Diagnóstico y datos. Para habilitarlas:
+Las funciones de IA —parámetros de Damodaran en Costo de capital, el diagnóstico ejecutivo, los
+supuestos del módulo de activos, la Investigación profunda y CONTRASTE— usan la llave de quien
+está trabajando. Se carga en un solo lugar: el botón amarillo **CARGA DE API KEY** del encabezado.
 
-```bash
-cp .env.example .env
-```
+- **Es de la cuenta, no del navegador.** Se guarda bajo el id de la cuenta que entró. Si otra
+  persona entra con su cuenta en la misma computadora, no la ve ni la puede usar.
+- **Se borra al salir.** En una computadora compartida no queda nada para el siguiente.
+- **No se vuelve a mostrar.** Una vez guardada, la pantalla sólo enseña una máscara
+  (`sk-ant-…a1b2`) para reconocerla.
+- **No pasa por nuestro servidor.** La llamada va directo del equipo del usuario a su proveedor.
+- **No hay llave de respaldo compartida.** Ni compilada en el bundle ni inyectada por un proxy: una
+  llave común la pagaría una sola persona y la usarían todas. Por eso `vite.config.ts` ya no trae
+  proxy y no existe `VITE_ANTHROPIC_API_KEY`.
 
-y escribe tu llave en `ANTHROPIC_API_KEY`. En desarrollo la petición pasa por el proxy declarado en
-`vite.config.ts`, así que la llave se queda en el servidor y nunca llega al navegador.
+Sirven llaves de Anthropic, OpenAI, Google o cualquier servicio compatible con OpenAI, pero sólo
+la de Anthropic busca en internet en vivo; con las demás la IA contesta de memoria y lo advierte.
 
-Para publicar la app, levanta tu propio backend que reciba la petición y agregue la llave, y apunta
-`VITE_API_URL` a ese endpoint. **Nunca compiles la llave dentro del bundle.**
-
-Sin llave, el resto de la plataforma funciona completo; solo esos dos botones devuelven error.
+Sin llave, el resto de la plataforma funciona completo; sólo los botones de IA piden cargarla.
 
 ## Estructura
 
@@ -111,9 +115,11 @@ src/
     format.ts              Formato de números, TIR y valor presente
     model.ts               Estado inicial (ejemplo MI ZAPATO) y motor de cálculo
     excel.ts               Exportación del libro de diez pestañas
-    claude.ts              Puente con la API de Claude
+    ia.ts                  Puente con la IA y llave por cuenta
+    investigacion.ts       Frentes de investigación y contraste contra el modelo
   components/
-    ui.tsx                 Card, Btn, tablas, inputs, KPI
+    ui.tsx                 Card, Btn, tablas, inputs, KPI, botón CARGA DE API KEY
+    Investigacion.tsx      Pestañas Investigación profunda y CONTRASTE
     Login.tsx              Página de entrada
     Puerta.tsx             Decide entre la entrada y la plataforma
     PanelAdmin.tsx         Pestaña de administración

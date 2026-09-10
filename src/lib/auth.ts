@@ -13,6 +13,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
+import { ligarCuenta, olvidarLlave } from "./ia";
 
 const env: any = (import.meta as any).env || {};
 
@@ -84,6 +85,8 @@ export function useSesion() {
     let vivo = true;
 
     const aplicar = async (sesion: any) => {
+      /* la llave de la IA se liga a la cuenta que entró, antes de pintar nada */
+      ligarCuenta(sesion?.user?.id || null);
       if (!sesion?.user) { if (vivo) { setPerfil(null); setCargando(false); } return; }
       const p = await traerPerfil(sesion.user.id, sesion.user.email || "");
       if (vivo) { setPerfil(p); setCargando(false); }
@@ -166,7 +169,11 @@ export async function registrar(nombre: string, correo: string, contrasena: stri
   return null;
 }
 
+/* Salir borra la llave de la IA de este navegador: en una computadora
+   compartida no queda nada que el siguiente pueda usar. */
 export async function salir() {
+  olvidarLlave();
+  ligarCuenta(null);
   try { await sb?.auth?.signOut(); } catch (e) { /* la sesión local ya se limpió */ }
 }
 
@@ -183,6 +190,23 @@ export async function cambiarAlta(id: string, activo: boolean) {
     if (/function|does not exist|schema cache/i.test(error.message || ""))
       return "Falta correr la última versión de supabase/esquema.sql: la función dar_de_baja no existe todavía.";
     return "No se pudo cambiar el alta: " + error.message;
+  }
+  return null;
+}
+
+/* ---------- eliminar definitivamente ----------
+   Borra la cuenta de Supabase —ya no puede entrar ni por la API—, su perfil y
+   todo su trabajo. Igual que la baja, quien decide si se puede es la base. */
+export async function eliminarCuenta(id: string) {
+  if (!configurado) return "El acceso a la nube no está configurado.";
+  const { error } = await sb.rpc("eliminar_cuenta", { p_id: id });
+  if (error) {
+    const msg = error.message || "";
+    if (/administrador/i.test(msg)) return msg;
+    if (/permission|denied/i.test(msg)) return "Sólo el administrador puede eliminar cuentas.";
+    if (/function|does not exist|schema cache/i.test(msg))
+      return "Falta correr la última versión de supabase/esquema.sql: la función eliminar_cuenta no existe todavía.";
+    return "No se pudo eliminar la cuenta: " + msg;
   }
   return null;
 }

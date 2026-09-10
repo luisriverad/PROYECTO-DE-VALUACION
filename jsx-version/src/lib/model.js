@@ -27,7 +27,7 @@ export const seed = () => {
     mo: [{ moId: mo[moIdx].id, horas: 4 }],
   });
   return {
-    empresa: { empresario: "", nombre: "MI ZAPATO, S.A. DE C.V.", tipo: "manufactura", anio: 2026 },
+    empresa: { empresario: "", nombre: "MI ZAPATO, S.A. DE C.V.", tipo: "manufactura", anio: 2026, descripcion: "", diagnostico: {} },
     supuestos: {
       isr: 0.3, ptu: 0.1, inflacion: 0.035, gPerp: 0.03, diasBase: 360,
       dso: 30, pctCredito: 0.1, dio: 60, dpo: 45,
@@ -95,6 +95,7 @@ export const seed = () => {
       fuente: "",
     },
     valuacion: { multiplo: 8.85, caja: 0, pasLab: 0, pasFin: 0, capex: [0, 0, 0, 0, 0], inversionManual: null },
+    investigacion: { contexto: "", temas: {}, contraste: null },
   };
 };
 
