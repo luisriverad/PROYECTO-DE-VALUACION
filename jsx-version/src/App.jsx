@@ -272,7 +272,7 @@ export default function App({ perfil, salir }) {
     <div style={{ background: C.paper, color: C.ink, minHeight: "100vh", fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
       {/* Header + módulos + KPIs: fijos al hacer scroll */}
       <div ref={topRef} style={{ position: "sticky", top: 0, zIndex: 30 }}>
-      <div style={{ background: C.ink }} className="px-5 pt-3 flex items-center justify-between gap-4 flex-wrap">
+      <div style={{ background: C.ink }} className="px-5 pt-3 flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <img src={LOGO} alt="Profit120" style={{ height: 32, width: "auto" }} />
           <div style={{ background: "#3C4045", width: 1, height: 30 }} />
@@ -291,39 +291,14 @@ export default function App({ perfil, salir }) {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        {/* Esquina superior derecha, en dos renglones: arriba lo de la cuenta
+            (llave, quién entró, salir) y abajo lo del proyecto. Así la llave
+            queda a la derecha y su panel abre hacia adentro de la pantalla. */}
+        <div className="flex flex-col items-end gap-1.5 ml-auto">
+          <div className="flex items-center gap-2">
           {/* la llave de la IA vive aquí y en ningún otro lado: es de la cuenta, no de una pestaña.
               `key` la vuelve a montar si cambia la cuenta, para no arrastrar el estado de otra */}
           {perfil && <LlaveIA key={perfil.id} correo={perfil.correo} />}
-          {esAdminTab || viendo ? null : (
-            <Btn small kind="dark" onClick={guardarAvanceYa} disabled={guardandoYa}
-              title="Guarda tu avance en la nube en este momento">
-              {guardandoYa ? "Guardando…" : "Guardar avance"}
-            </Btn>
-          )}
-          {esAdminTab ? null : viendo ? (
-            <>
-              {esEmpresa && <Btn small onClick={descargarExcel}>Exportar a Excel</Btn>}
-              {esServicios && <Btn small onClick={descargarExcelSv}>Exportar a Excel</Btn>}
-            </>
-          ) : esEmpresa ? (
-            <>
-              <Btn small onClick={descargarExcel}>Exportar a Excel</Btn>
-              <Btn small onClick={restablecer} title="Vuelve al ejemplo completo, tal como viene de fábrica">Restablecer el ejemplo</Btn>
-              <Btn small kind={confirmando ? "dark" : "primary"} onClick={limpiar}>{confirmando ? "Confirmar borrado" : "Empezar en blanco"}</Btn>
-            </>
-          ) : esServicios ? (
-            <>
-              <Btn small onClick={descargarExcelSv}>Exportar a Excel</Btn>
-              <Btn small onClick={restablecerSv} title="Vuelve al ejemplo completo, tal como viene de fábrica">Restablecer el ejemplo</Btn>
-              <Btn small kind={confirmandoSv ? "dark" : "primary"} onClick={limpiarSv}>{confirmandoSv ? "Confirmar borrado" : "Empezar en blanco"}</Btn>
-            </>
-          ) : (
-            <>
-              <Btn small onClick={() => setGlosario(true)}>Glosario y reglas</Btn>
-              <Btn small kind="primary" onClick={() => { setA(seedActivos()); flash("Se restablecieron los supuestos de ejemplo."); }}>Restablecer el ejemplo</Btn>
-            </>
-          )}
 
           {/* quién entró: el rol se ve, para que nadie dude con qué permisos trabaja */}
           {perfil && (
@@ -373,6 +348,39 @@ export default function App({ perfil, salir }) {
               <Btn small onClick={salir} title="Cerrar la sesión en este navegador">Salir</Btn>
             </>
           )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {esAdminTab || viendo ? null : (
+              <Btn small kind="dark" onClick={guardarAvanceYa} disabled={guardandoYa}
+                title="Guarda tu avance en la nube en este momento">
+                {guardandoYa ? "Guardando…" : "Guardar avance"}
+              </Btn>
+            )}
+            {esAdminTab ? null : viendo ? (
+              <>
+                {esEmpresa && <Btn small onClick={descargarExcel}>Exportar a Excel</Btn>}
+                {esServicios && <Btn small onClick={descargarExcelSv}>Exportar a Excel</Btn>}
+              </>
+            ) : esEmpresa ? (
+              <>
+                <Btn small onClick={descargarExcel}>Exportar a Excel</Btn>
+                <Btn small onClick={restablecer} title="Vuelve al ejemplo completo, tal como viene de fábrica">Restablecer el ejemplo</Btn>
+                <Btn small kind={confirmando ? "dark" : "primary"} onClick={limpiar}>{confirmando ? "Confirmar borrado" : "Empezar en blanco"}</Btn>
+              </>
+            ) : esServicios ? (
+              <>
+                <Btn small onClick={descargarExcelSv}>Exportar a Excel</Btn>
+                <Btn small onClick={restablecerSv} title="Vuelve al ejemplo completo, tal como viene de fábrica">Restablecer el ejemplo</Btn>
+                <Btn small kind={confirmandoSv ? "dark" : "primary"} onClick={limpiarSv}>{confirmandoSv ? "Confirmar borrado" : "Empezar en blanco"}</Btn>
+              </>
+            ) : (
+              <>
+                <Btn small onClick={() => setGlosario(true)}>Glosario y reglas</Btn>
+                <Btn small kind="primary" onClick={() => { setA(seedActivos()); flash("Se restablecieron los supuestos de ejemplo."); }}>Restablecer el ejemplo</Btn>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

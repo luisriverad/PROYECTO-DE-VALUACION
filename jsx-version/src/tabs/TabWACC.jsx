@@ -190,7 +190,7 @@ Los valores numéricos deben ser decimales (0.045 = 4.5%).`,
           <tbody>
             <Row label="Tasa libre de riesgo" notaKey="rf"><PctIn value={w.rf} dec={3} onChange={(v) => up((n) => { n.wacc.rf = v; })} /></Row>
             <Row label="Beta" notaKey="beta"><NumIn value={w.beta} dec={2} onChange={(v) => up((n) => { n.wacc.beta = v; })} /></Row>
-            <Row label="Prima de riesgo de mercado (ERP)" notaKey="erp"><PctIn value={w.erp} dec={2} onChange={(v) => up((n) => { n.wacc.erp = v; })} /></Row>
+            <Row label="Prima de riesgo de mercado (Equity Risk Premium)" notaKey="erp"><PctIn value={w.erp} dec={2} onChange={(v) => up((n) => { n.wacc.erp = v; })} /></Row>
             <Row label="Prima por tamaño" notaKey="pTamano"><PctIn value={w.pTamano} dec={2} onChange={(v) => up((n) => { n.wacc.pTamano = v; })} /></Row>
             <Row label="Prima por etapa (startup)" notaKey="pStartup"><PctIn value={w.pStartup} dec={2} onChange={(v) => up((n) => { n.wacc.pStartup = v; })} /></Row>
             <Row label="Riesgo país" notaKey="crp"><PctIn value={w.crp} dec={2} onChange={(v) => up((n) => { n.wacc.crp = v; })} /></Row>

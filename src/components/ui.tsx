@@ -1,5 +1,5 @@
 /* Componentes base de la interfaz */
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { C } from "../lib/theme";
 import { nfmt } from "../lib/format";
 import { cargarConfig, guardarConfig, borrarConfig, detectaProveedor, mascara, listarModelos, PROVEEDORES, LISTA } from "../lib/ia";
@@ -69,6 +69,32 @@ export function LlaveIA({ correo }: any) {
     olvidarLista();
     setAbierto(!abierto);
   };
+
+  /* El panel se ubica contra la pantalla, no contra el botón: cuando el
+     encabezado se acomoda en dos renglones el botón queda a la izquierda y un
+     panel alineado a su derecha se salía por el borde. Se alinea a la derecha
+     del botón si cabe, se recorre si no, y nunca es más ancho ni más alto que
+     la ventana. */
+  const boton = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<any>(null);
+  const ubicar = () => {
+    const b = boton.current;
+    if (!b) return;
+    const r = b.getBoundingClientRect();
+    const M = 16, vw = window.innerWidth;
+    const width = Math.min(370, vw - 2 * M);
+    const left = Math.min(Math.max(M, r.right - width), vw - width - M);
+    const top = r.bottom + 4;
+    setPos({ left, top, width, maxHeight: Math.max(200, window.innerHeight - top - M) });
+  };
+  useLayoutEffect(() => {
+    if (!abierto) return;
+    ubicar();
+    window.addEventListener("resize", ubicar);
+    window.addEventListener("scroll", ubicar, true);
+    return () => { window.removeEventListener("resize", ubicar); window.removeEventListener("scroll", ubicar, true); };
+  }, [abierto]);
+
   const set = (k, v) => setC((x) => Object.assign({}, x, { [k]: v }));
   /* otro proveedor = otra empresa: el modelo y la lista anteriores ya no aplican */
   const sinModelo = { modelo: "", esfuerzo: null, maxSalida: null };
@@ -128,7 +154,7 @@ export function LlaveIA({ correo }: any) {
 
   return (
     <span className="relative inline-block">
-      <button onClick={abrir}
+      <button ref={boton} onClick={abrir}
         title={cargada ? `Tu llave de ${PROVEEDORES[cargarConfig().prov]?.nombre || "IA"} está cargada` : "Carga tu propia API key para usar la IA"}
         style={{ background: C.llave, color: C.llaveTexto, border: `1px solid ${C.llave}` }}
         className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded flex items-center gap-1.5 hover:opacity-85 transition-opacity">
@@ -138,9 +164,9 @@ export function LlaveIA({ correo }: any) {
             style={{ background: C.llaveTexto, color: C.llave, width: 14, height: 14, borderRadius: 9999, fontSize: 9, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>✓</span>
         )}
       </button>
-      {abierto && (
-        <div className="absolute mt-1 rounded-lg p-3 text-left"
-          style={{ right: 0, top: "100%", width: 370, zIndex: 40, color: C.ink,
+      {abierto && pos && (
+        <div className="fixed rounded-lg p-3 text-left overflow-y-auto"
+          style={{ ...pos, zIndex: 40, color: C.ink,
             background: C.white, border: `1px solid ${C.line}`, boxShadow: "0 8px 28px rgba(0,0,0,.18)" }}>
 
           <div className="text-[11px] mb-2 leading-relaxed" style={{ color: C.muted }}>
@@ -260,10 +286,13 @@ export const inputCls = "w-full px-2 py-1.5 rounded text-[13px] outline-none";
    lo que sale de una fórmula o se jala de otra pestaña va en negro. */
 export const inputSt = { background: C.white, border: `1px solid ${C.line}`, color: C.azul };
 
-export function NumIn({ value, onChange, dec = 2, suffix, align = "right", disabled, plain }: any) {
+export function NumIn({ value, onChange, dec = 2, suffix, align = "right", disabled, plain, moneda }: any) {
   const [txt, setTxt] = useState(null);
+  /* `moneda`: el campo es en pesos y se ve como en el resto de la plataforma,
+     con signo $, comas y dos decimales. Al editar se escribe el número solo. */
   const shown = txt !== null ? txt : value === null || value === undefined || !isFinite(value) ? ""
-    : plain ? String(Math.round(value)) : nfmt(dec).format(value);
+    : moneda ? (value < 0 ? "-$" : "$") + nfmt(Math.max(2, dec)).format(Math.abs(value))
+      : plain ? String(Math.round(value)) : nfmt(dec).format(value);
   return (
     <div className="relative">
       <input

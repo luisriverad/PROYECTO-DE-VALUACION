@@ -39,7 +39,7 @@ export default function TabProductos({ s, up, m, L }: any) {
                     <Td bold>{money(x.estandar, 2)}</Td>
                     <Td><PctIn value={x.margen} dec={1} onChange={(v) => up((n) => { n.productos[i].margen = v; })} /></Td>
                     <Td>{money(x.sugerido, 2)}</Td>
-                    <Td><NumIn value={x.precio} dec={0} onChange={(v) => up((n) => { n.productos[i].precio = v; })} /></Td>
+                    <Td><NumIn moneda value={x.precio} dec={0} onChange={(v) => up((n) => { n.productos[i].precio = v; })} /></Td>
                     <Td bold color={x.margenReal < 0 ? C.neg : C.pos}>{pct(x.margenReal)}</Td>
                   </tr>
                 ))}

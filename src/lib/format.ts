@@ -2,7 +2,19 @@
 
 export const uid = () => Math.random().toString(36).slice(2, 9);
 export const nfmt = (d) => new Intl.NumberFormat("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
-export const money = (v, d = 0) => (v === null || v === undefined || !isFinite(v) ? "—" : (v < 0 ? "-" : "") + "$" + nfmt(d).format(Math.abs(v)));
+/* Pesos, igual en toda la plataforma: signo $, comas en los miles y al menos
+   dos decimales. Un costo unitario chico puede pedir 3 o 4; nunca menos de 2. */
+export const money = (v, d = 2) => (v === null || v === undefined || !isFinite(v) ? "—" : (v < 0 ? "-" : "") + "$" + nfmt(Math.max(2, d)).format(Math.abs(v)));
+/* Montos escritos dentro de un texto libre, como los que devuelve la IA:
+   "65000000000 MXN" o "$2800" → "$65,000,000,000.00 MXN", "$2,800.00". Sólo
+   toca cifras con marca de moneda ($, MXN, pesos, USD, dólares) para no
+   confundir años, unidades ni porcentajes. Aplicarlo dos veces no cambia nada. */
+export const montosEnTexto = (t) => String(t ?? "").replace(
+  /(US)?\$\s?(\d[\d,]*(?:\.\d+)?)|(\d[\d,]*(?:\.\d+)?)(?=\s?(?:MXN|pesos|USD|dólares)\b)/gi,
+  (m, us, a, b) => {
+    const v = parseFloat(String(a ?? b).replace(/,/g, ""));
+    return isFinite(v) ? (us || "") + "$" + nfmt(2).format(v) : m;
+  });
 export const num = (v, d = 2) => (v === null || v === undefined || !isFinite(v) ? "—" : nfmt(d).format(v));
 /* Primera letra en mayúscula: el léxico se guarda en minúsculas y a veces
    encabeza una etiqueta ("Servicios Año 1"). */

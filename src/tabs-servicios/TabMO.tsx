@@ -26,7 +26,7 @@ export default function TabMO({ s, up, m, L }: any) {
               {s.recursosMO.map((r, i) => (
                 <tr key={r.id}>
                   <Td align="left"><TxtIn value={r.nombre} onChange={(v) => up((n) => { n.recursosMO[i].nombre = v; })} /></Td>
-                  <Td><NumIn value={r.sueldoMensual} onChange={(v) => up((n) => { n.recursosMO[i].sueldoMensual = v; })} /></Td>
+                  <Td><NumIn moneda value={r.sueldoMensual} onChange={(v) => up((n) => { n.recursosMO[i].sueldoMensual = v; })} /></Td>
                   <Td><NumIn value={r.personas} dec={0} onChange={(v) => up((n) => { n.recursosMO[i].personas = v; })} /></Td>
                   <Td><NumIn value={r.horasMes} dec={0} onChange={(v) => up((n) => { n.recursosMO[i].horasMes = v; })} /></Td>
                   <Td><PctIn value={r.ineficiencia || 0} dec={1} onChange={(v) => up((n) => { n.recursosMO[i].ineficiencia = Math.min(Math.max(v, 0), 0.99); })} /></Td>

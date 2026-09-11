@@ -89,9 +89,9 @@ export default function TabRentabilidad({ s, up, m }) {
               <tr><Td align="left">Valor terminal (perpetuidad g = {pct(s.supuestos.gPerp, 1)})</Td><Td>{money(m.vt)}</Td></tr>
               <tr><Td align="left">Valor terminal a valor presente</Td><Td>{money(m.vpVT)}</Td></tr>
               <tr><Td align="left" bold>Valor de la empresa (Enterprise Value)</Td><Td bold>{money(m.ev)}</Td></tr>
-              <tr><Td align="left" color={C.muted}>+ Caja</Td><Td><NumIn value={v.caja} dec={0} onChange={(x) => up((n) => { n.valuacion.caja = x; })} /></Td></tr>
-              <tr><Td align="left" color={C.muted}>− Pasivos laborales</Td><Td><NumIn value={v.pasLab} dec={0} onChange={(x) => up((n) => { n.valuacion.pasLab = x; })} /></Td></tr>
-              <tr><Td align="left" color={C.muted}>− Pasivos financieros</Td><Td><NumIn value={v.pasFin} dec={0} onChange={(x) => up((n) => { n.valuacion.pasFin = x; })} /></Td></tr>
+              <tr><Td align="left" color={C.muted}>+ Caja</Td><Td><NumIn moneda value={v.caja} dec={0} onChange={(x) => up((n) => { n.valuacion.caja = x; })} /></Td></tr>
+              <tr><Td align="left" color={C.muted}>− Pasivos laborales</Td><Td><NumIn moneda value={v.pasLab} dec={0} onChange={(x) => up((n) => { n.valuacion.pasLab = x; })} /></Td></tr>
+              <tr><Td align="left" color={C.muted}>− Pasivos financieros</Td><Td><NumIn moneda value={v.pasFin} dec={0} onChange={(x) => up((n) => { n.valuacion.pasFin = x; })} /></Td></tr>
               <tr><Td align="left" bold>Valor del capital (Equity Value)</Td><Td bold>{money(m.equity)}</Td></tr>
             </tbody>
           </table>
@@ -115,7 +115,7 @@ export default function TabRentabilidad({ s, up, m }) {
           <div className="grid grid-cols-2 gap-3 mb-3">
             <Field label="Múltiplo EBIT del sector"><NumIn value={v.multiplo} dec={2} onChange={(x) => up((n) => { n.valuacion.multiplo = x; })} /></Field>
             <Field label="Inversión (dejar vacío = automática)">
-              <NumIn value={v.inversionManual == null ? m.inversionAuto : v.inversionManual} dec={0}
+              <NumIn moneda value={v.inversionManual == null ? m.inversionAuto : v.inversionManual} dec={0}
                 onChange={(x) => up((n) => { n.valuacion.inversionManual = x; })} />
             </Field>
           </div>

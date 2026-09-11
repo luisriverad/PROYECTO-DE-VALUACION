@@ -11,6 +11,8 @@
    no tener el dato.
    ============================================================ */
 
+import { money } from "./format";
+
 export const MIN_PALABRAS = 100;
 
 /* Cuenta palabras de verdad: un guion o unos signos sueltos no son palabra. */
@@ -20,7 +22,8 @@ export function contarPalabras(t) {
 
 /* Las preguntas del diagnóstico. Cada una está porque alimenta algo:
    ventas, personas y etapa → primas de tamaño y de etapa; cliente más grande,
-   gobierno y proveedores → prima de negociación; país → riesgo país; lo demás
+   gobierno y barreras de entrada → prima de negociación; país → riesgo país;
+   los proveedores no se preguntan aquí porque ya salen de Materia Prima; lo demás
    orienta la investigación y el contraste.
    tipo: txt · num · money · pct · sel · multi */
 export const SECCIONES = [
@@ -58,7 +61,8 @@ export const SECCIONES = [
     preguntas: [
       { k: "competidores", tipo: "txt", etiqueta: "¿Contra quién compites? Con nombre", ph: "Flexi, Andrea, talleres del centro" },
       { k: "diferenciador", tipo: "txt", etiqueta: "¿Por qué te comprarían a ti y no a ellos?", ph: "" },
-      { k: "proveedores", tipo: "txt", etiqueta: "Proveedores o insumos críticos", ph: "Piel de tenería local; suelas importadas" },
+      { k: "barreras", tipo: "sel", etiqueta: "¿Qué tan fácil sería que alguien nuevo te copiara?",
+        opciones: ["Muy fácil: basta poco dinero y ganas", "Tomaría tiempo: hace falta experiencia, equipo o clientes", "Difícil: marca, permisos, contratos o tecnología propios"] },
     ],
   },
   {
@@ -106,7 +110,7 @@ export function textoPerfil(s) {
     const v = d[p.k];
     if (!respondida(p, v)) continue;
     const val = p.tipo === "multi" ? v.join(", ")
-      : p.tipo === "money" ? "$" + Math.round(v).toLocaleString("en-US") + " MXN"
+      : p.tipo === "money" ? money(v) + " MXN"
         : p.tipo === "pct" ? (v * 100).toFixed(1) + "%"
           : String(v).trim();
     lineas.push(`- ${p.etiqueta.replace(/^¿/, "").replace(/\?$/, "")}: ${val}`);

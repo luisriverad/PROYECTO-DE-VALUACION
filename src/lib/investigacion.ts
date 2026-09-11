@@ -16,7 +16,7 @@
    el negocio: si viera los números del alumno, tendería a confirmarlos.
    ============================================================ */
 import { iaFetch } from "./ia";
-import { money, pct, num } from "./format";
+import { money, pct, num, montosEnTexto } from "./format";
 import { textoPerfil, perfilListo } from "./perfil";
 
 /* ---------- frentes de investigación ----------
@@ -26,7 +26,7 @@ export const TEMAS: any[] = [
   {
     k: "mercado", titulo: "Mercado y demanda", corto: "Mercado",
     pregunta: "Qué tan grande es el mercado, qué tan rápido crece, quién compra, cuándo y por qué.",
-    guia: "Tamaño del mercado en pesos al año para este giro en la zona donde opera (y a nivel nacional si no hay dato local), crecimiento anual reciente y esperado, segmentos de clientes, frecuencia y estacionalidad de la compra, canales por donde se compra y tendencias que están moviendo la demanda.",
+    guia: "Define el tamaño del mercado local en pesos al año para este giro en la zona que puede atender el negocio (y a nivel nacional si no hay dato local), el perfil del consumidor objetivo en esa región, sus hábitos de consumo actuales (frecuencia, estacionalidad y canales por donde compra) y las tendencias de crecimiento impulsadas por el contexto demográfico y digital, con el crecimiento anual reciente y el esperado.",
     cifras: [
       { k: "tamanoMercado", etiqueta: "Tamaño del mercado", tipo: "money", ayuda: "pesos al año, en la zona que puede atender el negocio" },
       { k: "crecMercado", etiqueta: "Crecimiento anual del mercado", tipo: "pct", ayuda: "decimal: 0.06 = 6%" },
@@ -35,7 +35,7 @@ export const TEMAS: any[] = [
   {
     k: "competencia", titulo: "Competencia", corto: "Competencia",
     pregunta: "Quién ya vende esto, qué tan fuerte es y en qué se diferencia.",
-    guia: "Competidores directos e indirectos con nombre (locales, nacionales, digitales y sustitutos), su propuesta de valor, su tamaño aproximado, sus precios si son públicos, sus fortalezas y debilidades, y las barreras de entrada del giro. En 'hallazgos', un renglón por competidor relevante.",
+    guia: "Identifica a los principales competidores directos e indirectos en la ciudad y el estado, con nombre, apoyándote en el DENUE del INEGI (cuántos establecimientos del giro hay en la zona) y en sus sitios y redes: locales, nacionales, digitales y sustitutos. Analiza sus fortalezas, debilidades, participación estimada, precios si son públicos y la propuesta de valor que comunican en medios y redes. Cierra con las barreras de entrada del giro. En 'hallazgos', un renglón por competidor relevante.",
     cifras: [
       { k: "numCompetidores", etiqueta: "Competidores relevantes", tipo: "num", ayuda: "cuántos compiten de verdad por el mismo cliente" },
     ],
@@ -43,7 +43,7 @@ export const TEMAS: any[] = [
   {
     k: "precios", titulo: "Precios de mercado", corto: "Precios",
     pregunta: "Cuánto se cobra hoy allá afuera por lo mismo o por algo equivalente.",
-    guia: "Precios de venta al público actuales de productos o servicios equivalentes a los de este negocio, en tiendas, sitios de los competidores, marketplaces (Mercado Libre, Amazon) y tabuladores del gremio. Da el rango típico por unidad de venta, qué explica la diferencia entre el barato y el caro, y si los precios del giro vienen subiendo o bajando.",
+    guia: "Analiza la estructura de precios del mercado local para productos o servicios equivalentes a los de este negocio: precios de venta al público actuales en tiendas, sitios de los competidores, marketplaces (Mercado Libre, Amazon) y tabuladores del gremio. Da el rango típico por unidad de venta, qué explica la diferencia entre el barato y el caro, las estrategias de precio de la competencia (descuentos, paquetes, precio de entrada), la elasticidad o disposición a pagar del cliente en esa zona económica y si los precios del giro vienen subiendo o bajando.",
     cifras: [
       { k: "precioMin", etiqueta: "Precio típico mínimo", tipo: "money", ayuda: "por unidad de venta, sin IVA" },
       { k: "precioMax", etiqueta: "Precio típico máximo", tipo: "money", ayuda: "por unidad de venta, sin IVA" },
@@ -52,7 +52,7 @@ export const TEMAS: any[] = [
   {
     k: "costos", titulo: "Costos e insumos", corto: "Costos",
     pregunta: "Cuánto cuesta de verdad producir y operar: insumos, sueldos y renta.",
-    guia: "Precios actuales de los principales insumos o materias primas del giro y su tendencia, sueldos de mercado del personal operativo (bolsas de trabajo, tabuladores, IMSS salario base de cotización), salario mínimo vigente, renta comercial o industrial por metro cuadrado en la zona, y costo de energía.",
+    guia: "Determina los costos operativos promedio de la industria en esa región específica: renta comercial o industrial por metro cuadrado en la zona, sueldos de mercado del personal operativo según la zona (bolsas de trabajo, tabuladores, salario base de cotización del IMSS) y el salario mínimo vigente de CONASAMI, precios actuales de los principales insumos o materias primas del giro y su tendencia, costo de energía y servicios, y logística local.",
     cifras: [
       { k: "salarioOperativo", etiqueta: "Sueldo mensual de mercado del personal operativo", tipo: "money", ayuda: "bruto, por persona" },
       { k: "inflacionInsumos", etiqueta: "Alza anual en precios de insumos", tipo: "pct", ayuda: "decimal: 0.07 = 7%" },
@@ -61,7 +61,7 @@ export const TEMAS: any[] = [
   {
     k: "economia", titulo: "Entorno económico", corto: "Economía",
     pregunta: "El clima de la economía donde va a vivir el proyecto.",
-    guia: "Inflación anual más reciente y la esperada para los próximos años (Banxico, encuesta de expectativas), tasa de interés objetivo de Banxico, rendimiento del Bono M a 10 años, crecimiento del PIB (nacional y, si hay, del sector), tipo de cambio y cualquier señal de desaceleración o aceleración del consumo en este giro.",
+    guia: "Evalúa el entorno macro y microeconómico local: PIB estatal y nacional (y del sector, si hay), inflación anual más reciente y la esperada para los próximos años (encuesta de expectativas de Banxico), tasa de interés objetivo de Banxico, rendimiento del Bono M a 10 años, tipo de cambio, nivel de empleo y desempleo, y poder adquisitivo de la población en la ciudad seleccionada. Señala cualquier aceleración o desaceleración del consumo en este giro.",
     cifras: [
       { k: "inflacion", etiqueta: "Inflación anual esperada", tipo: "pct", ayuda: "decimal" },
       { k: "tasaReferencia", etiqueta: "Tasa objetivo de Banxico", tipo: "pct", ayuda: "decimal" },
@@ -73,7 +73,7 @@ export const TEMAS: any[] = [
   {
     k: "financiamiento", titulo: "Financiamiento y valuación", corto: "Financiamiento",
     pregunta: "A qué costo se consigue dinero y cuánto vale un negocio así cuando se vende.",
-    guia: "Tasas de interés anuales actuales de crédito PyME en México (banca comercial, NAFIN, fintech) para una empresa de este tamaño y etapa, plazos y garantías típicas, y múltiplos de valuación del sector (EV/EBITDA o EV/EBIT) en transacciones privadas o empresas comparables, de preferencia de Damodaran para mercados emergentes.",
+    guia: "Mapea las opciones de financiamiento disponibles para una empresa de este tamaño y etapa en México: crédito PyME de la banca comercial, programas de Nafin y Bancomext, fintech, fondos estatales y capital privado activo en la región, con sus tasas de interés anuales actuales, plazos y garantías típicas. Agrega los múltiplos de valuación del sector (EV/EBITDA o EV/EBIT) en transacciones privadas o empresas comparables, de preferencia de Damodaran para mercados emergentes.",
     cifras: [
       { k: "tasaCreditoPyme", etiqueta: "Tasa de crédito PyME", tipo: "pct", ayuda: "anual, decimal" },
       { k: "multiploSector", etiqueta: "Múltiplo de valuación del sector", tipo: "num", ayuda: "veces EBIT o EBITDA" },
@@ -82,7 +82,7 @@ export const TEMAS: any[] = [
   {
     k: "regulacion", titulo: "Regulación y fiscal", corto: "Regulación",
     pregunta: "Qué exige la ley para operar y cuánto se lleva el fisco.",
-    guia: "Tasa de ISR y PTU aplicables, régimen fiscal conveniente para este tamaño, permisos, licencias y normas (NOM) que exige el giro, costo y tiempo de obtenerlos, cambios regulatorios recientes o en puerta (laborales, ambientales, de etiquetado, reforma de 40 horas, etc.) y su efecto en costos.",
+    guia: "Detalla el marco legal, normativo y fiscal aplicable: tasa de ISR y PTU, régimen fiscal conveniente para este tamaño y obligaciones ante el SAT, impuestos estatales (como el impuesto sobre nómina), normas (NOM) que exige el giro, y las licencias y permisos municipales requeridos para operarlo en la ciudad seleccionada, con su costo y el tiempo de obtenerlos. Incluye los cambios regulatorios recientes o en puerta (laborales, ambientales, de etiquetado, reforma de 40 horas, etc.) y su efecto en costos.",
     cifras: [
       { k: "isr", etiqueta: "Tasa de ISR aplicable", tipo: "pct", ayuda: "decimal" },
       { k: "ptu", etiqueta: "PTU", tipo: "pct", ayuda: "decimal" },
@@ -91,7 +91,7 @@ export const TEMAS: any[] = [
   {
     k: "riesgos", titulo: "Riesgos", corto: "Riesgos",
     pregunta: "Lo que puede salir mal, qué tan probable es y cuánto dolería.",
-    guia: "Riesgos de mercado, operativos, de proveedores, de tipo de cambio, regulatorios, de seguridad, climáticos y tecnológicos propios de este giro y esta zona, con casos reales cuando los haya. En 'hallazgos', un renglón por riesgo: en 'dato' el riesgo, en 'valor' su probabilidad e impacto (alta/media/baja) y cómo se mitiga.",
+    guia: "Identifica y evalúa los principales riesgos del entorno propios de este giro y esta zona: de mercado y saturación, volatilidad de insumos y proveedores, tipo de cambio, regulatorios locales, seguridad física y digital, climáticos, tecnológicos y barreras de entrada, con casos reales cuando los haya. En 'hallazgos', un renglón por riesgo: en 'dato' el riesgo, en 'valor' su probabilidad e impacto (alta/media/baja) y cómo se mitiga.",
     cifras: [],
   },
 ];
@@ -168,15 +168,22 @@ const numero = (v: any) => {
 };
 
 /* ---------- qué es el negocio (sin sus supuestos) ---------- */
-/* Qué es el negocio: el perfil que el empresario capturó en Empresa y
-   supuestos, más lo que vende según el modelo (nombres, no números). */
+/* Dónde opera, tal como lo capturó en el diagnóstico: ciudad, estado, país. */
+function zonaDe(s: any) {
+  const d = s.empresa?.diagnostico || {};
+  return [d.ciudad, d.estado, d.pais].map((x: any) => String(x || "").trim()).filter(Boolean).join(", ");
+}
+
+/* Qué es el negocio: giro, ubicación y lo que vende según el modelo (nombres,
+   no números), más el perfil que el empresario capturó en Empresa y supuestos. */
 function queEsElNegocio(s: any, L: any) {
   const prods = (s.productos || []).map((p: any) => p.nombre).filter(Boolean);
   return [
+    `Tipo de negocio / sector: giro ${s.empresa?.tipo || "—"} · sector declarado ${s.wacc?.sector || "—"}`,
+    `País / Estado / Ciudad: ${zonaDe(s) || "(no indicados: supón México)"}`,
+    `Supuestos comerciales: vende ${prods.length ? prods.join(", ") : "(productos no capturados)"}; unidad de venta: ${L?.uni || "unidad"}`,
+    "",
     textoPerfil(s),
-    `Sector declarado: ${s.wacc?.sector || "—"}`,
-    `Unidad que vende: ${L?.uni || "unidad"}`,
-    `${L?.prod || "Productos"}: ${prods.length ? prods.join(", ") : "(no capturados)"}`,
   ].join("\n");
 }
 
@@ -191,41 +198,59 @@ export async function investigarTema(k: string, s: any, L: any) {
   if (!T) throw new Error("Frente de investigación desconocido.");
   const llaves = T.cifras.map((c: any) => `"${c.k}": número o null`).join(", ");
   const explica = T.cifras.map((c: any) => `- ${c.k}: ${c.etiqueta}${c.ayuda ? " (" + c.ayuda + ")" : ""}`).join("\n");
+  const zona = zonaDe(s);
+  /* lo que el empresario ya averiguó de este frente: entra como información
+     previa del proyecto, para que la IA la valide y no la ignore */
+  const previo = String(((s.investigacion || {}).temas || {})[k]?.notas || "").trim();
 
+  /* Un frente por consulta: cada uno trae sus cifras para el contraste y se
+     puede volver a investigar solo. La salida es JSON porque de ahí comen la
+     pantalla y el contraste numérico. */
   const res = await iaFetch({
     maxTokens: 16000,
     buscar: true,
-    prompt: `Eres analista senior de investigación de mercados y estrategia. Vas a investigar a fondo un frente del entorno de un proyecto de inversión, con datos reales y recientes. Español de México.
+    prompt: `Actúa como experto en Inteligencia de Negocios, Analista Macroeconómico y Consultor de Estrategia Comercial. Estás haciendo una investigación de mercado profunda y exhaustiva de un proyecto de inversión en 8 frentes clave: ${TEMAS.map((t) => t.corto).join(", ")}. En esta consulta desarrollas sólo uno: ${T.titulo.toUpperCase()}. Los demás se investigan por separado; no los repitas. Español de México.
 
-EL NEGOCIO:
-${queEsElNegocio(s, L)}
+### CONTEXTO DEL PROYECTO
+Integra y valida de manera estricta esta información interna de la plataforma. Si lo que encuentres la contradice (el giro, la zona, el cliente, los competidores que menciona), dilo en el resumen.
+${queEsElNegocio(s, L)}${previo ? `\n\nLo que el empresario ya averiguó por su cuenta sobre este frente:\n"""\n${previo}\n"""` : ""}
 
-FRENTE A INVESTIGAR: ${T.titulo}
+### FUENTES DE INFORMACIÓN OBLIGATORIAS
+1. Organismos oficiales de México: INEGI (directorio DENUE, censos económicos), Secretaría de Economía, SHCP y SAT, Banxico, IMSS y CONASAMI.
+2. Cámaras y asociaciones del sector: información y reportes de las asociaciones relevantes para este giro.
+3. Medios especializados en economía y negocios: El Financiero, El Economista, Bloomberg, Forbes México, Expansión y la prensa local de ${zona || "la zona donde opera"}.
+4. Pulso digital: conversaciones, quejas frecuentes y demandas de los usuarios en las redes y plataformas relevantes para el giro.
+Prefiere datos de los últimos 24 meses y di la fecha de cada uno.
+
+### FRENTE A DESARROLLAR: ${T.titulo.toUpperCase()}
+Desarróllalo de forma cuantitativa y cualitativa para la ubicación seleccionada.
 ${T.guia}
 
-Reglas:
-- Busca en fuentes serias y recientes: INEGI, Banxico, SHCP y SAT, Secretaría de Economía, IMSS, cámaras y asociaciones del sector, reportes de industria, sitios de los competidores y marketplaces para precios. Prefiere datos de los últimos 24 meses y di la fecha de cada uno.
+### REGLAS
 - Si el país o la ciudad no se indican, supón México.
 - No inventes cifras. Si no encuentras un dato, déjalo en null y dilo en el resumen.
-- Montos en pesos mexicanos; tasas y porcentajes como decimal (0.045 = 4.5%).
+- Montos en pesos mexicanos. En los textos (resumen, hallazgos, implicaciones) escribe los montos con signo $, comas en los miles y dos decimales ($65,000,000,000.00 MXN) y los porcentajes con su signo (4.5%), nunca como decimal.
+- Sólo en "cifras" van números sin formato: montos sin signo ni comas, y tasas y porcentajes como decimal (0.045 = 4.5%).
 
+### FORMATO DE SALIDA
+Cada hallazgo es una viñeta corta con un dato específico (cifra, porcentaje o hecho concreto) y la fuente o el medio que lo respalda.
 Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin backticks y sin texto adicional, con esta forma:
-{"resumen":"4 a 6 líneas con lo esencial","hallazgos":[{"dato":"qué es","valor":"el número o el hecho, con unidad","fuente":"nombre de la fuente","url":"https://...","fecha":"mes y año"}],"cifras":{${llaves}},"implicaciones":"qué significa para este proyecto, en 2 a 4 líneas","confianza":"alta, media o baja"}
-Entre 4 y 10 hallazgos.${T.cifras.length ? `\nEn "cifras" usa exactamente estas llaves:\n${explica}` : `\n"cifras" va vacío: {}`}`,
+{"resumen":"4 a 6 líneas con lo esencial","hallazgos":[{"dato":"qué es","valor":"el número o el hecho, con unidad","fuente":"nombre de la fuente o el medio","url":"https://...","fecha":"mes y año"}],"cifras":{${llaves}},"implicaciones":"qué significa para este proyecto, en 2 a 4 líneas","confianza":"alta, media o baja"}
+Entre 6 y 12 hallazgos.${T.cifras.length ? `\nEn "cifras" usa exactamente estas llaves:\n${explica}` : `\n"cifras" va vacío: {}`}`,
   });
 
   const j = leerJSON(res);
   const cifras: any = {};
   for (const c of T.cifras) cifras[c.k] = numero(j?.cifras?.[c.k]);
   return {
-    resumen: String(j?.resumen || ""),
+    resumen: montosEnTexto(j?.resumen),
     hallazgos: (Array.isArray(j?.hallazgos) ? j.hallazgos : []).slice(0, 12).map((h: any) => ({
       id: Math.random().toString(36).slice(2, 9),
-      dato: String(h?.dato || ""), valor: String(h?.valor ?? ""), fuente: String(h?.fuente || ""),
+      dato: montosEnTexto(h?.dato), valor: montosEnTexto(h?.valor), fuente: String(h?.fuente || ""),
       url: String(h?.url || ""), fecha: String(h?.fecha || ""),
     })),
     cifras,
-    implicaciones: String(j?.implicaciones || ""),
+    implicaciones: montosEnTexto(j?.implicaciones),
     confianza: String(j?.confianza || ""),
     fuentes: fuentesDe(res),
     fecha: new Date().toISOString(),
@@ -531,6 +556,7 @@ Reglas:
 - Busca sobre todo las fricciones que no son un número contra otro: competidores que ya ocupan el nicho, regulación que exige inversión o gasto no presupuestado, riesgos sin colchón en el modelo, estacionalidad que el plan mensual ignora, un canal de venta sin gasto de marketing que lo sostenga, capacidad, capital de trabajo que no corresponde a cómo cobra y paga el giro, precios que no aguantan la competencia.
 - Contrasta también lo que el empresario dice de su negocio contra la investigación y contra su propio modelo: dice ser premium pero cobra por debajo del mercado, dice vender en línea o en marketplaces pero no presupuesta comisiones ni envíos, dice que su cliente más grande es buena parte de las ventas y el plan no lo refleja, dice que le preocupa un riesgo y el modelo no tiene colchón para él, dice ser una empresa establecida y el plan arranca desde cero, etc.
 - Cada fricción cita el número del modelo y la evidencia concreta que lo contradice.
+- Escribe los montos con signo $, comas en los miles y dos decimales ($1,250,000.00) y los porcentajes con su signo (4.5%), nunca como decimal.
 - "tab" debe ser exactamente una de estas claves: ${Object.keys(tabs).map((k) => `${k} (${tabs[k]})`).join(", ")}.
 - Ordena de mayor a menor severidad. Máximo 12 fricciones.
 - "consistencia" es un entero de 0 a 100: qué tanto resiste el modelo el contraste con la realidad.
@@ -545,12 +571,12 @@ Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin backticks y s
   return {
     fecha: new Date().toISOString(),
     proveedor: res.proveedor,
-    veredicto: String(j?.veredicto || ""),
+    veredicto: montosEnTexto(j?.veredicto),
     consistencia: c == null ? null : Math.max(0, Math.min(100, Math.round(c))),
     fricciones: (Array.isArray(j?.fricciones) ? j.fricciones : []).slice(0, 12).map((f: any) => ({
-      area: String(f?.area || ""), supuesto: String(f?.supuesto || ""), valorModelo: String(f?.valorModelo ?? ""),
-      evidencia: String(f?.evidencia || ""), valorMercado: String(f?.valorMercado ?? ""), severidad: sevOk(f?.severidad),
-      impacto: String(f?.impacto || ""), recomendacion: String(f?.recomendacion || ""), tab: tabs[f?.tab] ? f.tab : "",
+      area: String(f?.area || ""), supuesto: String(f?.supuesto || ""), valorModelo: montosEnTexto(f?.valorModelo),
+      evidencia: montosEnTexto(f?.evidencia), valorMercado: montosEnTexto(f?.valorMercado), severidad: sevOk(f?.severidad),
+      impacto: montosEnTexto(f?.impacto), recomendacion: montosEnTexto(f?.recomendacion), tab: tabs[f?.tab] ? f.tab : "",
     })).sort((a: any, b: any) => SEV[a.severidad].orden - SEV[b.severidad].orden),
     puntosCiegos: (Array.isArray(j?.puntosCiegos) ? j.puntosCiegos : []).map(String).slice(0, 10),
     fortalezas: (Array.isArray(j?.fortalezas) ? j.fortalezas : []).map(String).slice(0, 8),

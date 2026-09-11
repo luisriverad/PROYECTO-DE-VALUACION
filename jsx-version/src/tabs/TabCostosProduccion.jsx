@@ -30,9 +30,9 @@ export default function TabCostosProduccion({ s, up, m, L }) {
               {arr.map((g, i) => (
                 <tr key={g.id}>
                   <Td align="left"><TxtIn value={g.nombre} onChange={(v) => up((n) => { n.prodCostos[k][i].nombre = v; })} /></Td>
-                  <Td><NumIn value={g.fijoMes} dec={0} onChange={(v) => up((n) => { n.prodCostos[k][i].fijoMes = v; })} /></Td>
-                  <Td><NumIn value={g.porUnidad} onChange={(v) => up((n) => { n.prodCostos[k][i].porUnidad = v; })} /></Td>
-                  <Td><NumIn value={g.porHora} onChange={(v) => up((n) => { n.prodCostos[k][i].porHora = v; })} /></Td>
+                  <Td><NumIn moneda value={g.fijoMes} dec={0} onChange={(v) => up((n) => { n.prodCostos[k][i].fijoMes = v; })} /></Td>
+                  <Td><NumIn moneda value={g.porUnidad} onChange={(v) => up((n) => { n.prodCostos[k][i].porUnidad = v; })} /></Td>
+                  <Td><NumIn moneda value={g.porHora} onChange={(v) => up((n) => { n.prodCostos[k][i].porHora = v; })} /></Td>
                   <Td color={C.muted}>{money(unitario(g), 2)}</Td>
                   <Td bold>{money(anual(g))}</Td>
                   <Td><Btn small kind="danger" onClick={() => up((n) => { n.prodCostos[k].splice(i, 1); })}>×</Btn></Td>

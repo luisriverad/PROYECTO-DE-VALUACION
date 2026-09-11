@@ -40,7 +40,7 @@ export default function TabEscenarios({ A, up, R }: any) {
     <td className="px-2 py-1.5" style={{ borderBottom: `1px solid ${C.soft}`, minWidth: 130 }}>
       {f.tipo === "pct"
         ? <PctIn value={A.esc[f.k][idx]} onChange={(v) => setCelda(f.k, idx, v)} />
-        : <NumIn value={A.esc[f.k][idx]} dec={0} plain={f.tipo === "int"} onChange={(v) => setCelda(f.k, idx, v)} />}
+        : <NumIn moneda={f.tipo === "money"} value={A.esc[f.k][idx]} dec={0} plain={f.tipo === "int"} onChange={(v) => setCelda(f.k, idx, v)} />}
     </td>
   );
 

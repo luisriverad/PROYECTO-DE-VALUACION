@@ -23,7 +23,7 @@ export default function TabInversion({ s, up, m }) {
               {s.activos.map((a, i) => (
                 <tr key={a.id}>
                   <Td align="left"><TxtIn value={a.nombre} onChange={(v) => up((n) => { n.activos[i].nombre = v; })} /></Td>
-                  <Td><NumIn value={a.inversion} dec={0} onChange={(v) => up((n) => { n.activos[i].inversion = v; })} /></Td>
+                  <Td><NumIn moneda value={a.inversion} dec={0} onChange={(v) => up((n) => { n.activos[i].inversion = v; })} /></Td>
                   <Td align="left">
                     <select className={inputCls} style={inputSt} value={a.tipo} onChange={(e) => up((n) => { n.activos[i].tipo = e.target.value; })}>
                       <option value="dep">Depreciación</option><option value="amort">Amortización</option>
@@ -51,7 +51,7 @@ export default function TabInversion({ s, up, m }) {
         <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${s.supuestos.horizonte}, minmax(0,1fr))` }}>
           {Array.from({ length: s.supuestos.horizonte }).map((_, i) => (
             <Field key={i} label={"Año " + (i + 1)}>
-              <NumIn value={s.valuacion.capex[i] || 0} dec={0} onChange={(v) => up((n) => { n.valuacion.capex[i] = v; })} />
+              <NumIn moneda value={s.valuacion.capex[i] || 0} dec={0} onChange={(v) => up((n) => { n.valuacion.capex[i] = v; })} />
             </Field>
           ))}
         </div>

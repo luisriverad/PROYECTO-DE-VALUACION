@@ -32,7 +32,7 @@ export default function TabCredito({ s, up, m }: any) {
               <option value="si">Sí</option><option value="no">No</option>
             </select>
           </Field>
-          <Field label="Monto"><NumIn value={c.monto} dec={0} onChange={(v) => up((n) => { n.credito.monto = v; })} /></Field>
+          <Field label="Monto"><NumIn moneda value={c.monto} dec={0} onChange={(v) => up((n) => { n.credito.monto = v; })} /></Field>
           <Field label="Tasa anual total"><PctIn value={c.tasaAnual} onChange={(v) => up((n) => { n.credito.tasaAnual = v; })} /></Field>
           <Field label="Plazo (años)"><NumIn value={c.plazoAnios} dec={0} onChange={(v) => up((n) => { n.credito.plazoAnios = v; })} /></Field>
           <Field label="Sistema">
@@ -66,7 +66,7 @@ export default function TabCredito({ s, up, m }: any) {
               {pre.map((x, i) => (
                 <tr key={x.id || i}>
                   <Td align="left"><div style={{ width: 90 }}><NumIn value={x.periodo} dec={0} plain onChange={(v) => up((n) => { n.credito.prepagos[i].periodo = Math.max(1, Math.round(v)); })} /></div></Td>
-                  <Td><NumIn value={x.monto} dec={0} onChange={(v) => up((n) => { n.credito.prepagos[i].monto = Math.max(0, v); })} /></Td>
+                  <Td><NumIn moneda value={x.monto} dec={0} onChange={(v) => up((n) => { n.credito.prepagos[i].monto = Math.max(0, v); })} /></Td>
                   <Td align="left">
                     <select className={inputCls} style={inputSt} value={x.modo || "plazo"}
                       onChange={(e) => up((n) => { n.credito.prepagos[i].modo = e.target.value; })}>

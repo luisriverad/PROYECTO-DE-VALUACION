@@ -56,7 +56,7 @@ export function Campo({ A, up, g, k, label, hint, tipo = "money", dec }) {
     <Row label={label} hint={hint}>
       {tipo === "pct"
         ? <PctIn value={A[g][k]} dec={dec != null ? dec : 2} onChange={set} />
-        : <NumIn value={A[g][k]} dec={tipo === "int" ? 0 : tipo === "num" ? 2 : 0} plain={tipo === "int"} onChange={set} />}
+        : <NumIn moneda={tipo === "money"} value={A[g][k]} dec={tipo === "int" ? 0 : tipo === "num" ? 2 : 0} plain={tipo === "int"} onChange={set} />}
     </Row>
   );
 }
@@ -77,7 +77,7 @@ export function CampoDual({ A, up, g, k, bk, label, hint, refTexto }) {
           {hint && <div className="text-[10.5px] italic mt-0.5" style={{ color: C.muted }}>{hint}</div>}
         </div>
         <div className="shrink-0" style={{ width: 130 }}>
-          <NumIn value={pesos} dec={0} onChange={(v) => up((n) => { n[g][k] = v; })} />
+          <NumIn moneda value={pesos} dec={0} onChange={(v) => up((n) => { n[g][k] = v; })} />
         </div>
       </div>
       <div className="text-[10.5px] mt-0.5" style={{ color: C.muted }}>
@@ -90,7 +90,7 @@ export function CampoDual({ A, up, g, k, bk, label, hint, refTexto }) {
 /* Referencia de la operación actual: no entra en ningún cálculo, sólo sirve
    para poner los renglones de arriba en escala. */
 export function CampoRef({ A, up, g, k, label, hint }) {
-  return <Row label={label} hint={hint}><NumIn value={A[g][k]} dec={0} onChange={(v) => up((n) => { n[g][k] = v; })} /></Row>;
+  return <Row label={label} hint={hint}><NumIn moneda value={A[g][k]} dec={0} onChange={(v) => up((n) => { n[g][k] = v; })} /></Row>;
 }
 
 /* Deslizador: para las decisiones donde importa recorrer el rango entero,

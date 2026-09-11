@@ -4,7 +4,7 @@ import { computeModel } from "./model";
 /* ============================================================
    EXPORTACIÓN A EXCEL — un libro con la misma estructura de pestañas
    ============================================================ */
-const FMT = { money: "#,##0", money2: "#,##0.00", money4: "#,##0.0000", pct: "0.0%", pct2: "0.00%", int: "#,##0", dec: "#,##0.00" };
+const FMT = { money: "$#,##0.00", money2: "$#,##0.00", money4: "$#,##0.00##", pct: "0.0%", pct2: "0.00%", int: "#,##0", dec: "#,##0.00" };
 const F = (v, f) => ({ __f: true, v, f });
 const $ = (v) => F(v, FMT.money);
 const $2 = (v) => F(v, FMT.money2);
@@ -240,7 +240,7 @@ export function exportarExcel(XLSX, s, m) {
     ["Componente", "Valor", "Observaciones"],
     ["Tasa libre de riesgo", P(w.rf), w.notas.rf || ""],
     ["Beta", N2(w.beta), w.notas.beta || ""],
-    ["Prima de riesgo de mercado (ERP)", P(w.erp), w.notas.erp || ""],
+    ["Prima de riesgo de mercado (Equity Risk Premium)", P(w.erp), w.notas.erp || ""],
     ["Prima por tamaño", P(w.pTamano), "Empresa pequeña, menor liquidez"],
     ["Prima por etapa (startup)", P(w.pStartup), "Riesgo de ejecución del arranque"],
     ["Riesgo país", P(w.crp), w.notas.crp || ""],

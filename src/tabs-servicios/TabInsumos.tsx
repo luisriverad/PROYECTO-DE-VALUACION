@@ -23,7 +23,7 @@ export default function TabInsumos({ s, up, m, L }: any) {
             {s.insumos.map((it, i) => (
               <tr key={it.id}>
                 <Td align="left"><TxtIn value={it.nombre} onChange={(v) => up((n) => { n.insumos[i].nombre = v; })} /></Td>
-                <Td><NumIn value={it.costoLote} onChange={(v) => up((n) => { n.insumos[i].costoLote = v; })} /></Td>
+                <Td><NumIn moneda value={it.costoLote} onChange={(v) => up((n) => { n.insumos[i].costoLote = v; })} /></Td>
                 <Td><NumIn value={it.volumenLote} dec={1} onChange={(v) => up((n) => { n.insumos[i].volumenLote = v; })} /></Td>
                 <Td align="left"><UnidadIn value={it.unidad} onChange={(v) => up((n) => { n.insumos[i].unidad = v; })} /></Td>
                 <Td bold>{money(m.insumoUnit[it.id], 2)}</Td>

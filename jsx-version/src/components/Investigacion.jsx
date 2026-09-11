@@ -11,7 +11,7 @@ import {
   TEMAS, SEV, asegurar, temaVacio, tieneDatos, hayDescripcion, investigarTema,
   contrasteNumerico, correrContraste, pedirContraste, tomarPedido, pestanas,
 } from "../lib/investigacion";
-import { money, num } from "../lib/format";
+import { money, num, montosEnTexto } from "../lib/format";
 import { estadoPerfil, MIN_PALABRAS } from "../lib/perfil";
 
 const cuando = (iso) => {
@@ -27,6 +27,20 @@ function Aviso({ children, tono = "neg" }) {
       style={{ background: neg ? "#FDECEA" : C.soft, color: neg ? C.neg : C.muted, border: `1px solid ${neg ? "#EDB4AE" : C.line}` }}>
       {children}
     </div>
+  );
+}
+
+/* Valor de un hallazgo: texto libre, pero sus montos se ven como en el resto
+   de la plataforma ($, comas y dos decimales), incluidos los que ya estaban
+   guardados. Mientras se edita se ve tal cual; al salir se guarda formateado. */
+function ValorIn({ value, onChange }) {
+  const [editando, setEditando] = useState(false);
+  return (
+    <input className={inputCls} style={inputSt} placeholder="Cifra o hecho"
+      value={editando ? value || "" : montosEnTexto(value)}
+      onFocus={() => setEditando(true)}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={() => { setEditando(false); const f = montosEnTexto(value); if (f !== (value || "")) onChange(f); }} />
   );
 }
 
@@ -195,7 +209,7 @@ export function TabInvestigacion({ s, up, L, irA, flash }) {
             <div className="text-[11px] uppercase tracking-wide font-semibold mb-1" style={{ color: C.muted }}>
               Lo esencial{d.confianza ? ` · confianza ${d.confianza}` : ""}{d.fecha ? ` · ${cuando(d.fecha)}` : ""}
             </div>
-            <div className="text-[13px] leading-relaxed whitespace-pre-wrap">{d.resumen}</div>
+            <div className="text-[13px] leading-relaxed whitespace-pre-wrap">{montosEnTexto(d.resumen)}</div>
           </div>
         )}
 
@@ -233,7 +247,7 @@ export function TabInvestigacion({ s, up, L, irA, flash }) {
                   return (
                     <tr key={h.id || i}>
                       <td className="px-1 py-1"><TxtIn value={h.dato} onChange={campo("dato")} placeholder="Qué es" /></td>
-                      <td className="px-1 py-1"><TxtIn value={h.valor} onChange={campo("valor")} placeholder="Cifra o hecho" /></td>
+                      <td className="px-1 py-1"><ValorIn value={h.valor} onChange={campo("valor")} /></td>
                       <td className="px-1 py-1">
                         <div className="flex items-center gap-1">
                           <TxtIn value={h.fuente} onChange={campo("fuente")} placeholder="Fuente" />
@@ -261,7 +275,7 @@ export function TabInvestigacion({ s, up, L, irA, flash }) {
         {d.implicaciones && (
           <div className="mb-4 px-3 py-2 rounded" style={{ background: C.accentSoft, border: `1px solid ${C.accent}` }}>
             <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: "#3E6B27" }}>Qué significa para tu proyecto</div>
-            <div className="text-[12.5px] leading-relaxed">{d.implicaciones}</div>
+            <div className="text-[12.5px] leading-relaxed">{montosEnTexto(d.implicaciones)}</div>
           </div>
         )}
 
@@ -407,7 +421,7 @@ export function TabContraste({ s, up, m, L, irA }) {
             {res.veredicto && (
               <div className="mb-4 px-3 py-2.5 rounded" style={{ background: C.tasaBg, border: `1px solid ${C.tasaLinea}` }}>
                 <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: C.tasaTexto }}>Veredicto</div>
-                <div className="text-[13px] leading-relaxed" style={{ color: C.ink }}>{res.veredicto}</div>
+                <div className="text-[13px] leading-relaxed" style={{ color: C.ink }}>{montosEnTexto(res.veredicto)}</div>
               </div>
             )}
 
@@ -428,16 +442,16 @@ export function TabContraste({ s, up, m, L, irA }) {
                     <div className="grid gap-3 mb-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
                       <div>
                         <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: C.muted }}>En tu modelo</div>
-                        <div className="text-[12.5px]">{f.valorModelo || "—"}</div>
+                        <div className="text-[12.5px]">{montosEnTexto(f.valorModelo) || "—"}</div>
                       </div>
                       <div>
                         <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: C.muted }}>Allá afuera</div>
-                        <div className="text-[12.5px]">{f.valorMercado || "—"}</div>
-                        {f.evidencia && <div className="text-[11.5px] mt-0.5" style={{ color: C.muted }}>{f.evidencia}</div>}
+                        <div className="text-[12.5px]">{montosEnTexto(f.valorMercado) || "—"}</div>
+                        {f.evidencia && <div className="text-[11.5px] mt-0.5" style={{ color: C.muted }}>{montosEnTexto(f.evidencia)}</div>}
                       </div>
                     </div>
-                    {f.impacto && <div className="text-[12px] leading-relaxed"><b>Impacto:</b> {f.impacto}</div>}
-                    {f.recomendacion && <div className="text-[12px] leading-relaxed mt-0.5"><b>Qué cambiar:</b> {f.recomendacion}</div>}
+                    {f.impacto && <div className="text-[12px] leading-relaxed"><b>Impacto:</b> {montosEnTexto(f.impacto)}</div>}
+                    {f.recomendacion && <div className="text-[12px] leading-relaxed mt-0.5"><b>Qué cambiar:</b> {montosEnTexto(f.recomendacion)}</div>}
                   </div>
                 ))}
               </div>

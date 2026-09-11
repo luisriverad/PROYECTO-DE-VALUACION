@@ -34,8 +34,8 @@ export default function TabGastos({ s, up, m }: any) {
                   {arr.map((g, i) => (
                     <tr key={g.id}>
                       <Td align="left"><TxtIn value={g.nombre} onChange={(v) => up((n) => { n.gastos[k][i].nombre = v; })} /></Td>
-                      <Td><NumIn value={g.m1} dec={0} onChange={(v) => up((n) => { n.gastos[k][i].m1 = v; })} /></Td>
-                      <Td><NumIn value={g.m2} dec={0} onChange={(v) => up((n) => { n.gastos[k][i].m2 = v; })} /></Td>
+                      <Td><NumIn moneda value={g.m1} dec={0} onChange={(v) => up((n) => { n.gastos[k][i].m1 = v; })} /></Td>
+                      <Td><NumIn moneda value={g.m2} dec={0} onChange={(v) => up((n) => { n.gastos[k][i].m2 = v; })} /></Td>
                       <Td color={C.muted}>{money(g.m1 * 12)}</Td>
                       <Td><Btn small kind="danger" onClick={() => up((n) => { n.gastos[k].splice(i, 1); })}>×</Btn></Td>
                     </tr>
@@ -57,7 +57,7 @@ export default function TabGastos({ s, up, m }: any) {
               {s.gastos.porPieza.map((g, i) => (
                 <tr key={g.id}>
                   <Td align="left"><TxtIn value={g.nombre} onChange={(v) => up((n) => { n.gastos.porPieza[i].nombre = v; })} /></Td>
-                  <Td><NumIn value={g.costo} onChange={(v) => up((n) => { n.gastos.porPieza[i].costo = v; })} /></Td>
+                  <Td><NumIn moneda value={g.costo} onChange={(v) => up((n) => { n.gastos.porPieza[i].costo = v; })} /></Td>
                   <Td><Btn small kind="danger" onClick={() => up((n) => { n.gastos.porPieza.splice(i, 1); })}>×</Btn></Td>
                 </tr>
               ))}
