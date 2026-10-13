@@ -308,7 +308,7 @@ export function NumIn({ value, onChange, dec = 2, suffix, align = "right", disab
   );
 }
 export function PctIn({ value, onChange, dec = 2 }: any) {
-  return <NumIn value={value * 100} dec={dec} suffix="%" onChange={(v) => onChange(v / 100)} />;
+  return <NumIn value={value === null || value === undefined ? value : value * 100} dec={dec} suffix="%" onChange={(v) => onChange(v / 100)} />;
 }
 export function TxtIn({ value, onChange, placeholder }: any) {
   return <input className={inputCls} style={inputSt} value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;

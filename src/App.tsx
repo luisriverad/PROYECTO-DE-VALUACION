@@ -52,11 +52,20 @@ const MODULOS = [
    ------------------------------------------------------------ */
 
 /* Un dato suelto de la barra */
+/* Diferencia TIR − TREMA en puntos porcentuales. Sin TREMA capturada no hay
+   contra qué comparar. */
+function vsTrema(tir: number, trema: number) {
+  if (trema === null || trema === undefined || !isFinite(trema)) return "Sin TREMA";
+  if (!isFinite(tir)) return "—";
+  const d = (tir - trema) * 100;
+  return (d >= 0 ? "+" : "-") + num(Math.abs(d), 1) + " pp";
+}
+
 function KpiBarra({ k, v, tone }: any) {
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: C.muted }}>{k}</div>
-      <div className="text-[15px] font-semibold" style={{ color: tone === "pos" ? C.pos : tone === "neg" ? C.neg : C.ink, fontVariantNumeric: "tabular-nums" }}>{v}</div>
+      <div className="text-[15px] font-semibold" style={{ color: tone === "neg" ? C.neg : C.ink, fontVariantNumeric: "tabular-nums" }}>{v}</div>
     </div>
   );
 }
@@ -424,11 +433,13 @@ export default function App({ perfil, salir }: any) {
         <div className="px-5 py-3 flex items-center gap-6 flex-wrap" style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
           <CajaResultado ev={m.ev} inversion={m.inversion} />
           {[
-            ["VPN", money(m.vpn), m.vpn >= 0 ? "pos" : "neg"],
-            ["TIR", pct(m.tir), m.tir >= m.waccNom ? "pos" : "neg"],
+            ["VPN", money(m.vpn), m.vpn < 0 ? "neg" : undefined],
+            ["TIR", pct(m.tir), m.tir < 0 ? "neg" : undefined],
+            ["TIR vs TREMA", vsTrema(m.tir, s.supuestos.trema), vsTrema(m.tir, s.supuestos.trema).startsWith("-") ? "neg" : undefined],
             ["WACC", pct(m.waccNom)],
-            ["Payback desc.", m.dpbp ? num(m.dpbp, 1) + " años" : "No recupera"],
+            ["Payback desc.", m.dpbp ? num(m.dpbp, 1) + " años" : "No recupera", m.dpbp ? undefined : "neg"],
             ["Ventas Año 1", money(m.anios[0]?.ventas)],
+            ["ROI", pct(m.roi), m.roi < 0 ? "neg" : undefined],
           ].map(([k, v, tone]) => <KpiBarra key={k} k={k} v={v} tone={tone} />)}
           <ChipMezcla productos={s.productos} />
         </div>
@@ -436,11 +447,13 @@ export default function App({ perfil, salir }: any) {
         <div className="px-5 py-3 flex items-center gap-6 flex-wrap" style={{ background: C.white, borderBottom: `1px solid ${C.line}` }}>
           <CajaResultado ev={mSv.ev} inversion={mSv.inversion} />
           {[
-            ["VPN", money(mSv.vpn), mSv.vpn >= 0 ? "pos" : "neg"],
-            ["TIR", pct(mSv.tir), mSv.tir >= mSv.waccNom ? "pos" : "neg"],
+            ["VPN", money(mSv.vpn), mSv.vpn < 0 ? "neg" : undefined],
+            ["TIR", pct(mSv.tir), mSv.tir < 0 ? "neg" : undefined],
+            ["TIR vs TREMA", vsTrema(mSv.tir, sv.supuestos.trema), vsTrema(mSv.tir, sv.supuestos.trema).startsWith("-") ? "neg" : undefined],
             ["WACC", pct(mSv.waccNom)],
-            ["Payback desc.", mSv.dpbp ? num(mSv.dpbp, 1) + " años" : "No recupera"],
+            ["Payback desc.", mSv.dpbp ? num(mSv.dpbp, 1) + " años" : "No recupera", mSv.dpbp ? undefined : "neg"],
             ["Ventas Año 1", money(mSv.anios[0]?.ventas)],
+            ["ROI", pct(mSv.roi), mSv.roi < 0 ? "neg" : undefined],
           ].map(([k, v, tone]) => <KpiBarra key={k} k={k} v={v} tone={tone} />)}
           <ChipMezcla productos={sv.productos} />
         </div>
@@ -450,9 +463,9 @@ export default function App({ perfil, salir }: any) {
             ["WACC", pct(RA.sup.wacc, 2)],
             ["Ke", pct(RA.sup.ke, 2)],
             ["ISR", pct(RA.sup.isr, 0)],
-            ["VPN maquinaria", money(RA.maq.vpn), RA.maq.vpn >= 0 ? "pos" : "neg"],
-            ["VPN inmueble", money(RA.inm.vpn), RA.inm.vpn >= 0 ? "pos" : "neg"],
-            ["VPN terreno", money(RA.ter.vpn), RA.ter.vpn >= 0 ? "pos" : "neg"],
+            ["VPN maquinaria", money(RA.maq.vpn), RA.maq.vpn < 0 ? "neg" : undefined],
+            ["VPN inmueble", money(RA.inm.vpn), RA.inm.vpn < 0 ? "neg" : undefined],
+            ["VPN terreno", money(RA.ter.vpn), RA.ter.vpn < 0 ? "neg" : undefined],
             ["Vehículo: gana", RA.auto.ganador],
           ].map(([k, v, tone]) => <KpiBarra key={k} k={k} v={v} tone={tone} />)}
         </div>

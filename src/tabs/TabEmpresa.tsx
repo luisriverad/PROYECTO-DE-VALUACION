@@ -63,6 +63,13 @@ export default function TabEmpresa({ s, up, m }: any) {
           <div className="text-[11px] mt-2 px-2 py-2 rounded" style={{ background: C.soft, color: C.muted }}>
             Tasa fiscal total aplicada a la utilidad: <b style={{ color: C.ink }}>{pct(m.tasaFiscal)}</b>
           </div>
+          {/* Se captura a mano: es el mínimo que el inversionista le exige al proyecto,
+              y en la barra de arriba se compara contra la TIR. */}
+          <div className="mt-3">
+            <Field label="TREMA (Tasa de Rendimiento Esperada Mínima Aceptable)">
+              <PctIn value={sp.trema} onChange={(v) => up((n) => { n.supuestos.trema = v; })} />
+            </Field>
+          </div>
         </Card>
 
         <Card title="Capital de trabajo" sub="Define cuánta caja consume la operación al crecer. La tabla año por año que mueven estos días vive en Rentabilidad y valuación.">

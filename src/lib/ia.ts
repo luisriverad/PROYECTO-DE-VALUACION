@@ -173,9 +173,23 @@ export function detectaProveedor(llave) {
 let cuenta: string | null = null;
 const ranura = () => (cuenta ? `${LS}:${cuenta}` : null);
 
+/* Ligar también limpia: en este navegador sólo sobrevive la llave de la cuenta
+   que está dentro. Si la sesión terminó sin pasar por «Salir» (caducó, se
+   cerró la ventana, entró otra persona), la llave anterior se borra aquí en
+   lugar de quedarse en el almacenamiento, donde cualquiera con acceso a la
+   computadora podría leerla desde las herramientas del navegador. */
 export function ligarCuenta(id: any) {
   cuenta = id ? String(id) : null;
-  try { for (const k of LEGADAS) localStorage.removeItem(k); } catch (e) { /* sin acceso al almacenamiento */ }
+  const propia = ranura();
+  try {
+    for (const k of LEGADAS) localStorage.removeItem(k);
+    const ajenas: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(LS + ":") && k !== propia) ajenas.push(k);
+    }
+    for (const k of ajenas) localStorage.removeItem(k);
+  } catch (e) { /* sin acceso al almacenamiento */ }
 }
 
 /* Al salir: la llave se va con la cuenta. En una computadora compartida no

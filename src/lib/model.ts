@@ -29,7 +29,7 @@ export const seed = () => {
   return {
     empresa: { empresario: "", nombre: "MI ZAPATO, S.A. DE C.V.", tipo: "manufactura", anio: 2026, descripcion: "", diagnostico: {} },
     supuestos: {
-      isr: 0.3, ptu: 0.1, inflacion: 0.035, gPerp: 0.03, diasBase: 360,
+      isr: 0.3, ptu: 0.1, inflacion: 0.035, gPerp: 0.03, trema: null as number | null, diasBase: 360,
       dso: 30, pctCredito: 0.1, dio: 60, dpo: 45,
       indexarPrecios: false, impuestoAnio1: true, nominaEscalaVolumen: true,
       anioCambioGastos: 3, horizonte: 5,
@@ -409,6 +409,8 @@ export function computeModel(s) {
   const arrPerp = arrFcf.slice();
   if (isFinite(vt)) arrPerp[arrPerp.length - 1] = arrPerp[arrPerp.length - 1] + vt;
   const tirPerp = irr(arrPerp);
+  // ROI simple: lo que regresan los flujos del horizonte sobre lo invertido, sin descontar
+  const roi = inversion > 0 ? (arrFcf.slice(1).reduce((a, b) => a + b, 0) - inversion) / inversion : NaN;
 
   // payback descontado
   let cum = -inversion, dpbp = null, acumSerie = [{ y: 0, acum: cum }];
@@ -443,7 +445,7 @@ export function computeModel(s) {
     insumoUnit, moHora, moHorasEfect, prod: pricing, absorcion, unidadesAnio, meses, anios, cred, credInfo, capacidad,
     inversion, inversionAuto, minMes, minAnio,
     capmNom, capmReal, kdNom, kdReal, waccNom, waccReal, kdAntes,
-    ct, flujos, vt, vpVT, vpOperacion, vpn, vpnPerp, tir, tirPerp, dpbp, acumSerie,
+    ct, flujos, vt, vpVT, vpOperacion, vpn, vpnPerp, tir, tirPerp, roi, dpbp, acumSerie,
     ev, equity, preMoney, pctPost, pctPre, medEbit, valMultiplo,
     anioEquilibrio, mesEquilibrio, peUnidades, pePesos, precioProm, cvProm, cmuProm, costosFijosAnio1,
     gFijoMes1, gFijoMes2, nominaMes, costoPorPieza, gastoTotalAnio1, tasaFiscal,
